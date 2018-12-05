@@ -1,6 +1,6 @@
 library(tidyverse)
 library(magrittr)
-source("../R/helpers.R")
+source("R/helpers.R")
 
 #Population
 population_df <- read_csv("data-raw/population_data.csv")
