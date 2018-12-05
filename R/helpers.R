@@ -69,6 +69,24 @@ rollmean5 <- function(x){
 #' @examples
 #' cat_function()
 #'
+#'
+unfactor <- function(x){
+  x <- as.character(x)
+  if(mean(is.na(as.numeric(x))) < 0.9){
+    x <- as.numeric(x)
+  }
+  x
+}
+
+#' BRFSS
+#'
+#' Reads in BRFSS data
+#' @param love Do you love cats? Defaults to TRUE.
+#' @keywords cats
+#' @export
+#' @examples
+#' cat_function()
+#'
 trendline_data <- function(df, rollmean = 1, exclude = "", census_2000 = T) {
   df_lou <- df %>%
     filter(FIPS == 21111) %>%
@@ -291,12 +309,13 @@ stl_merge <- function(df_original, ..., weight_var = "", method = "mean"){
 
   #If no weight variable supplied, read in total population and join to df
   if(weight_variable == ""){
-    population_data <- read_csv("data/population_data.csv")
-    population_data$FIPS <- as.numeric(population_data$FIPS)
+    pop <- population_df
+
     if(typeof(df_original$FIPS) == "character"){
-      population_data$FIPS <- as.character(population_data$FIPS)
+      pop$FIPS <- as.character(pop$FIPS)
     }
-    df_original <- df_original %>% left_join(population_data, by = c("FIPS", "year"))
+
+    df_original %<>% left_join(pop, by = c("FIPS", "year"))
     weight_variable <- "population"
   }
 

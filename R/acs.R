@@ -46,11 +46,13 @@ acs_time <- function(folder, starting_year = 2005){
 #' @examples
 #' cat_function()
 #'
-process_microdata <- function(data){
+process_microdata <- function(data, gq = F){
   
-  data %<>% 
-    filter(GQ == 1 | GQ == 2) %>%
-    select(-GQ)
+  if(!gq){
+    data %<>% 
+      filter(GQ == 1 | GQ == 2) %>%
+      select(-GQ)
+  }
   
   if("MET2013" %in% names(data)){
     data %<>% 

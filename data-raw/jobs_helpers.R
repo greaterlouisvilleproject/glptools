@@ -1,8 +1,17 @@
 library(tidyverse)
+library(magrittr)
+source("../R/helpers.R")
 
-path <- "data-raw/"
+#Population
+population_df <- read_csv("data-raw/population_data.csv")
 
-rpp <- read_csv(path %+% "rppmsa.csv", skip = 4, col_names = TRUE, na = c("", "(NA)"))
+population_df$FIPS <- as.numeric(population_df$FIPS)
+
+usethis::use_data(population_df, overwrite = TRUE)
+
+
+#Cost of Living
+rpp <- read_csv("data-raw/rppmsa.csv", skip = 4, col_names = TRUE, na = c("", "(NA)"))
 
 rpp$`2000` <- rpp$`2008`
 rpp$`2005` <- rpp$`2008`
@@ -30,7 +39,7 @@ COLA_df %<>%
   ungroup() %>%
   select(-rpp, -rpp_lou)
 
-cpi <- read_csv(path %+% "c-cpi-u.csv", skip = 11)
+cpi <- read_csv("data-raw/c-cpi-u.csv", skip = 11)
 
 cpi %<>%
   rename(year = Year) %>%
@@ -49,6 +58,6 @@ COLA_df %<>%
   ungroup() %>%
   select(-cpi, -base_cpi)
 
-devtools::use_data(COLA_df, overwrite = TRUE)
+usethis::use_data(COLA_df, overwrite = TRUE)
 
-rm(rpp, cpi)
+rm(population_df, rpp, cpi, COLA_df)
