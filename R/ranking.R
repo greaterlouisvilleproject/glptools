@@ -98,13 +98,13 @@ ranking <- function(df, var,
 
   #add features
   p <- p + theme(text = element_text(family = "Museo Sans 300"),
-                 plot.title = element_text(size = 36, hjust = 0.5),
+                 plot.title = element_text(size = 42, hjust = 0.5, margin = margin(b = 10, unit = "pt")),
                  axis.text.y = element_text(hjust = 0, family = rev(df$textfont),
-                                            size = 24, color = rev(df$textcolor)),
-                 axis.title.x = element_text(size = 24),
+                                            size = 30, color = rev(df$textcolor)),
+                 axis.title.x = element_text(size = 30),
                  axis.ticks = element_blank(),
                  axis.text.x = element_blank(),
-                 plot.caption = element_text(size = 20, lineheight = 0.5))
+                 plot.caption = element_text(size = 18, lineheight = 0.5))
 
   if(subtitle_text != ""){
     p <- p + theme(plot.subtitle = element_text(hjust = 0.5, size = 24)) +

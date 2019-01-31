@@ -9,12 +9,13 @@
 trendline <- function(type, df, var,
                       category,
                       sex, race, peers,
-                      xmin, xmax,
+                      xmin, xmax, ylimits,
                       rollmean, census,
                       plot_title, y_title,
                       caption_text, subtitle_text,
                       shading, drop_pctiles, 
                       include_hispanic, order){
+  
   #filter data
   df %<>% tl_filter(peers, sex, race, category)
   
@@ -48,9 +49,8 @@ trendline <- function(type, df, var,
     df %<>% tl_add_line_data_maxmin()
   }
   
-
   #Calculate break settings
-  output <- tl_break_settings(df, xmin, xmax, rollmean)
+  output <- tl_break_settings(df, xmin, xmax, rollmean, census)
 
   major_break_settings <- output[["major_break_settings"]]
   minor_break_settings <- output[["minor_break_settings"]]
@@ -59,8 +59,8 @@ trendline <- function(type, df, var,
   g <- tl_plot(df)
 
   #axis limits
-  g %<>% tl_limits(df, xmin, xmax, major_break_settings, minor_break_settings)
-
+  g %<>% tl_limits(df, xmin, xmax, ylimits,
+                   major_break_settings, minor_break_settings)
   #add style
   g %<>% tl_style(plot_title, y_title,
                   caption_text, subtitle_text,
@@ -89,7 +89,7 @@ trendline <- function(type, df, var,
 #'
 trend_single <- function(df, var,
                          sex = "total", race = "total", peers = "current",
-                         xmin = 2000, xmax = 2017,
+                         xmin = 2000, xmax = 2017, ylimits = "",
                          rollmean = 1, census = T,
                          plot_title = "", y_title = "",
                          caption_text = "", subtitle_text = "",
@@ -118,7 +118,7 @@ trend_single <- function(df, var,
             df, var,
             category,
             sex, race, peers,
-            xmin, xmax,
+            xmin, xmax, ylimits,
             rollmean, census,
             plot_title, y_title,
             caption_text, subtitle_text,
@@ -138,7 +138,7 @@ trend_single <- function(df, var,
 trend_multi <- function(df, var,
                         category = "",
                         sex = "total", race = "total", peers = "current",
-                        xmin = 2000, xmax = 2017,
+                        xmin = 2000, xmax = 2017, ylimits = "",
                         rollmean = 1, census = T,
                         plot_title = "", y_title = "",
                         caption_text = "", subtitle_text = "",
@@ -152,10 +152,11 @@ trend_multi <- function(df, var,
   }
   df$var <- df[[var]]
   
+  if(class(substitute(category)) == "name"){
+    category <- deparse(substitute(category))
+  }
+  
   if(peers != "kentucky"){
-    if(class(substitute(category)) == "name"){
-      category <- deparse(substitute(category))
-    }
     df$category <- df[[category]]
   }
   
@@ -164,12 +165,12 @@ trend_multi <- function(df, var,
   } else {
     type <- "multi"
   }
-
+  
   trendline(type,
             df, var,
             category,
             sex, race, peers,
-            xmin, xmax,
+            xmin, xmax, ylimits,
             rollmean, census,
             plot_title, y_title,
             caption_text, subtitle_text,
@@ -189,7 +190,7 @@ trend_multi <- function(df, var,
 trend_maxmin <- function(df, var,
                          order = "descending",
                          sex = "total", race = "total", peers = "current",
-                         xmin = 2000, xmax = 2017,
+                         xmin = 2000, xmax = 2017, ylimits = "",
                          rollmean = 1, census = T,
                          plot_title = "", y_title = "",
                          caption_text = "", subtitle_text = ""){
@@ -209,7 +210,7 @@ trend_maxmin <- function(df, var,
             df, var,
             category,
             sex, race, peers,
-            xmin, xmax,
+            xmin, xmax, ylimits,
             rollmean, census,
             plot_title, y_title,
             caption_text, subtitle_text,
@@ -229,7 +230,7 @@ trend_maxmin <- function(df, var,
 #'
 trend_ky_ed <- function(df, var,
                         category = "",
-                        xmin = 2000, xmax = 2017,
+                        xmin = 2000, xmax = 2017, ylimits = "",
                         rollmean = 1, 
                         plot_title = "", y_title = "",
                         caption_text = "", subtitle_text = "",
@@ -251,7 +252,7 @@ trend_ky_ed <- function(df, var,
             df, var,
             category,
             sex, race, peers,
-            xmin, xmax,
+            xmin, xmax, ylimits,
             rollmean, census,
             plot_title, y_title,
             caption_text, subtitle_text,

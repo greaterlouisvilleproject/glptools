@@ -2,18 +2,17 @@
 % Please edit documentation in R/wonder.R
 \name{stl_adj_wonder}
 \alias{stl_adj_wonder}
-\title{Health Insurance}
+\title{Merge St. Louis}
 \usage{
 stl_adj_wonder(df, method = "sum", pop_var = "population")
 }
 \arguments{
-\item{love}{Do you love cats? Defaults to TRUE.}
+\item{df}{A data frame.}
+
+\item{method}{"sum" or "weight" to merge St. .}
+
+\item{pop_var}{The population variable.}
 }
 \description{
-Reads in BRFSS data
+Merge St. Louis
 }
-\examples{
-cat_function()
-
-}
-\keyword{cats}

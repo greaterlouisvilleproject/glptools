@@ -2,18 +2,19 @@
 % Please edit documentation in R/wonder.R
 \name{age_adj_rate}
 \alias{age_adj_rate}
-\title{Health Insurance}
+\title{Calculate an age-adjusted rate}
 \usage{
 age_adj_rate(df, var, age_var = "age", pop_var = "population")
 }
 \arguments{
-\item{love}{Do you love cats? Defaults to TRUE.}
+\item{df}{A data frame.}
+
+\item{var}{The variable to weight.}
+
+\item{age_var}{Variable of age groups. Either "age" or "age_10" from \code{clean_wonder}.}
+
+\item{pop_var}{The popylatuin variable.}
 }
 \description{
-Reads in BRFSS data
+Calculate an age-adjusted rate
 }
-\examples{
-cat_function()
-
-}
-\keyword{cats}

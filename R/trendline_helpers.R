@@ -1,31 +1,25 @@
-#' BRFSS
+#' Makes a named list of objects
 #'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
+#' The name of each object in the list matches its name in the environment. 
 #'
+#' @param ... A list of objects
 make_list <- function(...){
   dots_content <- list(...)
   dots_names <- as.character(eval(substitute(alist(...))))
   setNames(dots_content, dots_names)
 }
 
-#' BRFSS
-#'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
-#'
-tl_filter <- function(df, peers, sex, race, category) {
-  #filter to specified sex and race
+#' Filter data to sex, race, and peer set.
+#' 
+#' @return A data frame
+tl_filter <- function(df, peers ="current", sex ="total", race = "total", category = "") {
+  
+  #Filter to specified sex and race.
+  #If sex or race are not ID variables, or if no sex or race was specified, do not subset.
   if("sex" %in% names(df)  & category != "sex")  df <- df[df$sex == sex,]
   if("race" %in% names(df) & category != "race") df <- df[df$race == race,]
 
-  #subset to peers
+  #Filter to peer set.
   if(peers %in% c("current", "Current")){
     df %<>% filter(current == 1)
   }
@@ -37,59 +31,50 @@ tl_filter <- function(df, peers, sex, race, category) {
   df
 }
 
-#' BRFSS
-#'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
-#'
-tl_filter_cat <- function(df, type, 
-                          category, include_hispanic){
+#' Filter data to category and create category names. 
+#' 
+#' @return An object containing a data frame and category names
+tl_filter_cat <- function(df, type = "single", 
+                          category = "", include_hispanic = F){
   if(type == "multi"){
     if(category == "race"){
       if(include_hispanic){
-        cat_names <- c("White", "Black", "Hispanic")
-        df %<>% filter(race %in% c("white", "black", "hispanic"))
+        cat_names <- c("white", "black", "hispanic")
+        df %<>% filter(race %in% cat_names)
       } else {
-        cat_names <- c("White", "Black")
-        df %<>% filter(race %in% c("white", "black"))
+        cat_names <- c("white", "black")
+        df %<>% filter(race %in% cat_names)
       }
     } else if (category == "sex"){
-      cat_names = c("Male", "Female")
+      cat_names = c("male", "female")
       df %<>% filter(sex %in% c("male", "female"))
     }
-  }
-  
-  if(type == "kentucky"){
+  } else if(type == "kentucky"){
     if(category == "total"){
       cat_names <- ""
       df %<>% filter(category == "all") %>% select(-category)
     } else if(category == "race"){
-      cat_names <- c("White", "Black", "Hispanic", "Asian")
-      df %<>% filter(category %in% c("white", "black", "hispanic", "asian"))
+      cat_names <- c("white", "black", "hispanic", "asian")
+      df %<>% filter(category %in% cat_names)
     } else if(category == "sex"){
-      cat_names <- c("Male", "Female")
-      df %<>% filter(category %in% c("male", "female"))
+      cat_names <- c("male", "female")
+      df %<>% filter(category %in% cat_names)
     } else if(category == "frl"){
-      cat_names <- c("FRL", "nonFRL")
-      df %<>% filter(category %in% c("frl", "nonfrl"))
+      cat_names <- c("frl", "nonfrl")
+      df %<>% filter(category %in% cat_names)
     }
+  } else {
+    cat_names <- ""
   }
   make_list(df, cat_names)
 }
 
-#' BRFSS
-#'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
-#'
-tl_reshape_data <- function(df, type, peers){
-  #remove Louisville
+#' Reshape data to long format
+#' 
+#' @return A data frame containing the columns year, variable, and value. If the data frame has categories, year, category, variable, and value.
+tl_reshape_data <- function(df, type = "single", peers = "current"){
+  
+  #Create a data frame with Louisville and a data frame without Louisville
   if(type == "kentucky"){
     df_wol <- df %>% filter(district != "Jefferson County")
     lville <- df %>% filter(district == "Jefferson County")
@@ -98,14 +83,15 @@ tl_reshape_data <- function(df, type, peers){
     lville <- df %>% filter(FIPS == 21111)
   }
   
-  #calculate 25th and 75th percentiles
+  #Calculate the 25th percentile, 75th percentile, and mean of the peer data set
+  #Group the data set by year and category, if avilable
   df_wol %<>%
     group_by_if(names(df_wol) %in% c("year", "category")) %>%
     summarise(q1 = quantile(var, prob = 0.25, na.rm = TRUE),
               mean = mean(var, na.rm = TRUE),
               q3 = quantile(var, prob = 0.75, na.rm = TRUE))
   
-  #extract Louisville values and rename var to lou
+  #Rename the Louisville value to 
   lville %<>%
     select_if(names(df) %in% c("year", "category", "var")) %>%
     rename(lou = var)
@@ -114,20 +100,16 @@ tl_reshape_data <- function(df, type, peers){
   df <- full_join(lville, df_wol,
                   by = c("year", "category")[c("year", "category") %in% names(df_wol)])
   
+  #Reshape the data to long format
   df %<>% gather(lou, q1, mean, q3, key = "variable", value = "value")
   
   df
 }
     
-#' BRFSS
-#'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
-#'
-tl_reshape_data_maxmin <- function(df, xmin, xmax, order){
+#' Reshape data to long format for trendlines displaying the best- and worst-performing peer cities.
+#' 
+#' @return A data frame with the columns year, city, var, category, and value
+tl_reshape_data_maxmin <- function(df, xmin = 2000, xmax = 2017, order = "descending"){
   df %<>%
     #organize df
     arrange(FIPS, year) %>%
@@ -141,8 +123,8 @@ tl_reshape_data_maxmin <- function(df, xmin, xmax, order){
     select(year, city, var, change)
   
   #if(same_start){df$var <- df$change}
-  
-  #calculate which peers had the biggest change
+
+  #Is the "best" city the one with the largest positive growth or largest negative growth?
   if(order %in% c("descending", "Descending")){
     max_change <- "best"
     min_change <- "worst"
@@ -151,12 +133,13 @@ tl_reshape_data_maxmin <- function(df, xmin, xmax, order){
     min_change <- "best"
   }
   
+  #calculate which peers had the best and worst change
   city_list <- df %>%
     filter(year == xmax) %>%
-    filter(change == max(change) | change == min(change) | city == "Louisville") %>%
+    filter(change == max(change, na.rm = TRUE) | change == min(change, na.rm = TRUE) | city == "Louisville") %>%
     mutate(category = case_when(
-      change == max(change) ~ max_change,
-      change == min(change) ~ min_change,
+      change == max(change, na.rm = TRUE) ~ max_change,
+      change == min(change, na.rm = TRUE) ~ min_change,
       city == "Louisville" ~ "Louisville",
       TRUE ~ ""))  %>%
     select(city, category)
@@ -179,26 +162,11 @@ tl_reshape_data_maxmin <- function(df, xmin, xmax, order){
   df
 }
 
-#' BRFSS
+#' Calculate the rolling mean of a data frame
 #'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
-#'
-tl_rolling_mean <- function(...){
-  
-  obj_list <- make_list(...)
-  
-  df            <- obj_list[["df"]]
-  xmin          <- obj_list[["xmin"]]
-  xmax          <- obj_list[["xmax"]]
-  rollmean      <- obj_list[["rollmean"]]
-  census        <- obj_list[["census"]]
-  subtitle_text <- obj_list[["subtitle_text"]]
-  
-  #if 2000 census, split data frame
+#' @return A list containing df, xmin, xmax ,and subtitle_text
+tl_rolling_mean <- function(df, xmin = 2000, xmax = 2017, rollmean = 1, census = T, subtitle_text = ""){
+  #if 2000 census, split the data frame into 2000 and greater than 2000
   if(xmin == 2000 & census){
     df_2000 <- df %>% filter(year == 2000)
     df %<>% filter(year > 2000)
@@ -216,22 +184,21 @@ tl_rolling_mean <- function(...){
     df <- bind_rows(df_2000, df)
   }
   
-  #if no 2000 census, increase xmin
-  if(xmin != 2000){
+  #if no 2000 census, increase xmin 
+  if(!census){
     xmin <- xmin + floor(rollmean / 2)
   }
   
-  #Decrease xmax
+  #Decrease xmax (regardless of 2000 census)
   xmax <- xmax - floor(rollmean / 2)
   
-  #filter to years of interest and non-NA values
+  #filter to appropriate years based on the rolling mean and remove any other NA values
   df %<>%
     filter(year >= xmin) %>%
     filter(year <= xmax) %>%
     filter(!is.na(value))
   
-  #add rolling mean subtext to existing subtitle or create new subtitle
-  #PARENT ENVIRONMENT
+  #adjust subtext or create a new subtitle to refernce the rolling mean
   if(rollmean > 1){
     if(subtitle_text == ""){
       subtitle_text <- paste0(rollmean,"-year rolling average")
@@ -239,25 +206,26 @@ tl_rolling_mean <- function(...){
       subtitle_text <- paste0(subtitle_text, ", ", rollmean, "-year rolling average")}
   }
   
+  
   make_list(df, xmin, xmax, subtitle_text)
 }
 
-#' BRFSS
+#' Add factor columns for ggplot to reference when assigning line groupings and styles
 #'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
-#'
-tl_add_line_data <- function(df, type, category, cat_names, 
-                             drop_pctiles){
-  #style group is the type of line. Percentiles are identical in style.
-  #line group is unique to each line
+#' @return A data frame
+tl_add_line_data <- function(df, type = "single", category = "", cat_names = "", 
+                             drop_pctiles = F){
+  
+  #line_group groups data based on which points should be connected by a line. (Each line is unique.)
+  #style_group groups data based on aesthetic. (Percentile lines are identical in style.)
+  #If drop_pctiles, remove all percentile data
   if(drop_pctiles){
     df %<>% filter(variable %!in% c("q1", "q3"))
   }
   
+  #Create line_group by combining category (e.g. male, female) and variable (lou, q1, mean, q3) and factoring.
+  #If no categories are included, line_group is equivalent to variable.
+  #variable is initially named style_group but is recoded below.
   if("category" %in% names(df)){
     df$style_group <- paste0(df$category, "_", df$variable)
   } else {
@@ -266,36 +234,44 @@ tl_add_line_data <- function(df, type, category, cat_names,
 
   df %<>% mutate(line_group = factor(style_group))
 
-  #factor all_groups according to the order it will appear in the legend.
-  #If cat_names is blank, the following code does not append any text
+  #Factor style_group according to the order of entries in the legend (based on cat_names).
+  
+  #create var_levels to match the values of style_group
+  #create var_names to use in the legend in the appropriate order
+  #factor style_group using var_levels and var_names
   if(cat_names[1] != ""){
-    cat_levels <- cat_names %>% paste0("_") %>% str_to_lower
+    cat_levels <- cat_names %>% paste0("_")
     cat_names <- cat_names %>% paste0(" ") %>% str_to_title
   } else {
     cat_levels <- ""
   }
-
+  
   var_levels <- c(paste0(cat_levels, "lou"),
                   paste0(cat_levels, "mean"),
                   paste0(cat_levels, "q1"),
                   paste0(cat_levels, "q3"))
-
   
+  #Text for the legend is either "Peer" or "KY" based on the data type.
   if(type == "kentucky"){
     group <- "KY"
   } else {
     group <- "Peer"
   }
   
+  if(cat_names[1] == "Frl "){
+    cat_names <- c("FRL ", "non-FRL ")
+  }
+  
   var_labels <- c(paste0(cat_names, "Louisville"),
-                  paste0(cat_names, " ", group, " Mean"),
+                  paste0(cat_names, group, " Mean"),
                   rep("25th and 75th Percentiles", 2 * length(cat_names)))
   
+  #If drop_pctiles, remove percentile portions of vectors
   if(drop_pctiles){
     var_levels <- var_levels[1:(2*length(cat_levels))]
     var_labels <- var_labels[1:(2*length(cat_names))]
   }
-
+  
   df$style_group <- factor(df$style_group,
                            levels = var_levels,
                            labels = var_labels,
@@ -304,15 +280,15 @@ tl_add_line_data <- function(df, type, category, cat_names,
   df
 }
 
-#' BRFSS
+#' Add factor columns for ggplot to reference when assigning line groupings and styles for best and worst peer city graphs
 #'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
-#'
+#' @return A data frame
 tl_add_line_data_maxmin <- function(df){
+  
+  #line_group groups data based on which points should be connected by a line. (Each line is unique.)
+  #style_group groups data based on aesthetic. (Percentile lines are identical in style.)
+  
+  #for best and worst performing peer graphs, the two are identical.
   
   var_levels <- c("Louisville", "best", "worst", "peer_mean")
   
@@ -336,34 +312,26 @@ tl_add_line_data_maxmin <- function(df){
   df
 }
 
-#' BRFSS
+#' Calculate x-axis break settings
 #'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
+#' Major break settings describe where the x-axis labels fall.
+#' Minor break settings describe where all other vertical lines fall. 
 #'
-tl_break_settings <- function(...){
-
-  obj_list <- make_list(...)
-
-  df            <- obj_list[["df"]]
-  xmin          <- obj_list[["xmin"]]
-  xmax          <- obj_list[["xmax"]]
-  rollmean      <- obj_list[["rollmean"]]
-
-  #If 5 or fewers years of data displayed, show every year
-  #Otherwise, show every other year
+#' @param ... df, xmin, xmax, rollmean
+#' @return major break settings and minor break settings
+tl_break_settings <- function(df, xmin = 2000, xmax = 2017, rollmean = 1, census = T){
+  #If 5 or fewers years of data displayed, show every year on x-axis
+  #Otherwise, show every other year on x-axis
   if(xmax - xmin <= 5){
     skip = 1
   } else {
     skip = 2
   }
 
-  #If 2000 is included and 2001 is not, then skip interim years
-  #Otherwise, include every year
-  if(xmin == 2000 & sum(df$year == 2001) == 0){
+  #If 2000 is included and 2001 is not, then skip interim years. By default, 
+  #a minor break will occur between 2000 and the first year of ACS data. Remove that line.
+  #Otherwise, include every year.
+  if(xmin == 2000 & census){
     major_break_settings <- c(2000, seq(2005 + floor(rollmean / 2), xmax, skip))
     minor_break_settings <- seq(2005 + floor(rollmean / 2) + 1, xmax - 1, skip)
   } else {
@@ -383,14 +351,10 @@ tl_break_settings <- function(...){
   make_list(major_break_settings, minor_break_settings)
 }
 
-#' BRFSS
+#' Initial plot
 #'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
-#'
+#' @param df A data frame
+#' @return A ggplot object
 tl_plot<- function(df){
   p <- ggplot(data = df,
               aes(x = year, y = value,
@@ -405,24 +369,22 @@ tl_plot<- function(df){
   p
 }
 
-#' BRFSS
+#' Add x and y axis limits
 #'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
-#'
-tl_limits <- function(p, df, xmin, xmax, major_break_settings, minor_break_settings){
+#' @return A ggplot object
+tl_limits <- function(p, df, xmin, xmax, ylimits,
+                      major_break_settings, minor_break_settings){
 
-  midpoint <- (max(df$value, na.rm = TRUE) +
+  if(length(ylimits) == 1){
+    midpoint <- (max(df$value, na.rm = TRUE) +
                  min(df$value, na.rm = TRUE))/2
-
-  border_space <- .1 * midpoint
-
-  ylimits <- c(min(df$value, na.rm = TRUE) - border_space,
-               max(df$value, na.rm=TRUE) + border_space)
-
+  
+    border_space <- abs(.1 * midpoint)
+  
+    ylimits <- c(min(df$value, na.rm = TRUE) - border_space,
+                 max(df$value, na.rm = TRUE) + border_space)
+  }
+  
   p <- p +
     scale_x_continuous(
       limits = c(xmin, xmax),
@@ -435,14 +397,9 @@ tl_limits <- function(p, df, xmin, xmax, major_break_settings, minor_break_setti
   p
 }
 
-#' BRFSS
+#' Add style elements
 #'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
-#'
+#' @return A ggplot object
 tl_style <- function(p, plot_title, y_title,
                      caption_text, subtitle_text,
                      cat_names){
@@ -485,9 +442,11 @@ tl_style <- function(p, plot_title, y_title,
       labs(subtitle = subtitle_text)
   }
   
+  # If two rows of legend entries will be displayed, align the categories vertically.
   if(length(cat_names) >= 4){
     p <- p + guides(colour = guide_legend(label.position = "top",
-                                          byrow = TRUE))
+                                          byrow = TRUE,
+                                          keywidth = unit(6, "lines")))
   } else {
     p <- p + guides(colour = guide_legend(label.position = "top"))
   }
@@ -495,14 +454,9 @@ tl_style <- function(p, plot_title, y_title,
   p
 }
 
-#' BRFSS
+#' Add lines
 #'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
-#'
+#' @return A ggplot object
 tl_lines <- function(p, df, shading, cat_names, drop_pctiles){
 
   #Extract stlyle labels to match setting with legend
@@ -592,12 +546,6 @@ tl_lines <- function(p, df, shading, cat_names, drop_pctiles){
 }
 
 #' BRFSS
-#'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @examples
-#' cat_function()
 #'
 tl_lines_maxmin <- function(p, df){
   #Extract stlyle labels to match setting with legend

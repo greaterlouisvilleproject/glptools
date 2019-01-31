@@ -4,7 +4,7 @@
 \alias{process_microdata}
 \title{BRFSS}
 \usage{
-process_microdata(data)
+process_microdata(df, gq = F, pull_peers = T)
 }
 \arguments{
 \item{love}{Do you love cats? Defaults to TRUE.}

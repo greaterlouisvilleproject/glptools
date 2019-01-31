@@ -4,7 +4,7 @@
 \alias{clean_wonder}
 \title{Health Insurance}
 \usage{
-clean_wonder(df)
+clean_wonder(df, method = "sum")
 }
 \arguments{
 \item{love}{Do you love cats? Defaults to TRUE.}

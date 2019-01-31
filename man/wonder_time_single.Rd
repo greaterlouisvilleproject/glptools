@@ -2,18 +2,17 @@
 % Please edit documentation in R/wonder.R
 \name{wonder_time_single}
 \alias{wonder_time_single}
-\title{Health Insurance}
+\title{Read in CDC Wonder Data}
 \usage{
 wonder_time_single(folder, seq_var = "age", start = 0)
 }
 \arguments{
-\item{love}{Do you love cats? Defaults to TRUE.}
+\item{folder}{A path to a folder containing CDC Wonder data.}
+
+\item{seq_var}{The variable to sequence along.}
+
+\item{start}{The first year of age in the data.}
 }
 \description{
-Reads in BRFSS data
+Each file in the folder should be named according to the age included in the data.
 }
-\examples{
-cat_function()
-
-}
-\keyword{cats}

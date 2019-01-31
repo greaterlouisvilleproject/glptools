@@ -4,7 +4,7 @@
 \alias{wonder_time}
 \title{Health Insurance}
 \usage{
-wonder_time(folder, geog_type)
+wonder_time(folder, geog_type = "FIPS")
 }
 \arguments{
 \item{love}{Do you love cats? Defaults to TRUE.}

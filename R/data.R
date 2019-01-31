@@ -1,39 +1,74 @@
-#' Earnings
+## CROSSWALKS
+
+#' A crosswalk of MSA codes to MSA names.
 #'
-#' Median Earnings data from ACS
-#'
-#' @format A data frame with nine variables:
+#' @format A data frame with two variables:
 #' \describe{
-#' \item{\code{x}}{age in years}
-#' \item{\code{qx}}{probability of death at age \code{x}}
-#' \item{\code{lx}}{number of survivors, of birth cohort of 100,000, at next integral age}
-#' \item{\code{dx}}{number of deaths that would occur between integral ages}
-#' \item{\code{Lx}}{Number of person-years lived between \code{x} and \code{x+1}}
-#' \item{\code{Tx}}{Total number of person-years lived beyond age \code{x}}
-#' \item{\code{ex}}{Average number of years of life remaining for members of cohort alive at age \code{x}}
-#' \item{\code{sex}}{Sex}
-#' \item{\code{year}}{Year}
+#' \item{\code{MSA}}{MSA code}
+#' \item{\code{city}}{city}
 #' }
+"MSA_names"
+
+#' A crosswalk of MSA codes to the FIPS codes of their core counties.
 #'
-#' For further details, see \url{http://www.ssa.gov/oact/NOTES/as120/LifeTables_Body.html#wp1168594}
+#' @format A data frame with two variables:
+#' \describe{
+#' \item{\code{MSA}}{MSA code}
+#' \item{\code{FIPS}}{FIPS code}
+#' }
+"MSA_FIPS"
+
+#' A crosswalk of MSA codes to the PUMAs they contain. 
+#' 
+#' 
+#' @format A data frame with four variables:
+#' \describe{
+#' \item{\code{MSA}}{MSA code}
+#' \item{\code{STATEFIP}}{State FIPS code}
+#' \item{\code{PUMA}}{Public Use Microdata Area}
+#' \item{\code{year}}{year. 
+#' PUMAs based on the 2000 census are labelled with the years 2000 to 2012 to mirror ACS microdata available through IPUMS. 
+#' PUMAS based on the 2010 census are labelled with the years 2013 to 2017.}
+#' }
+"MSA_PUMA"
+
+
+## OTHER DATA
+
+#' Population data with unmerged St. Louis Counties and a numeric FIPS column.
+#'
+#' @format A data frame with three variables:
+#' \describe{
+#' \item{\code{FIPS}}{FIPS codes (numeric)}
+#' \item{\code{year}}{year}
+#' \item{\code{population}}{population}
+#' }
 #'
 "population_df"
 
-#' Cost of Living
+#' Population
 #'
-#' Median Earnings data from ACS
+#' Population data with merged and unmerged St. Louis counties and a character FIPS column.
 #'
-#' @format A data frame with nine variables:
+#' @format A data frame with three variables:
 #' \describe{
-#' \item{\code{x}}{age in years}
-#' \item{\code{qx}}{probability of death at age \code{x}}
-#' \item{\code{lx}}{number of survivors, of birth cohort of 100,000, at next integral age}
-#' \item{\code{dx}}{number of deaths that would occur between integral ages}
-#' \item{\code{Lx}}{Number of person-years lived between \code{x} and \code{x+1}}
-#' \item{\code{Tx}}{Total number of person-years lived beyond age \code{x}}
-#' \item{\code{ex}}{Average number of years of life remaining for members of cohort alive at age \code{x}}
-#' \item{\code{sex}}{Sex}
-#' \item{\code{year}}{Year}
+#' \item{\code{FIPS}}{FIPS codes (character)}
+#' \item{\code{year}}{year}
+#' \item{\code{population}}{population}
+#' }
+#'
+"population_df_merged"
+
+#' Inflation and cost of living data. 
+#' The data frame is used by the function \code{COLA} to adjust dollar amounts to 2017 Louisville dollars.
+#'
+#' @format A data frame with four variables:
+#' \describe{
+#' \item{\code{FIPS}}{FIPS code}
+#' \item{\code{year}}{year}
+#' \item{\code{rpp_index}}{The RPP of Louisville divided by the RPP of \code{FIPS} for that particular year. 
+#' RPP values prior to 2008 are copied from 2008. RPP values from after 2015 are copied from 2015.}
+#' \item{\code{cpi_index}}{The CPI index for 2017 divided by the CPI index for \code{year}}
 #' }
 #'
 #' For further details, see \url{http://www.ssa.gov/oact/NOTES/as120/LifeTables_Body.html#wp1168594}

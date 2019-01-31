@@ -2,18 +2,18 @@
 % Please edit documentation in R/helpers.R
 \name{trendline_data}
 \alias{trendline_data}
-\title{BRFSS}
+\title{Returns statistics calculated for use in trendline graphs}
 \usage{
-trendline_data(df, rollmean = 1, exclude = "", census_2000 = T)
+trendline_data(df, rollmean = 1, race_type = "total",
+  sex_type = "total", census_2000 = T)
 }
 \arguments{
-\item{love}{Do you love cats? Defaults to TRUE.}
+\item{df}{A data frame}
+
+\item{rollmean}{A rolling mean. Defaults to 1.}
+
+\item{census_2000}{Is the 2000 data from the census? If so, do not use rollmeanr on data from 2000. Defaults to TRUE.}
 }
 \description{
-Reads in BRFSS data
+Returns statistics calculated for use in trendline graphs
 }
-\examples{
-cat_function()
-
-}
-\keyword{cats}

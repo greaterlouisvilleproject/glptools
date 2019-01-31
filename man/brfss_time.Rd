@@ -4,7 +4,7 @@
 \alias{brfss_time}
 \title{BRFSS}
 \usage{
-brfss_time(start_year = 2002)
+brfss_time(folder, start_year = 2002)
 }
 \arguments{
 \item{love}{Do you love cats? Defaults to TRUE.}

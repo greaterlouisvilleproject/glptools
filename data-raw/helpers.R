@@ -1,13 +1,20 @@
 library(tidyverse)
 library(magrittr)
-source("R/helpers.R")
+source("R/general.R")
 
 #Population
 population_df <- read_csv("data-raw/population_data.csv")
 
-population_df$FIPS <- as.numeric(population_df$FIPS)
+population_df %<>%
+  mutate(FIPS = as.numeric(FIPS)) %>%
+  select(FIPS, year, population)
 
 usethis::use_data(population_df, overwrite = TRUE)
+
+
+population_df_merged <- read_csv("data-raw/population_data_merged.csv")
+
+usethis::use_data(population_df_merged, overwrite = TRUE)
 
 
 #Cost of Living
@@ -59,5 +66,3 @@ COLA_df %<>%
   select(-cpi, -base_cpi)
 
 usethis::use_data(COLA_df, overwrite = TRUE)
-
-rm(population_df, rpp, cpi, COLA_df)
