@@ -6,7 +6,7 @@
 \title{Population}
 \format{A data frame with three variables:
 \describe{
-\item{\code{FIPS}}{FIPS codes}
+\item{\code{FIPS}}{FIPS codes (character)}
 \item{\code{year}}{year}
 \item{\code{population}}{population}
 }}
@@ -14,6 +14,6 @@
 population_df_merged
 }
 \description{
-Population data with merged St. Louis counties
+Population data with merged and unmerged St. Louis counties and a character FIPS column.
 }
 \keyword{datasets}

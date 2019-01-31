@@ -3,10 +3,10 @@
 \docType{data}
 \name{population_df}
 \alias{population_df}
-\title{Population}
+\title{Population data with unmerged St. Louis Counties and a numeric FIPS column.}
 \format{A data frame with three variables:
 \describe{
-\item{\code{FIPS}}{FIPS codes}
+\item{\code{FIPS}}{FIPS codes (numeric)}
 \item{\code{year}}{year}
 \item{\code{population}}{population}
 }}
@@ -14,6 +14,6 @@
 population_df
 }
 \description{
-Population data
+Population data with unmerged St. Louis Counties and a numeric FIPS column.
 }
 \keyword{datasets}

@@ -2,18 +2,17 @@
 % Please edit documentation in R/wonder.R
 \name{clean_wonder}
 \alias{clean_wonder}
-\title{Health Insurance}
+\title{Clean CDC Wonder data}
 \usage{
 clean_wonder(df, method = "sum")
 }
 \arguments{
-\item{love}{Do you love cats? Defaults to TRUE.}
+\item{df}{A data frame.}
+
+\item{method}{"sum" or "weight" to merge St. Louis.}
 }
 \description{
-Reads in BRFSS data
+Processes a data frame of CDC Wonder mortality or natality data.
+Renames and selects colums of interest, recodes age groups, 
+filters out rows with totals, recodes race variables, and merges St. Louis counties
 }
-\examples{
-cat_function()
-
-}
-\keyword{cats}

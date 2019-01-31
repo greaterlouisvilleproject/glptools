@@ -2,7 +2,7 @@
 % Please edit documentation in R/acs.R
 \name{svy_race_sex}
 \alias{svy_race_sex}
-\title{Survey by race and sex}
+\title{Survey microdata by race and sex}
 \usage{
 svy_race_sex(survey, var, race = T, sex = T, cross = T)
 }
@@ -11,12 +11,12 @@ svy_race_sex(survey, var, race = T, sex = T, cross = T)
 
 \item{var}{A column name to perform svymean on.}
 
-\item{race}{Break down by race?}
+\item{race}{Break down by race? Defaults to \code{TRUE}.}
 
-\item{sex}{Break down by sex?}
+\item{sex}{Break down by sex? Defaults to \code{TRUE}.}
 
-\item{cross}{Break down by race and sex?}
+\item{cross}{Break down by race and sex? Defaults to \code{TRUE}.}
 }
 \description{
-Survey by race and sex
+This function uses the survey package to break down estimates by demographic group.
 }

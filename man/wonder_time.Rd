@@ -2,18 +2,15 @@
 % Please edit documentation in R/wonder.R
 \name{wonder_time}
 \alias{wonder_time}
-\title{Health Insurance}
+\title{Read in CDC Wonder data}
 \usage{
 wonder_time(folder, geog_type = "FIPS")
 }
 \arguments{
-\item{love}{Do you love cats? Defaults to TRUE.}
+\item{folder}{A path to a folder containing CDC Wonder data.}
+
+\item{starting_year}{The first year for which there is data.}
 }
 \description{
-Reads in BRFSS data
+Each file in the folder should be named according to the FIPS code of the data.
 }
-\examples{
-cat_function()
-
-}
-\keyword{cats}

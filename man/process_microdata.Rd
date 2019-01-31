@@ -2,18 +2,19 @@
 % Please edit documentation in R/acs.R
 \name{process_microdata}
 \alias{process_microdata}
-\title{BRFSS}
+\title{Process ACS microdata from IPUMS.}
 \usage{
 process_microdata(df, gq = F, pull_peers = T)
 }
 \arguments{
-\item{love}{Do you love cats? Defaults to TRUE.}
+\item{df}{A dataframe of microdata from IPUMS.}
+
+\item{gq}{Include group quarters residents? Defaults to \code{FALSE}.}
+
+\item{pull_peers}{Subset the data to peers? Defaults to \code{TRUE}.
+Subsets to peer MSAs if present. Otherwise, subsets to peers counties.}
 }
 \description{
-Reads in BRFSS data
+Adds FIPS codes and the Tulsa MSA code, if appropriate.
+Process race, sex, and education variables if present.
 }
-\examples{
-cat_function()
-
-}
-\keyword{cats}
