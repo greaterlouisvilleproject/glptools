@@ -37,7 +37,7 @@ MSA_PUMA_00 %<>%
 
 MSA_PUMA_00 <- data.frame(
   MSA_PUMA_00, 
-  year = rep(2000:2012, each = nrow(MSA_PUMA_00)))
+  year = rep(2000:2011, each = nrow(MSA_PUMA_00)))
 
 MSA_PUMA_10 %<>%
   transmute(
@@ -48,7 +48,7 @@ MSA_PUMA_10 %<>%
 
 MSA_PUMA_10 <- data.frame(
   MSA_PUMA_10, 
-  year = rep(2013:2017, each = nrow(MSA_PUMA_10)))
+  year = rep(2012:2017, each = nrow(MSA_PUMA_10)))
 
 MSA_PUMA <- bind_rows(MSA_PUMA_00, MSA_PUMA_10)
 
