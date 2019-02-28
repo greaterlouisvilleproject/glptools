@@ -4,9 +4,10 @@
 \alias{trendline}
 \title{BRFSS}
 \usage{
-trendline(type, df, var, category, sex, race, peers, xmin, xmax, ylimits,
-  rollmean, census, plot_title, y_title, caption_text, subtitle_text,
-  shading, drop_pctiles, include_hispanic, order)
+trendline(type, df, var, cat = "", rollmean = 1, plot_title = "",
+  y_title = "", caption_text = "", subtitle_text = "",
+  peers = "current", ylimits = "", shading = F, drop_pctiles = F,
+  include_hispanic = F, order = "descending", xmin = "", xmax = "")
 }
 \arguments{
 \item{love}{Do you love cats? Defaults to TRUE.}
@@ -15,7 +16,6 @@ trendline(type, df, var, category, sex, race, peers, xmin, xmax, ylimits,
 Reads in BRFSS data
 }
 \examples{
-cat_function()
 
 }
 \keyword{cats}

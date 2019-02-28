@@ -4,7 +4,7 @@
 \alias{acs_time}
 \title{Read in ACS data}
 \usage{
-acs_time(folder, starting_year = 2005)
+acs_time(folder, starting_year = 2005, county_filter = "core_counties")
 }
 \arguments{
 \item{folder}{A path to a folder containing ACS data.}

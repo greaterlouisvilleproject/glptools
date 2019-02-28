@@ -12,70 +12,96 @@ make_list <- function(...){
 #' Filter data to sex, race, and peer set.
 #' 
 #' @return A data frame
-tl_filter <- function(df, peers ="current", sex ="total", race = "total", category = "") {
+tl_filter <- function(df, 
+                      peers, 
+                      cat,
+                      include_hispanic,
+                      return_only_df = F) {
   
   #Filter to specified sex and race.
   #If sex or race are not ID variables, or if no sex or race was specified, do not subset.
-  if("sex" %in% names(df)  & category != "sex")  df <- df[df$sex == sex,]
-  if("race" %in% names(df) & category != "race") df <- df[df$race == race,]
-
+  
   #Filter to peer set.
-  if(peers %in% c("current", "Current")){
-    df %<>% filter(current == 1)
-  }
-
-  if(peers %in% c("baseline", "Baseline")){
-    df %<>% filter(baseline == 1)
-  }
-
-  df
-}
-
-#' Filter data to category and create category names. 
-#' 
-#' @return An object containing a data frame and category names
-tl_filter_cat <- function(df, type = "single", 
-                          category = "", include_hispanic = F){
-  if(type == "multi"){
-    if(category == "race"){
-      if(include_hispanic){
-        cat_names <- c("white", "black", "hispanic")
-        df %<>% filter(race %in% cat_names)
-      } else {
-        cat_names <- c("white", "black")
-        df %<>% filter(race %in% cat_names)
-      }
-    } else if (category == "sex"){
-      cat_names = c("male", "female")
-      df %<>% filter(sex %in% c("male", "female"))
+  if(df_type(df) %in% c("county", "MSA")){
+    if(peers %in% c("current", "Current")){
+      df %<>% filter(current == 1)
+    } else if(peers %in% c("baseline", "Baseline")){
+      df %<>% filter(baseline == 1)
     }
-  } else if(type == "kentucky"){
-    if(category == "total"){
-      cat_names <- ""
-      df %<>% filter(category == "all") %>% select(-category)
-    } else if(category == "race"){
-      cat_names <- c("white", "black", "hispanic", "asian")
-      df %<>% filter(category %in% cat_names)
-    } else if(category == "sex"){
-      cat_names <- c("male", "female")
-      df %<>% filter(category %in% cat_names)
-    } else if(category == "frl"){
-      cat_names <- c("frl", "nonfrl")
-      df %<>% filter(category %in% cat_names)
-    }
-  } else {
+  }
+  
+  races <- c("white", "black", "hispanic", "asian")
+  sexes <- c("male", "female")
+    
+  # Rename category column
+  if(df_type(df) %in% c("ky_ed", "naep")){
+    df %<>% rename(category = demographic)
+  } else if(cat %in% c("race", races)){
+    df %<>% rename(category = race)
+  } else if(cat %in% c("sex", sexes)){
+    df %<>% rename(category = sex)
+  }
+  
+  # Create category names
+  if(cat %in% c("", races, sexes)){
     cat_names <- ""
+  } else if(cat == "sex"){
+    cat_names <- sexes
+  } else if(cat == "race"){
+    cat_names <- races
+    cat_names <- cat_names[cat_names %in% df$category]
+    if(df_type(df) %in% c("county", "MSA") & !include_hispanic){
+      cat_names <- cat_names[cat_names != "hispanic"]
+    }
+  } else if(cat == "frl"){
+    cat_names <- c("frl", "nonfrl")
   }
-  make_list(df, cat_names)
+  
+  # Filter to category or categories
+  if(df_type(df) %in% c("county", "MSA")){
+    if(cat %!in% c("sex", sexes)) df %<>% filter(sex == "total")
+    if(cat %!in% c("race", races)) df %<>% filter(race == "total")
+  }
+  
+  if(cat %in% c("race", "sex", "frl")){
+    df %<>% filter(category %in% cat_names)
+  } else if (cat %in% c(races, sexes)){
+    df %<>% filter(category == cat) %>% select(-category)
+  } else if(df_type(df) %in% c("ky_ed", "naep")){
+    df %<>% filter(category == "total") %>% select(-category)
+  }
+  
+  if(return_only_df){
+    df
+  } else {
+    make_list(df, cat_names)
+  }
 }
 
 #' Reshape data to long format
 #' 
-#' @return A data frame containing the columns year, variable, and value. If the data frame has categories, year, category, variable, and value.
-tl_reshape_data <- function(df, type = "single", peers = "current"){
+#' @return A data frame containing the columns year, --category--, variable, and value.
+tl_reshape_data <- function(df){
   
-  #Create a data frame with Louisville and a data frame without Louisville
-  if(type == "kentucky"){
+  # If data frame is NAEP, simply reformat data frame and return.
+  if(df_type(df) == "naep"){
+    df %<>% 
+      mutate(
+        variable = replace(geography, geography == "Jefferson County", "lou"),
+        variable = replace(variable, variable == "Kentucky", "mean"),
+        value = var)
+    
+    df %<>%
+      select(df %cols_in% c("year", "category", "variable", "value"))
+    
+    return(df)
+  }
+  
+  grouping_vars <- c("year", "category")[c("year", "category") %in% names(df)]
+  
+  # Create a data frame with Louisville and 
+  #   a data frame without Louisville.
+  if(df_type(df) =="ky_ed"){
     df_wol <- df %>% filter(district != "Jefferson County")
     lville <- df %>% filter(district == "Jefferson County")
   } else {
@@ -83,22 +109,22 @@ tl_reshape_data <- function(df, type = "single", peers = "current"){
     lville <- df %>% filter(FIPS == 21111)
   }
   
-  #Calculate the 25th percentile, 75th percentile, and mean of the peer data set
-  #Group the data set by year and category, if avilable
+  #  Group the data set by year, category, if avilable.
+  #  Calculate the 25th percentile, 75th percentile, 
+  #   and mean of the peer data set.
   df_wol %<>%
-    group_by_if(names(df_wol) %in% c("year", "category")) %>%
+    group_by_at(grouping_vars) %>%
     summarise(q1 = quantile(var, prob = 0.25, na.rm = TRUE),
               mean = mean(var, na.rm = TRUE),
               q3 = quantile(var, prob = 0.75, na.rm = TRUE))
   
-  #Rename the Louisville value to 
+  # Lville data frame contains three columns
   lville %<>%
-    select_if(names(df) %in% c("year", "category", "var")) %>%
+    select(lville %cols_in% c("year", "category", "var")) %>%
     rename(lou = var)
   
   #join 25th percentile, 75th percentile, and Louisville values
-  df <- full_join(lville, df_wol,
-                  by = c("year", "category")[c("year", "category") %in% names(df_wol)])
+  df <- full_join(lville, df_wol, by = grouping_vars)
   
   #Reshape the data to long format
   df %<>% gather(lou, q1, mean, q3, key = "variable", value = "value")
@@ -108,32 +134,34 @@ tl_reshape_data <- function(df, type = "single", peers = "current"){
     
 #' Reshape data to long format for trendlines displaying the best- and worst-performing peer cities.
 #' 
-#' @return A data frame with the columns year, city, var, category, and value
-tl_reshape_data_maxmin <- function(df, xmin = 2000, xmax = 2017, order = "descending"){
+#' @return A data frame with the columns year, city, variable, category, and value
+tl_reshape_data_maxmin <- function(df, 
+                                   xmin, 
+                                   xmax, 
+                                   order){
+  
+  # Calculate change from xmin
   df %<>%
-    #organize df
     arrange(FIPS, year) %>%
-    #select years
     filter(year >= xmin & year <= xmax) %>%
-    #calculate change
     group_by(FIPS) %>%
     mutate(change = var - first(var)) %>%
     ungroup() %>%
-    #select vars
     select(year, city, var, change)
   
   #if(same_start){df$var <- df$change}
 
-  #Is the "best" city the one with the largest positive growth or largest negative growth?
-  if(order %in% c("descending", "Descending")){
+  # Is the "best" city the one with the largest positive 
+  #   growth or largest negative growth?
+  if(order %in% c("ascending", "Ascending")){
     max_change <- "best"
     min_change <- "worst"
-  } else if(order %in% c("ascending", "Ascending")){
+  } else if(order %in% c("descending", "Descending")){
     max_change <- "worst"
     min_change <- "best"
   }
   
-  #calculate which peers had the best and worst change
+  # Calculate which peers had the best and worst change.
   city_list <- df %>%
     filter(year == xmax) %>%
     filter(change == max(change, na.rm = TRUE) | change == min(change, na.rm = TRUE) | city == "Louisville") %>%
@@ -165,40 +193,53 @@ tl_reshape_data_maxmin <- function(df, xmin = 2000, xmax = 2017, order = "descen
 #' Calculate the rolling mean of a data frame
 #'
 #' @return A list containing df, xmin, xmax ,and subtitle_text
-tl_rolling_mean <- function(df, xmin = 2000, xmax = 2017, rollmean = 1, census = T, subtitle_text = ""){
-  #if 2000 census, split the data frame into 2000 and greater than 2000
-  if(xmin == 2000 & census){
+tl_rolling_mean <- function(df, 
+                            xmin, 
+                            xmax, 
+                            rollmean, 
+                            subtitle_text,
+                            return_only_df = F){
+  
+  # census = TRUE if 2000 is in the data frame bu 2001:2004 are not.
+  census <- 2000 %in% years_in_df(df) & 
+            all(2001:2004 %!in% years_in_df(df))
+  
+  # If 2000 census, split the data frame into 2000 
+  #   and years greater than 2000
+  if(census){
     df_2000 <- df %>% filter(year == 2000)
     df %<>% filter(year > 2000)
   }
   
-  #use rolling mean function on non-2000 data frame
+  # Use rolling mean function on non-2000 data frame
   df %<>%
     arrange(year) %>%
     group_by_if(names(df) %in% c("variable", "category")) %>%
     mutate(value = rollmeanr(value, rollmean)) %>%
     ungroup()
   
-  #if 2000 census, reassemble data frame
-  if(xmin == 2000 & census){
+  # If 2000 census, reassemble data frame
+  if(census){
     df <- bind_rows(df_2000, df)
   }
   
-  #if no 2000 census, increase xmin 
+  # If no 2000 census, increase xmin 
   if(!census){
     xmin <- xmin + floor(rollmean / 2)
   }
   
-  #Decrease xmax (regardless of 2000 census)
+  # Decrease xmax (regardless of 2000 census)
   xmax <- xmax - floor(rollmean / 2)
   
-  #filter to appropriate years based on the rolling mean and remove any other NA values
+  # Filter to appropriate years based on the 
+  #   rolling mean and remove any other NA values.
   df %<>%
     filter(year >= xmin) %>%
     filter(year <= xmax) %>%
     filter(!is.na(value))
   
-  #adjust subtext or create a new subtitle to refernce the rolling mean
+  # Adjust subtitle or create a new subtitle to 
+  #   refernce the rolling mean.
   if(rollmean > 1){
     if(subtitle_text == ""){
       subtitle_text <- paste0(rollmean,"-year rolling average")
@@ -206,26 +247,30 @@ tl_rolling_mean <- function(df, xmin = 2000, xmax = 2017, rollmean = 1, census =
       subtitle_text <- paste0(subtitle_text, ", ", rollmean, "-year rolling average")}
   }
   
-  
-  make_list(df, xmin, xmax, subtitle_text)
+  if(return_only_df){
+    df
+  } else {
+    make_list(df, xmin, xmax, subtitle_text)
+  }
 }
 
 #' Add factor columns for ggplot to reference when assigning line groupings and styles
 #'
 #' @return A data frame
-tl_add_line_data <- function(df, type = "single", category = "", cat_names = "", 
-                             drop_pctiles = F){
+tl_add_line_data <- function(df, type, cat_names, 
+                             drop_pctiles){
   
-  #line_group groups data based on which points should be connected by a line. (Each line is unique.)
-  #style_group groups data based on aesthetic. (Percentile lines are identical in style.)
-  #If drop_pctiles, remove all percentile data
+  # line_group groups data based on which points should be connected by a line. (Each line is unique.)
+  # style_group groups data based on aesthetic. (Percentile lines are identical in style.)
+  
+  # If drop_pctiles, remove all percentile data
   if(drop_pctiles){
     df %<>% filter(variable %!in% c("q1", "q3"))
   }
   
-  #Create line_group by combining category (e.g. male, female) and variable (lou, q1, mean, q3) and factoring.
-  #If no categories are included, line_group is equivalent to variable.
-  #variable is initially named style_group but is recoded below.
+  # Create line_group by combining category (e.g. male, female) and variable (lou, q1, mean, q3) and factoring.
+  # If no categories are included, line_group is equivalent to variable.
+  # variable is initially named style_group but is recoded below.
   if("category" %in% names(df)){
     df$style_group <- paste0(df$category, "_", df$variable)
   } else {
@@ -234,16 +279,21 @@ tl_add_line_data <- function(df, type = "single", category = "", cat_names = "",
 
   df %<>% mutate(line_group = factor(style_group))
 
-  #Factor style_group according to the order of entries in the legend (based on cat_names).
+  # Label and factor style_group with the order based on cat_names.
   
-  #create var_levels to match the values of style_group
-  #create var_names to use in the legend in the appropriate order
-  #factor style_group using var_levels and var_names
+  # var_levels matches the values of style_group
+  # var_names to use in the legend in the appropriate order
+  # factor style_group using var_levels and var_names
+  
   if(cat_names[1] != ""){
     cat_levels <- cat_names %>% paste0("_")
     cat_names <- cat_names %>% paste0(" ") %>% str_to_title
   } else {
     cat_levels <- ""
+  }
+  
+  if(cat_names[1] == "Frl "){
+    cat_names <- c("FRL ", "non-FRL ")
   }
   
   var_levels <- c(paste0(cat_levels, "lou"),
@@ -256,10 +306,6 @@ tl_add_line_data <- function(df, type = "single", category = "", cat_names = "",
     group <- "KY"
   } else {
     group <- "Peer"
-  }
-  
-  if(cat_names[1] == "Frl "){
-    cat_names <- c("FRL ", "non-FRL ")
   }
   
   var_labels <- c(paste0(cat_names, "Louisville"),
@@ -319,7 +365,7 @@ tl_add_line_data_maxmin <- function(df){
 #'
 #' @param ... df, xmin, xmax, rollmean
 #' @return major break settings and minor break settings
-tl_break_settings <- function(df, xmin = 2000, xmax = 2017, rollmean = 1, census = T){
+tl_break_settings <- function(df, xmin, xmax, rollmean){
   #If 5 or fewers years of data displayed, show every year on x-axis
   #Otherwise, show every other year on x-axis
   if(xmax - xmin <= 5){
@@ -328,10 +374,14 @@ tl_break_settings <- function(df, xmin = 2000, xmax = 2017, rollmean = 1, census
     skip = 2
   }
 
+  # census = TRUE if 2000 is in the data frame bu 2001:2004 are not.
+  census <- 2000 %in% years_in_df(df) & 
+    all(2001:2004 %!in% years_in_df(df))
+  
   #If 2000 is included and 2001 is not, then skip interim years. By default, 
   #a minor break will occur between 2000 and the first year of ACS data. Remove that line.
   #Otherwise, include every year.
-  if(xmin == 2000 & census){
+  if(census){
     major_break_settings <- c(2000, seq(2005 + floor(rollmean / 2), xmax, skip))
     minor_break_settings <- seq(2005 + floor(rollmean / 2) + 1, xmax - 1, skip)
   } else {
@@ -362,9 +412,11 @@ tl_plot<- function(df){
                   colour = style_group,
                   linetype = style_group,
                   alpha = style_group))
+  txt_scale <- 2
+  
   p <- p +
-    geom_point(size = 2) +
-    geom_line(size = 1)
+    geom_point(size = 2 * txt_scale) +
+    geom_line(size = 1  * txt_scale)
 
   p
 }
@@ -404,29 +456,33 @@ tl_style <- function(p, plot_title, y_title,
                      caption_text, subtitle_text,
                      cat_names){
 
+  txt_scale <- 2
+  
   #adjust theme
-  p <- p + theme_bw()
+  p <- p + theme_bw(
+    base_size = 11 * txt_scale, 
+                    base_family = "Museo Sans 300")
 
   p <- p + theme(
-    text = element_text(family = "Museo Sans 300"),
-    
     legend.title     = element_blank(),
     legend.position  = "top",
-    legend.margin    = margin(t = 1, unit = "lines"),
-    legend.spacing.x = unit(1.2, "lines"),
-    legend.text      = element_text(size = 20),
+    legend.margin    = margin(t = 0.4 * txt_scale, unit = "cm"),
+    legend.spacing.x = unit(0.4 * txt_scale, "cm"),
+    legend.text      = element_text(size = 20 * txt_scale,
+                                    margin = margin(b = 0.2 * txt_scale, t = 0.2 * txt_scale, unit = "cm")),
     
-    axis.text    = element_text(size = 24),
-    axis.title   = element_text(size = 30),
-    axis.title.x = element_text(margin = margin(t = 0.3, unit = "lines")),
-    axis.title.y = element_text(margin = margin(r = 0.3, unit = "lines")),
-    
-    plot.title = element_text(size = 42,
+    axis.text    = element_text(size = 24 * txt_scale),
+    axis.title   = element_text(size = 30 * txt_scale),
+    axis.title.x = element_text(margin = margin(t = 0.2 * txt_scale, unit = "cm")),
+    axis.title.y = element_text(margin = margin(r = 0.2 * txt_scale, unit = "cm")),
+
+    plot.title = element_text(size = 42 * txt_scale,
                               hjust = .5,
-                              margin = margin(b = 0.3, unit = "lines")),
+                              margin = margin(b = 0.4 * txt_scale, unit = "cm")),
     
-    plot.caption = element_text(size = 18,
+    plot.caption = element_text(size = 18 * txt_scale,
                                 lineheight = 0.5))
+  
 
   #add labels
   p <- p + labs(
@@ -438,7 +494,7 @@ tl_style <- function(p, plot_title, y_title,
   #add subtitle if included
   if(subtitle_text != ""){
     p <- p +
-      theme(plot.subtitle = element_text(hjust = 0.5, size = 24)) +
+      theme(plot.subtitle = element_text(hjust = 0.5, size = 24 * txt_scale)) +
       labs(subtitle = subtitle_text)
   }
   
@@ -446,7 +502,7 @@ tl_style <- function(p, plot_title, y_title,
   if(length(cat_names) >= 4){
     p <- p + guides(colour = guide_legend(label.position = "top",
                                           byrow = TRUE,
-                                          keywidth = unit(6, "lines")))
+                                          keywidth = unit(6 * txt_scale, "lines")))
   } else {
     p <- p + guides(colour = guide_legend(label.position = "top"))
   }
@@ -469,7 +525,8 @@ tl_lines <- function(p, df, shading, cat_names, drop_pctiles){
   if(v == 1){
     line_col   <- c("#00a9b7", "black", "grey50")
   } else {
-    pal <- c("blue", "red", "darkgreen", "purple")[1:v]
+    #pal <- c("blue", "red", "darkgreen", "purple")[1:v]
+    pal <- brewer_pal("qual", "Set1")(v)
     if(drop_pctiles){
       line_col   <- c(rep(pal, 2))
     } else {
@@ -487,11 +544,11 @@ tl_lines <- function(p, df, shading, cat_names, drop_pctiles){
 
   #set line alphas. If shading is used, remove percentile lines
   if(shading){
-    line_alpha <- c(rep(1, v), rep(0.6, v), 0)
+    line_alpha <- c(rep(1, v), rep(0.7, v), 0)
   } else if (drop_pctiles){
-    line_alpha <- c(rep(1, v), rep(0.6, v))
+    line_alpha <- c(rep(1, v), rep(0.7, v))
   } else {
-    line_alpha <- c(rep(1, v), rep(0.6, v), 0.6)
+    line_alpha <- c(rep(1, v), rep(0.7, v), 0.7)
   }
   
   p <- p +
@@ -554,12 +611,13 @@ tl_lines_maxmin <- function(p, df){
   #caluculate number of categories
   v <- length(line_types)
 
-  #set line palette
-  line_col <- c("blue", "darkgreen", "red", "grey")
+  # Set line palette using colors from the regular trendline pallete
+  
+  line_col <- c("#00a9b7", "#4DAF4A", "#E41A1C", "grey50")
   if(v == 3){
     line_col <- line_col[2:4]
   }
-  
+
   #set line type
   line_type  <- rep("solid", v)
   

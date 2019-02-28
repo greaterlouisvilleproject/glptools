@@ -8,7 +8,7 @@
 #' cat_function()
 #'
 ranking <- function(df, var,
-                    year = 2017, sex = "total", race = "total",
+                    year = "", sex = "total", race = "total",
                     order = "Descending", peers = "Current",
                     plot_title = "", y_title = "Percent", caption_text = "",
                     sigfig = 3, num_dec = 1, text = TRUE, h_line = FALSE,
@@ -17,9 +17,12 @@ ranking <- function(df, var,
   if(class(substitute(var)) == "name"){
     var <- deparse(substitute(var))
   }
-
   df$var <- df[[var]]
 
+  if(year == ""){
+    year <- max(years_in_df(df, var))
+  }
+  
   #filter to year
   df <- df [df$year == year,]
 
@@ -85,7 +88,7 @@ ranking <- function(df, var,
   p <- p +
     geom_bar(stat="identity",
              color=rev(df$linecolor),
-             size = 1) +
+             size = 2) +
     coord_flip() +
     theme_tufte()
 
@@ -98,16 +101,16 @@ ranking <- function(df, var,
 
   #add features
   p <- p + theme(text = element_text(family = "Museo Sans 300"),
-                 plot.title = element_text(size = 42, hjust = 0.5, margin = margin(b = 10, unit = "pt")),
+                 plot.title = element_text(size = 74, hjust = 0.5, margin = margin(b = 20, unit = "pt")),
                  axis.text.y = element_text(hjust = 0, family = rev(df$textfont),
-                                            size = 30, color = rev(df$textcolor)),
-                 axis.title.x = element_text(size = 30),
+                                            size = 60, color = rev(df$textcolor)),
+                 axis.title.x = element_text(size = 60),
                  axis.ticks = element_blank(),
                  axis.text.x = element_blank(),
-                 plot.caption = element_text(size = 18, lineheight = 0.5))
+                 plot.caption = element_text(size = 36, lineheight = 0.5))
 
   if(subtitle_text != ""){
-    p <- p + theme(plot.subtitle = element_text(hjust = 0.5, size = 24)) +
+    p <- p + theme(plot.subtitle = element_text(hjust = 0.5, size = 48)) +
              labs(subtitle = subtitle_text)
   }
 
@@ -117,14 +120,14 @@ ranking <- function(df, var,
       p + geom_text(
         aes(label = round),
         hjust = 1.1,
-        size = 10,
+        size = 20,
         family = "Museo Sans 300"
       )
   }
 
   #add vertical line to the left side of the bars based on the h_line parameter
   if (h_line == TRUE){
-    p <- p + geom_hline(yintercept = 0, linetype = "longdash", size = 1)
+    p <- p + geom_hline(yintercept = 0, linetype = "longdash", size = 2)
   }
   p <- p+labs(title = plot_title, y= y_title,
               x = "", caption = caption_text)

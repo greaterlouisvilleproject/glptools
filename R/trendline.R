@@ -4,80 +4,95 @@
 #' @param love Do you love cats? Defaults to TRUE.
 #' @keywords cats
 #' @examples
-#' cat_function()
 #'
 trendline <- function(type, df, var,
-                      category,
-                      sex, race, peers,
-                      xmin, xmax, ylimits,
-                      rollmean, census,
-                      plot_title, y_title,
-                      caption_text, subtitle_text,
-                      shading, drop_pctiles, 
-                      include_hispanic, order){
+                      cat = "", rollmean = 1,
+                      plot_title = "", y_title = "",
+                      caption_text = "", subtitle_text = "",
+                      peers = "current", ylimits = "",
+                      shading = F, drop_pctiles = F, 
+                      include_hispanic = F, order = "descending",
+                      xmin = "", xmax = ""){
   
-  #filter data
-  df %<>% tl_filter(peers, sex, race, category)
-  
-  #filter to category and set category names
-  output <- tl_filter_cat(df, type, 
-                          category, include_hispanic)
+  # Filter data to peer set, race, sex, or other categories.
+  # Create category names.
+  output <- tl_filter(df, peers, cat, include_hispanic)
   
   df        <- output[["df"]]
   cat_names <- output[["cat_names"]]
+
+  if(xmin == ""){
+    xmin <- min(years_in_df(df, var))
+  }
+  if(xmax == ""){
+    xmax <- max(years_in_df(df, var))
+  }
   
-  #Calculate mean, percentiles, and Louisville values
-  if(type %in% c("single", "multi", "kentucky")){
-    df %<>% tl_reshape_data(type, peers)
-  } else if(type == "maxmin") {
+  # Calculate mean, percentiles, and Louisville values
+  if(type %in% c("standard", "kentucky", "data")){
+    df %<>% tl_reshape_data()
+  } else if(type %in% c("maxmin", "data_maxmin")) {
     df %<>% tl_reshape_data_maxmin(xmin, xmax, order)
   }
   
-  #Calculate rolling mean
-  output <- tl_rolling_mean(df, xmin, xmax, rollmean, census, subtitle_text)
+  
+  # Calculate rolling mean
+  output <- tl_rolling_mean(df, xmin, xmax, rollmean, subtitle_text)
 
   df            <- output[["df"]]
   xmin          <- output[["xmin"]]
   xmax          <- output[["xmax"]]
   subtitle_text <- output[["subtitle_text"]]
 
-  #Create line settings for the graph
-  if(type %in% c("single", "multi", "kentucky")){
-    df %<>% tl_add_line_data(type, category, 
+  
+  # If called from a data function, return df and exit trendline function
+  if(type %in% c("data", "data_maxmin")){
+    return(df)
+  }
+
+  
+  # Create line settings for the graph
+  if(type %in% c("standard", "kentucky")){
+    df %<>% tl_add_line_data(type, 
                              cat_names, drop_pctiles)
   } else if(type == "maxmin") {
     df %<>% tl_add_line_data_maxmin()
   }
   
-  #Calculate break settings
-  output <- tl_break_settings(df, xmin, xmax, rollmean, census)
+  
+  # Calculate break settings
+  output <- tl_break_settings(df, xmin, xmax, rollmean)
 
   major_break_settings <- output[["major_break_settings"]]
   minor_break_settings <- output[["minor_break_settings"]]
 
-  #Initial plot
+  
+  # Initial plot
   g <- tl_plot(df)
 
-  #axis limits
+  
+  # Axis limits
   g %<>% tl_limits(df, xmin, xmax, ylimits,
                    major_break_settings, minor_break_settings)
-  #add style
+  
+  
+  # Add style
   g %<>% tl_style(plot_title, y_title,
                   caption_text, subtitle_text,
                   cat_names)
 
+  
   #add color and line types
-  if(type %in% c("single", "multi", "kentucky")){
+  if(type %in% c("standard", "kentucky")){
     g %<>% tl_lines(df, shading, cat_names, drop_pctiles)
   } else if(type == "maxmin") {
     g %<>% tl_lines_maxmin(df)
   }
   
+  
   g
 }
 
-
-
 #' BRFSS
 #'
 #' Reads in BRFSS data
@@ -87,95 +102,40 @@ trendline <- function(type, df, var,
 #' @examples
 #' cat_function()
 #'
-trend_single <- function(df, var,
-                         sex = "total", race = "total", peers = "current",
-                         xmin = 2000, xmax = 2017, ylimits = "",
-                         rollmean = 1, census = T,
-                         plot_title = "", y_title = "",
-                         caption_text = "", subtitle_text = "",
-                         drop_pctiles = F){
+trend <- function(df, var,
+                  cat = "", rollmean = 1,
+                  plot_title = "", y_title = "",
+                  caption_text = "", subtitle_text = "",
+                  peers = "current", ylimits = "",
+                  shading = F, drop_pctiles = F, 
+                  include_hispanic = F,
+                  xmin = "", xmax = ""){
   
-  #remaining unused parameters
-  category = ""
-  shading = F
-  include_hispanic = F
-  order = "descending"
-
   #Replace unquoted variables
   if(class(substitute(var)) == "name"){
     var <- deparse(substitute(var))
   }
   df$var <- df[[var]]
   
-  if(peers == "kentucky"){
-    type <- "kentucky"
-    category <- "total"
-  } else {
-    type <- "single"
+  if(class(substitute(cat)) == "name"){
+    cat <- deparse(substitute(cat))
   }
   
-  trendline(type,
-            df, var,
-            category,
-            sex, race, peers,
-            xmin, xmax, ylimits,
-            rollmean, census,
+  if(df_type(df) %in% c("ky_ed", "naep")){
+    type <- "kentucky"
+  } else {
+    type <- "standard"
+  }
+  
+  trendline(type, df, var,
+            cat, rollmean,
             plot_title, y_title,
             caption_text, subtitle_text,
+            peers, ylimits,
             shading, drop_pctiles, 
-            include_hispanic, order)
-}
-
-#' BRFSS
-#'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
-#' @export
-#' @examples
-#' cat_function()
-#'
-trend_multi <- function(df, var,
-                        category = "",
-                        sex = "total", race = "total", peers = "current",
-                        xmin = 2000, xmax = 2017, ylimits = "",
-                        rollmean = 1, census = T,
-                        plot_title = "", y_title = "",
-                        caption_text = "", subtitle_text = "",
-                        shading = F, drop_pctiles = F,
-                        include_hispanic = F){
-  order <- "descending"
-
-  #Replace unquoted variables
-  if(class(substitute(var)) == "name"){
-    var <- deparse(substitute(var))
-  }
-  df$var <- df[[var]]
+            include_hispanic, order = "descending",
+            xmin, xmax)
   
-  if(class(substitute(category)) == "name"){
-    category <- deparse(substitute(category))
-  }
-  
-  if(peers != "kentucky"){
-    df$category <- df[[category]]
-  }
-  
-  if(peers == "kentucky"){
-    type <- "kentucky"
-  } else {
-    type <- "multi"
-  }
-  
-  trendline(type,
-            df, var,
-            category,
-            sex, race, peers,
-            xmin, xmax, ylimits,
-            rollmean, census,
-            plot_title, y_title,
-            caption_text, subtitle_text,
-            shading, drop_pctiles,
-            include_hispanic, order)
 }
 
 #' BRFSS
@@ -188,17 +148,12 @@ trend_multi <- function(df, var,
 #' cat_function()
 #'
 trend_maxmin <- function(df, var,
-                         order = "descending",
-                         sex = "total", race = "total", peers = "current",
-                         xmin = 2000, xmax = 2017, ylimits = "",
-                         rollmean = 1, census = T,
+                         rollmean = 1,
                          plot_title = "", y_title = "",
-                         caption_text = "", subtitle_text = ""){
-  #irrelevant parameters for trendline
-  category = ""
-  shading = F
-  drop_pctiles = F
-  include_hispanic = F
+                         caption_text = "", subtitle_text = "",
+                         peers = "current", ylimits = "",
+                         order = "descending",
+                         xmin = "", xmax = ""){
   
   #Replace unquoted variables
   if(class(substitute(var)) == "name"){
@@ -206,41 +161,24 @@ trend_maxmin <- function(df, var,
   }
   df$var <- df[[var]]
 
-  trendline("maxmin",
-            df, var,
-            category,
-            sex, race, peers,
-            xmin, xmax, ylimits,
-            rollmean, census,
+  trendline("maxmin", df, var,
+            cat = "", rollmean,
             plot_title, y_title,
             caption_text, subtitle_text,
-            shading, drop_pctiles,
-            include_hispanic, order)
+            peers, ylimits,
+            shading = F, drop_pctiles = F, 
+            include_hispanic = F, order,
+            xmin, xmax)
 }
 
 
-#' BRFSS
+#' Returns statistics calculated for use in trendline graphs
 #'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
+#' @param df A data frame
+#' @param rollmean A rolling mean. Defaults to 1.
+#' @param census_2000 Is the 2000 data from the census? If so, do not use rollmeanr on data from 2000. Defaults to TRUE.
 #' @export
-#' @examples
-#' cat_function()
-#'
-trend_ky_ed <- function(df, var,
-                        category = "",
-                        xmin = 2000, xmax = 2017, ylimits = "",
-                        rollmean = 1, 
-                        plot_title = "", y_title = "",
-                        caption_text = "", subtitle_text = "",
-                        shading = F, drop_pctiles = F){
-  sex = "total"
-  race = "total"
-  peers = ""
-  order = "descending"
-  census = T
-  include_hispanic = T
+trend_data <- function(df, var = "var", rollmean = 1, cat = "", peers = "current") {
   
   #Replace unquoted variables
   if(class(substitute(var)) == "name"){
@@ -248,22 +186,57 @@ trend_ky_ed <- function(df, var,
   }
   df$var <- df[[var]]
   
-  trendline("multi",
-            df, var,
-            category,
-            sex, race, peers,
-            xmin, xmax, ylimits,
-            rollmean, census,
-            plot_title, y_title,
-            caption_text, subtitle_text,
-            shading, drop_pctiles,
-            include_hispanic, order)
+  df <- trendline("data", df, var,
+                  cat, rollmean,
+                  plot_title = "", y_title = "",
+                  caption_text = "", subtitle_text = "",
+                  peers, ylimits = "",
+                  shading = F, drop_pctiles = F, 
+                  include_hispanic = F, order = "",
+                  xmin = "", xmax = "")
+  
+  if(cat == ""){
+    df %<>% mutate(category = "total")
+  }
+  
+  df[[var]] <- df$value
+  
+  df %<>% select(-value)
+  
+  df
 }
 
-
-
-
-
+#' Returns statistics calculated for use in trendline graphs
+#'
+#' @param df A data frame
+#' @param rollmean A rolling mean. Defaults to 1.
+#' @param census_2000 Is the 2000 data from the census? If so, do not use rollmeanr on data from 2000. Defaults to TRUE.
+#' @export
+trend_data_maxmin <- function(df, var = "var", rollmean = 1, order = "descending",
+                              peers = "current"){
+  
+  
+  #Replace unquoted variables
+  if(class(substitute(var)) == "name"){
+    var <- deparse(substitute(var))
+  }
+  df$var <- df[[var]]
+  
+  df <- trendline("data_maxmin", df, var,
+                  cat = "", rollmean,
+                  plot_title = "", y_title = "",
+                  caption_text = "", subtitle_text = "",
+                  peers, ylimits = "",
+                  shading = F, drop_pctiles = F, 
+                  include_hispanic = F, order,
+                  xmin = "", xmax = "")
+  
+  df[[var]] <- df$value
+  
+  df %<>% select(-value)
+  
+  df
+}
 
 
 

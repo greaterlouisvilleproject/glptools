@@ -4,8 +4,7 @@
 \alias{tl_break_settings}
 \title{Calculate x-axis break settings}
 \usage{
-tl_break_settings(df, xmin = 2000, xmax = 2017, rollmean = 1,
-  census = T)
+tl_break_settings(df, xmin, xmax, rollmean)
 }
 \arguments{
 \item{...}{df, xmin, xmax, rollmean}

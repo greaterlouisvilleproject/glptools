@@ -4,10 +4,10 @@
 \alias{tl_reshape_data}
 \title{Reshape data to long format}
 \usage{
-tl_reshape_data(df, type = "single", peers = "current")
+tl_reshape_data(df)
 }
 \value{
-A data frame containing the columns year, variable, and value. If the data frame has categories, year, category, variable, and value.
+A data frame containing the columns year, --category--, variable, and value.
 }
 \description{
 Reshape data to long format

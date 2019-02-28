@@ -4,7 +4,7 @@
 \alias{ranking}
 \title{Health Insurance}
 \usage{
-ranking(df, var, year = 2017, sex = "total", race = "total",
+ranking(df, var, year = "", sex = "total", race = "total",
   order = "Descending", peers = "Current", plot_title = "",
   y_title = "Percent", caption_text = "", sigfig = 3, num_dec = 1,
   text = TRUE, h_line = FALSE, subtitle_text = "",

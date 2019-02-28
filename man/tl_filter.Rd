@@ -4,8 +4,7 @@
 \alias{tl_filter}
 \title{Filter data to sex, race, and peer set.}
 \usage{
-tl_filter(df, peers = "current", sex = "total", race = "total",
-  category = "")
+tl_filter(df, peers, cat, include_hispanic, return_only_df = F)
 }
 \value{
 A data frame

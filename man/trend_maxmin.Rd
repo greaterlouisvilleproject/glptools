@@ -4,10 +4,9 @@
 \alias{trend_maxmin}
 \title{BRFSS}
 \usage{
-trend_maxmin(df, var, order = "descending", sex = "total",
-  race = "total", peers = "current", xmin = 2000, xmax = 2017,
-  ylimits = "", rollmean = 1, census = T, plot_title = "",
-  y_title = "", caption_text = "", subtitle_text = "")
+trend_maxmin(df, var, rollmean = 1, plot_title = "", y_title = "",
+  caption_text = "", subtitle_text = "", peers = "current",
+  ylimits = "", order = "descending", xmin = "", xmax = "")
 }
 \arguments{
 \item{love}{Do you love cats? Defaults to TRUE.}

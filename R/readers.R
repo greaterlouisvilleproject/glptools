@@ -4,7 +4,7 @@
 #' @param starting_year The first year for which there is data.
 #' @export
 #' @return A data frame
-acs_time <- function(folder, starting_year = 2005){
+acs_time <- function(folder, starting_year = 2005, county_filter = "core_counties"){
   wd <- getwd()
   directory <- paste0(wd, "/", folder)
   file_names <- list.files(directory)
@@ -14,11 +14,14 @@ acs_time <- function(folder, starting_year = 2005){
     file_path <- paste0(wd, "/", folder, "/", file_names[i])
     data <- read_csv(file_path, skip=1, col_types = cols("Id2" = col_double()))
     names(data)[names(data) == 'Id2'] <- 'FIPS'
-    all_peers <- data %>% filter(FIPS %in% c(1073, 12031, 18097, 21111, 26081,
-                                             29095, 29189, 29510, 31055, 37081,
-                                             37119, 37183, 39049, 39061, 39113,
-                                             40109, 40143, 45045, 47037, 47093,
-                                             47157, 51760))
+    
+    if(county_filter == "core_counties"){
+      all_peers <- data %>% filter(FIPS %in% FIPS_names$FIPS)
+    } else if (county_filter == "MSA_counties"){
+      all_peers <- data %>% filter(FIPS %in% MSA_FIPS$FIPS)
+    } else {
+      all_peers <- data
+    }
     
     all_peers$year <- y
     y <- y + 1

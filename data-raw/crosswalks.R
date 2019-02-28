@@ -1,6 +1,13 @@
 library(tidyverse)
 library(magrittr)
 
+tract_nh <- read_csv("data-raw/crosswalks/tract_to_nh.csv")
+
+usethis::use_data(tract_nh, overwrite = TRUE)
+
+FIPS_names <- read_csv("data-raw/FIPS_names.csv")
+
+usethis::use_data(FIPS_names, overwrite = TRUE)
 
 MSA_names <- read_csv("data-raw/MSA_names.csv")
 
