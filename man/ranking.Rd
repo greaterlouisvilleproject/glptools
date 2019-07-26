@@ -6,9 +6,8 @@
 \usage{
 ranking(df, var, year = "", sex = "total", race = "total",
   order = "Descending", peers = "Current", plot_title = "",
-  y_title = "Percent", caption_text = "", sigfig = 3, num_dec = 1,
-  text = TRUE, h_line = FALSE, subtitle_text = "",
-  thousands_comma = T)
+  y_title = "Percent", caption_text = "", text = TRUE,
+  subtitle_text = "", sigfig = 3, decimals = 0.1)
 }
 \arguments{
 \item{love}{Do you love cats? Defaults to TRUE.}

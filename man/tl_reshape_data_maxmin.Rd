@@ -4,7 +4,7 @@
 \alias{tl_reshape_data_maxmin}
 \title{Reshape data to long format for trendlines displaying the best- and worst-performing peer cities.}
 \usage{
-tl_reshape_data_maxmin(df, xmin, xmax, order)
+tl_reshape_data_maxmin(df, xmin, xmax, order, zero_start)
 }
 \value{
 A data frame with the columns year, city, variable, category, and value

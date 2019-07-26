@@ -4,11 +4,10 @@
 \alias{make_map}
 \title{BRFSS}
 \usage{
-make_map(var, name, map_obj = "map_tract", geography = NULL,
-  units = "Percent", map_style = "sequential", legend_title = "",
-  palette = "", reverse = F, continuous = T, var_bins,
-  tiles = TRUE, save_data = F, save_file = F, save_image = F,
-  save_location)
+make_map(var, name, map, legend_title, units = "Percent",
+  map_style = "sequential", palette = "", reverse = F,
+  continuous = T, var_bins, tiles = T, save_file = "",
+  save_image = "")
 }
 \arguments{
 \item{love}{Do you love cats? Defaults to TRUE.}
@@ -18,6 +17,5 @@ Reads in BRFSS data
 }
 \examples{
 cat_function()
-
 }
 \keyword{cats}

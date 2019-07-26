@@ -4,8 +4,9 @@
 \alias{trend_data_maxmin}
 \title{Returns statistics calculated for use in trendline graphs}
 \usage{
-trend_data_maxmin(df, var = "var", rollmean = 1,
-  order = "descending", peers = "current")
+trend_data_maxmin(df, var = "var", rollmean = 1, xmin = "",
+  xmax = "", order = "descending", peers = "current",
+  zero_start = F)
 }
 \arguments{
 \item{df}{A data frame}

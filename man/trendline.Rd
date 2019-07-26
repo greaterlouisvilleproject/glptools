@@ -6,8 +6,9 @@
 \usage{
 trendline(type, df, var, cat = "", rollmean = 1, plot_title = "",
   y_title = "", caption_text = "", subtitle_text = "",
-  peers = "current", ylimits = "", shading = F, drop_pctiles = F,
-  include_hispanic = F, order = "descending", xmin = "", xmax = "")
+  peers = "current", ylimits = "", shading = F, pctiles = T,
+  include_hispanic = F, include_asian = T, order = "descending",
+  xmin = "", xmax = "", zero_start = F)
 }
 \arguments{
 \item{love}{Do you love cats? Defaults to TRUE.}

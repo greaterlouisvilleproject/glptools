@@ -7,11 +7,11 @@
 \format{A data frame with four variables:
 \describe{
 \item{\code{MSA}}{MSA code}
+\item{\code{year}}{year.
+  PUMAs based on the 2000 census are labelled with the years 2000 to 2012 to mirror ACS microdata available through IPUMS.
+  PUMAS based on the 2010 census are labelled with the years 2013 to 2017.}
 \item{\code{STATEFIP}}{State FIPS code}
 \item{\code{PUMA}}{Public Use Microdata Area}
-\item{\code{year}}{year. 
-PUMAs based on the 2000 census are labelled with the years 2000 to 2012 to mirror ACS microdata available through IPUMS. 
-PUMAS based on the 2010 census are labelled with the years 2013 to 2017.}
 }}
 \usage{
 MSA_PUMA

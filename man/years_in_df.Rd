@@ -11,7 +11,7 @@ years_in_df(df, var, category = "")
 
 \item{var}{A variable of interest.}
 
-\item{demographic}{. 
+\item{demographic}{.
 Defaults to \code{TRUE}.}
 }
 \description{

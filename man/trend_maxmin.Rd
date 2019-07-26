@@ -6,7 +6,8 @@
 \usage{
 trend_maxmin(df, var, rollmean = 1, plot_title = "", y_title = "",
   caption_text = "", subtitle_text = "", peers = "current",
-  ylimits = "", order = "descending", xmin = "", xmax = "")
+  ylimits = "", order = "descending", xmin = "", xmax = "",
+  zero_start = F)
 }
 \arguments{
 \item{love}{Do you love cats? Defaults to TRUE.}

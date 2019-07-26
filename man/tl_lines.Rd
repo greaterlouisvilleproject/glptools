@@ -4,7 +4,7 @@
 \alias{tl_lines}
 \title{Add lines}
 \usage{
-tl_lines(p, df, shading, cat_names, drop_pctiles)
+tl_lines(p, df, shading, cat_names, pctiles)
 }
 \value{
 A ggplot object

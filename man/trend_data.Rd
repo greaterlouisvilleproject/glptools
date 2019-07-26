@@ -4,15 +4,24 @@
 \alias{trend_data}
 \title{Returns statistics calculated for use in trendline graphs}
 \usage{
-trend_data(df, var = "var", rollmean = 1, cat = "",
-  peers = "current")
+trend_data(df, var = "var", rollmean = 1, xmin = "", xmax = "",
+  cat = "", pctiles = T, peers = "current", include_hispanic = F,
+  include_asian = T)
 }
 \arguments{
 \item{df}{A data frame}
 
+\item{var}{A variable name}
+
 \item{rollmean}{A rolling mean. Defaults to 1.}
 
-\item{census_2000}{Is the 2000 data from the census? If so, do not use rollmeanr on data from 2000. Defaults to TRUE.}
+\item{xmin}{First year}
+
+\item{xmax}{Last year}
+
+\item{cat}{blank, "sex", "race", or a specific demographic grou}
+
+\item{peers}{The peer set to include}
 }
 \description{
 Returns statistics calculated for use in trendline graphs

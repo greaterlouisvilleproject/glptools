@@ -4,7 +4,7 @@
 \alias{brfss_time}
 \title{Read in BRFSS data}
 \usage{
-brfss_time(folder, start_year = 2002)
+brfss_time(folder)
 }
 \arguments{
 \item{folder}{A path to a folder containing BRFSS data.}

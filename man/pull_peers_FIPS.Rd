@@ -4,7 +4,7 @@
 \alias{pull_peers_FIPS}
 \title{Subset a data frame containing MSA data to peer cities and add current and baseline peer data.}
 \usage{
-pull_peers_FIPS(df, add_info = TRUE, county_filter = "core_counties")
+pull_peers_FIPS(df, add_info = T, county_filter = "core_counties")
 }
 \arguments{
 \item{df}{A data frame containing the column MSA}

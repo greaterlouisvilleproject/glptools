@@ -11,7 +11,7 @@ COLA(df, ..., remove_calc = TRUE)
 
 \item{...}{Variables to adjust.}
 
-\item{remove_calc}{Whether to remove the columns \code{rpp_index} and \code{cpi_index} after adjustments. 
+\item{remove_calc}{Whether to remove the columns \code{rpp_index} and \code{cpi_index} after adjustments.
 Defaults to \code{TRUE}.}
 }
 \description{

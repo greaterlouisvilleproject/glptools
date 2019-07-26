@@ -8,63 +8,68 @@
 #' cat_function()
 #'
 ranking <- function(df, var,
-                    year = "", sex = "total", race = "total",
+                    year = NULL, sex = "total", race = "total",
                     order = "Descending", peers = "Current",
                     plot_title = "", y_title = "Percent", caption_text = "",
-                    sigfig = 3, num_dec = 1, text = TRUE, h_line = FALSE,
-                    subtitle_text = "", thousands_comma = T){
-  #copy variable var to a new column for use with the '$' operator
-  if(class(substitute(var)) == "name"){
-    var <- deparse(substitute(var))
-  }
+                    text = TRUE, subtitle_text = "", sigfig = 3, accuracy = 0.1,
+                    label_function = NULL, alternate_text = NULL){
+
+  # Copy variable var to a new column for use with the '$' operator
+  var <- dplyr:::tbl_at_vars(df, vars(!!enquo(var)))
   df$var <- df[[var]]
 
-  if(year == ""){
-    year <- max(years_in_df(df, var))
-  }
-  
-  #filter to year
-  df <- df [df$year == year,]
+  # Filter to sex, race, and year
+  if ("sex" %in% names(df)) df <- df[df$sex == sex,]
+  if ("race" %in% names(df)) df <- df[df$race == race,]
+  if("year" %in% names(df)) {
+    if (is.null(year)) year <- max(years_in_df(df, var))
+    df <- df[df$year %in% year,]
 
-  #filter to sex and race, if available.
-  if("sex" %in% names(df)) df <- df[df$sex == sex,]
-  if("race" %in% names(df)) df <- df[df$race == race,]
-
-  #subset df to peer parameter
-  if(peers %in% c("current", "Current")){
-    df %<>% filter(current == 1)
-  }
-  if(peers %in% c("baseline", "Baseline")){
-    df %<>% filter(baseline == 1)
+    if (length(year) > 1) {
+      df %<>%
+        group_by(FIPS) %>%
+        summarise(var = mean(var, na.rm = TRUE)) %>%
+        ungroup()
+    }
   }
 
-  #sort df according to order parameter
-  if(order %in% c("descending", "Descending")){
-    df %<>% arrange(desc(var))
-  }
-  if(order %in% c("ascending", "Ascending")){
-    df %<>% arrange(var)
-  }
+  # Add peer data if not already present
+  if (df_type(df) == "county" & "current" %not_in% names(df)) df %<>% pull_peers_FIPS()
+  if (df_type(df) == "MSA" &    "current" %not_in% names(df)) df %<>% pull_peers_MSA()
 
-  #create numbered city labels for left side of graph
+  # Filter to peer parameter
+  if (peers %in% c("current", "Current"))   df %<>% filter(current == 1)
+  if (peers %in% c("baseline", "Baseline")) df %<>% filter(baseline == 1)
+
+  # Sort according to order parameter
+  if (order %in% c("descending", "Descending")) df %<>% arrange(desc(var))
+  if (order %in% c("ascending", "Ascending"))   df %<>% arrange(var)
+
+  # Create numbered city labels for left side of graph
   df %<>%
-    mutate(names = paste0(row_number(), ". ", city))
+    mutate(
+      rank = row_number(),
+      names = paste0(rank, ". ", city))
 
-  #set bar color
-  breaks <- classIntervals(df$var, 3, style="jenks")
+  # Set bar colors
+  breaks <- classIntervals(df$var, 3, style = "jenks")
   df$color <- NA
   df$color[df$var <= breaks$brks[2]] <- "green"
   df$color[df$var > breaks$brks[2] & df$var <= breaks$brks[3]] <- "yellow"
   df$color[df$var > breaks$brks[3]] <- "red"
 
-  #round numbers in graph according to sigfif, num_dec, and thousands_comma parameters
-  thousands_char <- if_else(thousands_comma == TRUE, ",", "")
-  df$round <- df$var %>%
-    signif(digits = sigfig) %>%
-    round(digits = num_dec) %>%
-    format(big.mark = thousands_char)
+  # Create numeric labels
+  if (!is.null(label_function)) {
+    label_text <- df$var %>% signif(sigfig) %>% label_function()
+  } else if (y_title == "Dollars") {
+    label_text <- df$var %>% signif(sigfig) %>% dollar(accuracy = accuracy, scale = .001, suffix = "k")
+  } else if (str_detect(y_title, "Percent")) {
+    label_text <- df$var %>% signif(sigfig) %>% percent(accuracy = accuracy, scale = 1, suffix = "%")
+  } else {
+    label_text <- df$var %>% signif(sigfig) %>% comma(accuracy = accuracy)
+  }
 
-  #Set text format, highlight and italicise Louisville text, highlight Louisville bar
+  # Set text format, highlight and italicise Louisville text, highlight Louisville bar
   df$textfont <- "Museo Sans 300"
   df$textfont[df$city == "Louisville"] <- "Museo Sans 300 Italic"
 
@@ -74,17 +79,20 @@ ranking <- function(df, var,
   df$linecolor <- "white"
   df$linecolor[df$city == "Louisville"] <- "#00a9b7"
 
-  #PLOT GRAPH
+  df$text_alignment <- 1.1
+  if (!is.null(alternate_text)) if (18 %not_in% alternate_text) df$text_alignment[df$rank %in% alternate_text] <- -0.1
 
-  #initial plot
+  ### PLOT GRAPH
+
+  # Initial plot
   p <- ggplot(data = df,
               aes(x = factor(names, levels=rev(unique(names))),
                   y = var,
                   fill = factor(color)))
 
-  p <- p + guides(fill=FALSE)
+  p <- p + guides(fill = FALSE)
 
-  #add bars
+  # Add bars
   p <- p +
     geom_bar(stat="identity",
              color=rev(df$linecolor),
@@ -92,16 +100,15 @@ ranking <- function(df, var,
     coord_flip() +
     theme_tufte()
 
-  if(order %in% c("ascending", "Ascending")){
-    p <- p+scale_fill_manual(values=c("#96ca4f","#db2834","#ffd600"))
-  }
-  if(order %in% c("descending", "Descending")){
-    p <- p+scale_fill_manual(values=c("#db2834","#96ca4f","#ffd600"))
-  }
+  if (order %in% c("ascending", "Ascending"))   p <- p + scale_fill_manual(values = c("#96ca4f", "#db2834", "#ffd600"))
+  if (order %in% c("descending", "Descending")) p <- p + scale_fill_manual(values = c("#db2834", "#96ca4f", "#ffd600"))
 
-  #add features
+
+  # Add features
+  title_scale <- min(1, 48 / nchar(plot_title))
+
   p <- p + theme(text = element_text(family = "Museo Sans 300"),
-                 plot.title = element_text(size = 74, hjust = 0.5, margin = margin(b = 20, unit = "pt")),
+                 plot.title = element_text(size = 74 * title_scale, hjust = 0.5, margin = margin(b = 20, unit = "pt")),
                  axis.text.y = element_text(hjust = 0, family = rev(df$textfont),
                                             size = 60, color = rev(df$textcolor)),
                  axis.title.x = element_text(size = 60),
@@ -114,23 +121,19 @@ ranking <- function(df, var,
              labs(subtitle = subtitle_text)
   }
 
-  #add numeric labels to bars based on text parameter
-  if (text == TRUE) {
-    p <-
-      p + geom_text(
-        aes(label = round),
-        hjust = 1.1,
-        size = 20,
-        family = "Museo Sans 300"
-      )
+  # Add numeric labels to bars based on text parameter
+  if (y_title != "" & text) {
+    p <- p + geom_text(aes(label = label_text, hjust = text_alignment),
+                       size = 20,
+                       family = "Museo Sans 300")
   }
 
-  #add vertical line to the left side of the bars based on the h_line parameter
-  if (h_line == TRUE){
-    p <- p + geom_hline(yintercept = 0, linetype = "longdash", size = 2)
-  }
-  p <- p+labs(title = plot_title, y= y_title,
-              x = "", caption = caption_text)
+  # Add vertical line to the left side of the bars based on the h_line parameter
+  if (min(df$var) < 0) p <- p + geom_hline(yintercept = 0, linetype = "longdash", size = 2)
+
+  # Add remaining text
+  p <- p + labs(title = plot_title, y = y_title,
+                x = "", caption = caption_text)
   p
 }
 
@@ -143,64 +146,48 @@ ranking <- function(df, var,
 #' @examples
 #' cat_function()
 #'
-rank_var <- function(df_original, variables, order = "Descending", peers="Current", new_vars = ""){
+ranking_data <- function(df, variables, years = "", sex = "total", race = "total",
+                         descending = TRUE, peers = "Current", new_vars = ""){
 
-  #subset df to peer parameter
-  if(peers=="Current"){
-    df_original <- subset(df_original, current ==1)
-  }
-  if(peers=="Baseline"){
-    df_original <- subset(df_original, baseline ==1)
-  }
+  # Copy variable var to a new column for use with the '$' operator
+  variables <- dplyr:::tbl_at_vars(df, vars(!!enquo(variables)))
 
-  n <- 1
+  # Add peer data if not already present
+  if (df_type(df) == "county" & "current" %not_in% names(df)) df %<>% pull_peers_FIPS()
+  if (df_type(df) == "MSA"    & "current" %not_in% names(df)) df %<>% pull_peers_MSA()
 
-  for(v in 1:length(variables)){
-    df  <- df_original[,c("city", "year", variables[n])]
+  # Filter to peer parameter
+  if (peers %in% c("current", "Current"))   df %<>% filter(current == 1)
+  if (peers %in% c("baseline", "Baseline")) df %<>% filter(baseline == 1)
 
-    df$var <- df[[variables[n]]]
+  # Filter to year, sex, and race
+  if (years[1] == "") years <- max(years_in_df(df, variables[1]))
+  df <- df[df$year %in% years,]
+  if("sex" %in% names(df)) df <- df[df$sex == sex,]
+  if("race" %in% names(df)) df <- df[df$race == race,]
 
-    #sort df according to order parameter
-    if(order=="Ascending"){
-      df <- df %>%
-        group_by(year) %>%
-        arrange(var) %>%
-        mutate(rank = row_number()) %>%
-        ungroup()
-    } else if(order=="Descending"){
-      df <- df %>%
-        group_by(year) %>%
-        arrange(desc(var)) %>%
-        mutate(rank = row_number()) %>%
-        ungroup()
-    }
+  for(v in variables) {
+    var_name <- v %p% "_rank"
 
-    if(new_vars == ""){
-      var_name <- paste0(variables[n], "_rank")
-    } else {
-      var_name <- new_vars[n]
-    }
+    temp <- df %>%
+      select(FIPS, year, !!v) %>%
+      group_by(year) %>%
+      arrange_at(vars(v)) %>%
+      {if (descending) arrange_at(., vars(v), ~ desc(.)) else arrange_at(., vars(v))} %>%
+      mutate(!!var_name := row_number()) %>%
+      ungroup()
 
-    df[[var_name]] <- df$rank
-
-    df <- df %>% select(-var, -rank)
-
-    #add the data frame to the output
-    if(n == 1){
-      output <- df
-    }else{
-      output <- full_join(output, df, by = c("city", "year"))
-    }
-
-    n = n + 1
-
+    output <- assign_col_join(output, temp, by = c("FIPS", "year"))
   }
 
-  output <- output %>%
-    arrange(year, city)
+  output %<>% organize()
 
   output
 }
+
+
+
+
 
 #' Health Insurance
 #'
@@ -293,7 +280,6 @@ ranking_slope <- function (dataframe, times, measurement, grouping, title = "",
   dataframe$grouping <- dataframe[[Ngrouping]]
   dataframe$measurement <- dataframe[[Nmeasurement]]
   dataframe$times <- dataframe[[Ntimes]]
-
 
   all_rankings <- data.frame(
     times = factor(rep(obs_periods, each = 17)),

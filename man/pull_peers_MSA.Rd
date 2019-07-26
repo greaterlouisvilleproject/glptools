@@ -4,7 +4,7 @@
 \alias{pull_peers_MSA}
 \title{Subset a data frame containing MSA data to peer cities and add current and baseline peer data.}
 \usage{
-pull_peers_MSA(df)
+pull_peers_MSA(df, add_info = T)
 }
 \arguments{
 \item{df}{A data frame containing the column MSA}

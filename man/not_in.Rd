@@ -3,18 +3,18 @@
 \name{not_in}
 \alias{not_in}
 \alias{\%cols_in\%}
-\alias{\%cols_!in\%}
-\title{Returns any variables in the vector 
+\alias{\%cols_not_in\%}
+\title{Returns any variables in the vector
   that are columns in the data frame.}
 \usage{
 df \%cols_in\% columns
 
-df \%cols_!in\% columns
+df \%cols_not_in\% columns
 }
 \description{
-Returns any variables in the vector 
+Returns any variables in the vector
   that are columns in the data frame.
 
-Returns any variables in the vector 
+Returns any variables in the vector
   that are NOT columns in the data frame.
 }

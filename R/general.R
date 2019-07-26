@@ -1,26 +1,27 @@
 #' Not in
-#' 
+#'
 #' @export
-`%!in%` <- function (x, table) match(x, table, nomatch = 0L) == 0L
+`%not_in%` <- function (x, table) match(x, table, nomatch = 0L) == 0L
+
 
 #' paste0(a, b)
 #'
 #' @export
 `%p%` <- function (a, b) paste0(a, b)
 
-#' Returns any variables in the vector 
+#' Returns any variables in the vector
 #'   that are columns in the data frame.
 #'
 #' @name not_in
 #' @export
 `%cols_in%` <- function (df, columns) names(df)[names(df) %in% columns]
 
-#' Returns any variables in the vector 
+#' Returns any variables in the vector
 #'   that are NOT columns in the data frame.
 #'
 #' @name not_in
 #' @export
-`%cols_!in%` <- function (df, columns) names(df)[names(df) %!in% columns]
+`%cols_not_in%` <- function (df, columns) names(df)[names(df) %not_in% columns]
 
 #' Calculate the rolling mean of a vector
 #'
@@ -41,7 +42,6 @@ rollmeanr <- function(x, r){
   y
 }
 
-
 #' Change a vector from a factor to character/numeric
 #'
 #' If the vector can be converted to a numeric vector and fewer than 10% of the values become NA,
@@ -52,7 +52,7 @@ rollmeanr <- function(x, r){
 #' @export
 unfactor <- function(x){
   x <- as.character(x)
-  if(mean(is.na(as.numeric(x))) < 0.9){
+  if(mean(is.na(as.numeric(x))) < 0.01){
     x <- as.numeric(x)
   }
   x
@@ -71,45 +71,20 @@ norm_z <- function(x){
 #'
 #' @param df A data frame containing the column MSA
 #' @export
-pull_peers_MSA<-function(df){
-  output <- filter(df, df$MSA %in% c("24340", "41180", "36420", "46140", "24860", "28940", 
-                                     "13820", "26900", "31140", "28140", "36540", "24660", 
-                                     "16740", "18140", "17140", "34980", "32820", "27260", 
-                                     "39580", "19380", "40060"))
+pull_peers_MSA <- function(df, add_info = T) {
 
-  output$baseline <- 1
-  output$current  <- 1
+  if (add_info) {
+    df %<>%
+      left_join(MSA_df, by = "MSA") %>%
+      filter(!is.na(city))
+  } else {
+    df %<>%
+      filter(MSA %in% MSA_df$MSA)
+  }
 
-  output$baseline[output$MSA %in% c(24340, 41180, 36420, 46140, 24860, 28940)] <-0
+  df %<>% organize()
 
-  output$current[output$MSA %in% c(27260, 39580, 19380, 40060)] <-0
-  
-  output$city<-NA
-  output$city[output$MSA == 24340] = "Grand Rapids"
-  output$city[output$MSA == 41180] = "St. Louis"
-  output$city[output$MSA == 36420] = "Oklahoma City"
-  output$city[output$MSA == 46140] = "Tulsa"
-  output$city[output$MSA == 24860] = "Greenville"
-  output$city[output$MSA == 28940] = "Knoxville"
-  output$city[output$MSA == 13820] = "Birmingham"
-  output$city[output$MSA == 31140] = "Louisville"
-  output$city[output$MSA == 26900] = "Indianapolis"
-  output$city[output$MSA == 28140] = "Kansas City"
-  output$city[output$MSA == 36540] = "Omaha"
-  output$city[output$MSA == 24660] = "Greensboro"
-  output$city[output$MSA == 16740] = "Charlotte"
-  output$city[output$MSA == 18140] = "Columbus"
-  output$city[output$MSA == 17140] = "Cincinnati"
-  output$city[output$MSA == 34980] = "Nashville"
-  output$city[output$MSA == 32820] = "Memphis"
-  output$city[output$MSA == 27260] = "Jacksonville"
-  output$city[output$MSA == 39580] = "Raleigh"
-  output$city[output$MSA == 19380] = "Dayton"
-  output$city[output$MSA == 40060] = "Richmond"
-  
-  output %<>% organize()
-  
-  output
+  df
 }
 
 #' Subset a data frame containing MSA data to peer cities and add current and baseline peer data.
@@ -117,37 +92,26 @@ pull_peers_MSA<-function(df){
 #' @param df A data frame containing the column MSA
 #' @param add_info Add city names, current peer, and baseline peer columns? Defaults to TRUE.
 #' @export
-pull_peers_FIPS <- function(df, add_info = TRUE, county_filter = "core_counties"){
-  
-  if(county_filter == "core_counties"){
-    df %<>% filter(FIPS %in% c(FIPS_names$FIPS, "01073", "MERGED"))
-  } else if (county_filter == "MSA_counties"){
+pull_peers_FIPS <- function(df, add_info = T, county_filter = "core_counties"){
+
+  df %<>%
+    mutate(
+      FIPS = as.character(FIPS),
+      FIPS = replace(FIPS, FIPS == "01073", "1073"))
+
+  if (county_filter == "core_counties"){
+    if(add_info){
+      df %<>%
+        left_join(FIPS_df, by = "FIPS") %>%
+        filter(!is.na(city))
+    } else {
+      df %<>% filter(FIPS %in% FIPS_df$FIPS)
+    }
+  } else if (county_filter == "MSA_counties") {
     df %<>% filter(FIPS %in% MSA_FIPS$FIPS)
-  } else {
-    df <- df
   }
-  
-  if(add_info == TRUE){
-    df %<>%
-      mutate(
-        baseline = if_else(FIPS %in% c(26081, 29189, 29510, 40109, 40143, 45045, 47093, "MERGED"), 0, 1),
-        current = if_else(FIPS %in% c(12031, 37183, 39113, 51760), 0, 1),
-        FIPS = as.character(FIPS))
+  df %<>% organize()
 
-    city <- c('Grand Rapids', 'St. Louis', 'Oklahoma City', 'Tulsa', 'Greenville', 'Knoxville',
-              'Birmingham', 'Indianapolis', 'Louisville', 'Kansas City', 'Omaha', 'Greensboro',
-              'Charlotte', 'Columbus', 'Cincinnati', 'Nashville', 'Memphis', 'Jacksonville',
-              'Raleigh', 'Dayton', 'Richmond')
-
-    FIPS_codes <- c(26081, "MERGED", 40109, 40143, 45045, 47093, 1073, 18097, 21111, 29095, 31055,
-                    37081, 37119, 39049, 39061, 47037, 47157, 12031, 37183, 39113, 51760)
-
-    names_df <- data.frame(city, FIPS_codes, stringsAsFactors = FALSE)
-
-    df %<>% left_join(names_df, by = c('FIPS' = 'FIPS_codes'))
-
-    df$city[df$FIPS == "01073"] <- "Birmingham"
-  }
   df
 }
 
@@ -192,68 +156,37 @@ add_FIPS_to_MSA <- function(df){
 #' @export
 stl_merge <- function(df_original, ..., weight_var = "", method = "mean"){
 
-  weight_variable <- as.character(substitute(weight_var))
+  weight_var <- as.character(substitute(weight_var))
   variables <- dplyr:::tbl_at_vars(df_original, vars(...))
 
-  #If no weight variable supplied, read in total population and join to df
-  if(weight_variable == ""){
-    
-    if("population" %!in% names(df_original)){
-    pop <- population_df
+  # If no weight variable supplied and one is needed, read in total population and join to df
+  if(weight_var == "" & method == "mean"){
 
-      if(typeof(df_original$FIPS) == "character"){
-        pop$FIPS <- as.character(pop$FIPS)
-      }
+    weight_var <- "population"
 
-    df_original %<>% left_join(pop, by = c("FIPS", "year"))
+    if("population" %not_in% names(df_original)){
+      df_original %<>% left_join(population_df, by = c("FIPS", "year"))
     }
-    
-    weight_variable <- "population"
   }
 
-  n <- 1
-
   grouping_vars <- c("FIPS", "year", "sex", "race")
-  #For each variable to be weighted, create a new df of the applicable variables
-  for(v in 1:length(variables)){
-    df  <- df_original %>% 
-      select(df_original %cols_in% c(grouping_vars, 
-                                     variables[n], 
-                                     weight_variable))
 
-    df$var <- df[[variables[n]]]
-    df$weight_var <- df[[weight_variable]]
+  df_original %<>%
+    mutate(FIPS = replace(FIPS, FIPS %in% c("29189", "29510"), "MERGED")) %>%
+    group_by_at(df_original %cols_in% grouping_vars)
 
-    df %<>%
-      mutate(FIPS = replace(FIPS,
-                            FIPS %in% c("29189", "29510"),
-                            "MERGED")) %>%
-      group_by_at(df %cols_in% grouping_vars)
+  # For each variable to be weighted, create a new df of the applicable variables
+  for(v in variables){
 
-    #use a weighted mean. If method = "sum", simply add together values for STL
-    if(method == "mean"){
-      df %<>%
-        summarise(var = weighted.mean(var, weight_var)) %>%
-        ungroup()
-    } else if(method == "sum"){
-      df %<>%
-        summarise(var = sum(var)) %>%
-        ungroup()
-    }
+    df <- df_original
 
-    #rename the variable to the orginal value and remove "var"
-    df[[variables[n]]] <- df$var
+    if (method == "mean") df %<>% summarise(!!v := weighted.mean(.data[[v]], .data[[weight_var]]))
+    else df %<>% summarise_at(v, sum)
 
-    df %<>% select(-var)
+    df %<>% ungroup()
 
     #add the data frame to the output
-    if(n == 1){
-      output <- df
-    }else{
-      output <- full_join(output, df, by = df %cols_in% grouping_vars)
-    }
-
-    n = n + 1
+    output <- assign_col_join(output, df, by = df %cols_in% grouping_vars)
 
   }
   output
@@ -266,20 +199,20 @@ stl_merge <- function(df_original, ..., weight_var = "", method = "mean"){
 bind_df <- function(...){
   data_frames <- list(...)
 
-  grouping_vars <- c("FIPS", "MSA", "year", "race", "sex",
+  grouping_vars <- c("FIPS", "MSA", "year", "race", "sex", "frl_status",
                      "district", "year", "demographic",
-                     "Id")
+                     "Id", "variable", "neighborhood")
 
   grouping_vars <- grouping_vars[grouping_vars %in% names(data_frames[[1]])]
-  
+
   output <- purrr::reduce(data_frames, full_join, by = grouping_vars)
 
   output
 }
 
 #' Gathers data from wide format into long format based on sex.
-#' 
-#' Variables should end in ".male", ".female", or "" (blank for totals). 
+#'
+#' Variables should end in ".male", ".female", or "" (blank for totals).
 #' Variable names should not contain other periods.
 #'
 #' @param df A data frame
@@ -304,7 +237,7 @@ reshape_sex <- function(df) {
 }
 
 #' Organizes common GLP data by columns and rows and replaces FIPS 01073 with 1073.
-#' 
+#'
 #' Columns: MSA, FIPS, city, year, sex, race, baseline, current,
 #' Rows: MSA, FIPS, year, sex, race
 #'
@@ -312,16 +245,21 @@ reshape_sex <- function(df) {
 #' @export
 organize <- function(df) {
 
-  columns <- c("MSA", "FIPS", "city", "year", "sex", "race", "baseline", "current")
-  columns <- columns[columns %in% names(df)]
+  if (df_type(df) %in% c("block", "tract", "neighborhood")) {
+    columns <- c("GEO_ID", "neighborhood", "tract", "block", "line1", "line2", "line3")
+    columns <- columns[columns %in% names(df)]
+    df %<>% select(columns, everything())
+    df
+  }
 
-  rows <- c("MSA", "FIPS", "year", "sex", "race")
-  rows <- rows[rows %in% names(df)]
+  columns <- df %cols_in% c("MSA", "FIPS", "city", "year", "sex", "race", "frl_status", "baseline", "current")
+
+  rows <- df %cols_in% c("MSA", "FIPS", "year", "sex", "race", "frl_status")
 
   df %<>%
     select(columns, everything()) %>%
     arrange_at(vars(rows))
-  
+
   if("FIPS" %in% names(df)){
     df %<>%
       mutate(FIPS = replace(FIPS, FIPS == "01073", "1073"))
@@ -331,86 +269,161 @@ organize <- function(df) {
 }
 
 #' Return the geography of a GLP data frame.
-#' 
+#'
 #' Returns "county", "MSA", "kentucky_ed"
 #'
 #' @param df A data frame.
 #' @export
 df_type <- function(df){
   cols <- names(df)
-  if("FIPS" %in% cols){
+
+if ("FIPS" %in% cols) {
     "county"
-  } else if ("MSA" %in% cols){
+  } else if ("MSA" %in% cols) {
     "MSA"
-  } else if ("district" %in% cols){
-    "ky_ed"
-  } else if ("geography" %in% cols){
-    "naep"
-  } else if (all(cols %in% c("year", "variable", "category", "value"))){
+  } else if ("frl_status" %in% cols) {
+    "ky"
+  } else if (all(cols %in% c("year", "variable", "category", "value"))) {
     "graph"
-  } else if (all(cols %in% c("year", "city", "variable", "category", "value"))){
+  } else if (all(cols %in% c("year", "city", "variable", "category", "value"))) {
     "graph_max_min"
+  } else if ("block" %in% cols) {
+    "block"
+  } else if ("tract" %in% cols) {
+    "tract"
+  } else if ("neighborhood" %in% cols | "nh" %in% cols){
+    "neighborhood"
+  } else if ("zip" %in% cols){
+    "zip"
+  } else if ("market" %in% cols){
+    "market"
+  } else if ("county" %in% cols){
+    "county"
+  } else {
+    NA
   }
+}
+
+#' Join two data frames or return one
+#'
+#' @param df_1 A data frame that might exist
+#' @param df_2 A data frame to join to \code{df_1} column-wise
+#' @param by   Any values to pass to \code{full_join}.
+#' If none are supplied, glptools::bind_df is used.
+#' @export
+assign_col_join <- function(df_1, df_2, by){
+  tryCatch({
+    if (missing(by)) bind_df(df_1, df_2)
+    else             full_join(df_1, df_2, by = by)
+    },
+    error = function(cond){
+      df_2
+    })
+}
+
+#' Join two data frames or return one
+#'
+#' @param df_1 A data frame that might exist
+#' @param df_2 A data frame to join to \code{df_1} row-wise
+#' @export
+assign_row_join <- function(df_1, df_2){
+  tryCatch({
+    bind_rows(df_1, df_2)
+  },
+  error = function(cond){
+    df_2
+  })
 }
 
 #' Adjust data for cost of living and inflation
 #'
-#' 
+#'
 #' @param df A data frame.
 #' @param ... Variables to adjust.
-#' @param remove_calc Whether to remove the columns \code{rpp_index} and \code{cpi_index} after adjustments. 
+#' @param remove_calc Whether to remove the columns \code{rpp_index} and \code{cpi_index} after adjustments.
 #' Defaults to \code{TRUE}.
 #' @export
-COLA <- function(df, ..., remove_calc = TRUE){
-  
-  if(c("rpp_index") %!in% names(df)){
-    df %<>% left_join(COLA_df, by = c("FIPS", "year"))
+COLA <- function(df, ..., base_year = 2017, remove_calc = TRUE, inflation = T, rpp = T){
+
+  variables <- dplyr:::tbl_at_vars(df, vars(...))
+
+  COLA_df %<>%
+    group_by(FIPS) %>%
+    mutate(base_cpi = cpi[year == base_year],
+           cpi_index = base_cpi/cpi) %>%
+    ungroup() %>%
+    select(-cpi, -base_cpi)
+
+  df %<>% left_join(COLA_df, by = c("FIPS", "year"))
+
+  if (inflation & rpp) {
+    df %<>% mutate_at(vars(variables), ~ . * rpp_index * cpi_index)
+  } else if (inflation & !rpp) {
+    df %<>% mutate_at(vars(variables), ~ . * cpi_index)
+  } else if (!inflation & rpp) {
+    df %<>% mutate_at(vars(variables), ~ . * rpp_index)
   }
-  
-  df %<>% mutate_at(vars(...), funs(. * rpp_index * cpi_index))
-  
-  if(remove_calc){
-    df %<>% select(-rpp_index, -cpi_index)
-  }
-  
+
+  if (remove_calc) df %<>% select(-rpp_index, -cpi_index)
+
   df
-  
+
 }
 
 #' Return the years in a data frame
 #'
 #' @param df A data frame.
 #' @param var A variable of interest.
-#' @param demographic . 
+#' @param demographic .
 #' Defaults to \code{TRUE}.
 #' @export
 years_in_df <- function(df, var, category = ""){
-  
-  if(class(substitute(var)) == "name"){
+
+  if (class(substitute(var)) == "name") {
     var <- deparse(substitute(var))
   }
+
   df$var <- df[[var]]
-  
-  if(category == ""){
+
+  if (category == "") {
     df_subset <- df
-  } else {
-    if(df_type(df) == "ky_ed"){
-      df_subset <- df %>% filter(demographic == category)
-    } else if(df_type(df) %in% c("county", "MSA")){
-      if(demographic %in% c("male", "female")){
-        df_subset <- df %>% filter(sex == category)
-      } else {
-        df_subset <- df %>% filter(race == category)
-      }
-    } 
+  } else if (df_type(df) == "ky_ed") {
+    df_subset <- df %>% filter(demographic == category)
+  } else if (df_type(df) %in% c("county", "MSA")) {
+    if (category %in% c("male", "female")) {
+      df_subset <- df %>% filter(sex == category)
+    } else if (category == "sex") {
+      df_subset <- df %>% filter(sex == "male")
+    } else if (category %in% c("white", "black", "hispanic")) {
+      df_subset <- df %>% filter(race == category)
+    } else if (category == "race") {
+      df_subset <- df %>% filter(race == "white")
+    }
   }
-  
+
   results <- df_subset %>%
     group_by(year) %>%
     summarise(pct_na = mean(is.na(var))) %>%
     filter(pct_na < 1)
-  
+
   results$year
+}
+
+#' Add or replace a file in sysdata.rda
+#'   Any files in the current environment are added to the sysdata.rda file
+#'
+#' @export
+update_sysdata <- function(...) {
+
+  dfs_to_save <- dplyr:::dots(...) %>% unlist() %>% as.character()
+  temp_env <- new.env()
+  load("R/sysdata.rda", envir = temp_env)
+
+  for (df in dfs_to_save){
+    temp_env[[df]] <- get(df, envir = .GlobalEnv)
+  }
+
+  save(list = ls(envir = temp_env), file = "R/sysdata.rda", envir = temp_env)
 }
 
 # DEPRECATED
@@ -456,9 +469,9 @@ rollmean5 <- function(x){
 #' @param weight_var A variable to use when weighting the counties. If none is provided, population data from the ACS is used.
 #' @export
 weight_stl <- function(df_original, variables, weight_variable = ""){
-  
+
   n <- 1
-  
+
   if(weight_variable == ""){
     population_data <- read_csv("data/population_data.csv")
     population_data$FIPS <- as.numeric(population_data$FIPS)
@@ -468,31 +481,31 @@ weight_stl <- function(df_original, variables, weight_variable = ""){
     df_original <- df_original %>% left_join(population_data, by = c("FIPS", "year"))
     weight_variable <- 'population'
   }
-  
+
   for(v in 1:length(variables)){
     df  <- df_original[,c('FIPS', 'year', variables[n], weight_variable)]
-    
+
     df$var <- df[[variables[n]]]
     df$weight_var <- df[[weight_variable]]
-    
+
     df %<>%
       mutate(FIPS = replace(FIPS, FIPS == '29189' | FIPS == '29510', 'MERGED')) %>%
       group_by(FIPS, year) %>%
       summarise(var = weighted.mean(var, weight_var)) %>%
       ungroup()
-    
+
     df[[variables[n]]] <- df$var
-    
+
     df %<>% select(-var)
-    
+
     if(n == 1){
       output <- df
     }else{
       output <- full_join(output, df, by = c('FIPS', 'year'))
     }
-    
+
     n = n + 1
-    
+
   }
   output
 }
@@ -508,6 +521,6 @@ reshape_ky_ed <- function(df, var_name) {
       district, year, !!var_name,
       ends_with("_white"), ends_with("_black"), ends_with("_hispanic"), ends_with("_asian"),
       ends_with("_male"), ends_with("_female"), ends_with("_frl"), ends_with("nonfrl"))
-  
+
   df
 }

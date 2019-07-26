@@ -10,6 +10,6 @@ reshape_sex(df)
 \item{df}{A data frame}
 }
 \description{
-Variables should end in ".male", ".female", or "" (blank for totals). 
+Variables should end in ".male", ".female", or "" (blank for totals).
 Variable names should not contain other periods.
 }

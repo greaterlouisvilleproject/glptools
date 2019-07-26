@@ -12,29 +12,24 @@ acs_time <- function(folder, starting_year = 2005, county_filter = "core_countie
   y <- starting_year
   for (i in 1:n){
     file_path <- paste0(wd, "/", folder, "/", file_names[i])
-    data <- read_csv(file_path, skip=1, col_types = cols("Id2" = col_double()))
-    names(data)[names(data) == 'Id2'] <- 'FIPS'
+    df <- read_csv(file_path, skip=1, col_types = cols("Id2" = col_double()))
     
-    if(county_filter == "core_counties"){
-      all_peers <- data %>% filter(FIPS %in% FIPS_names$FIPS)
-    } else if (county_filter == "MSA_counties"){
-      all_peers <- data %>% filter(FIPS %in% MSA_FIPS$FIPS)
-    } else {
-      all_peers <- data
-    }
+    df %<>% 
+      rename(FIPS = Id2) %>%
+      pull_peers_FIPS(add_info = F, county_filter)
     
-    all_peers$year <- y
+    df$year <- y
     y <- y + 1
     
     if(i == 1){
-      df <- all_peers
+      output <- df
     }
     else{
-      names(all_peers) <- names(df)
-      df <- rbind(df, all_peers)
+      names(df) <- names(output)
+      output <- rbind(output, df)
     }
   }
-  df
+  output
 }
 
 #' Read in BRFSS data
@@ -42,65 +37,70 @@ acs_time <- function(folder, starting_year = 2005, county_filter = "core_countie
 #' @param folder A path to a folder containing BRFSS data.
 #' @param starting_year The first year for which there is data.
 #' @export
-brfss_time <- function(folder, start_year = 2002){
+brfss_time <- function(folder){
+  
   wd <- getwd()
   wd <- paste(wd, folder, sep = "/")
   file_names <- list.files(wd)
   n <- length(file_names)
-  y <- start_year
-  
-  for (i in 1:n){
-    file_path <- paste(wd, file_names[i], sep = "/")
-    data <- sasxport.get(file_path)
+
+  for (y in 2002:2017) {
+    file_path <- paste(wd, file_names[y - 2001], sep = "/")
+    df <- sasxport.get(file_path)
     
-    data <- map_df(data, remove_var_label)
+    df %<>% map_df(remove_var_label)
     
-    if(y == 2002){
-      output <- data.frame(msa = data$a.mmsa,
-                           wgt = data$a.mmsawt,
-                           obs = data$seqno,
-                           age = data$age.mmsa,
-                           hlth = data$genhlth,
-                           physdays = data$physhlth,
-                           mentdays = data$menthlth)
-    }
-    else if(y == 2003){
-      output <- data.frame(msa = data$x.mmsa,
-                           wgt = data$x.lmmsawt,
-                           obs = data$seqno,
-                           age = data$x.ageg.,
-                           hlth = data$genhlth,
-                           physdays = data$physhlth,
-                           mentdays = data$menthlth)
-    }
-    else if(y >= 2004 & y <= 2010){
-      output <- data.frame(msa = data$x.mmsa,
-                           wgt = data$x.mmsawt,
-                           obs = data$seqno,
-                           age = data$age.mmsa,
-                           hlth = data$genhlth,
-                           physdays = data$physhlth,
-                           mentdays = data$menthlth)
-    }
-    else if(y >= 2011){
-      output <- data.frame(msa = data$x.mmsa,
-                           wgt = data$x.mmsawt,
-                           obs = data$seqno,
-                           age = data$x.age.g,
-                           hlth = data$genhlth,
-                           physdays = data$physhlth,
-                           mentdays = data$menthlth)
+    age_var <- 
+      c("a.impage", # 2002
+        "x.impage", "x.impage", "x.impage", "x.impage", "x.impage", "x.impage", #2003 - 2008 
+        "age", "age", "age", "age", #2009 - 2012
+        "x.age80", "x.age80", "x.age80", "x.age80", "x.age80") #2013 - 2017
+    
+    race_var <- 
+      c("a.racegr", # 2002
+        "x.racegr2", "x.racegr2", "x.racegr2", "x.racegr2", "x.racegr2", 
+        "x.racegr2", "x.racegr2", "x.racegr2", "x.racegr2", "x.racegr2", #2003 - 2012
+        "x.racegr3", "x.racegr3", "x.racegr3", "x.racegr3", "x.racegr3") #2013 - 2017
+    
+    if (y == 2002) {
+      
+      df <- data.frame(MSA = df$a.mmsa,
+                       wgt = df$a.mmsawt,
+                       age = df[[age_var[y - 2001]]],
+                       sex = df$sex,
+                       race = df[[race_var[y - 2001]]],
+                       genhlth = df$genhlth,
+                       physdays = df$physhlth,
+                       mentdays = df$menthlth)
+      
+    } else if (y >= 2003) {
+      
+      df <- data.frame(MSA = df$x.mmsa,
+                       wgt = df$x.mmsawt,
+                       age = df[[age_var[y - 2001]]],
+                       sex = df$sex,
+                       race = df[[race_var[y - 2001]]],
+                       genhlth = df$genhlth,
+                       physdays = df$physhlth,
+                       mentdays = df$menthlth)
       
     }
     
-    output$year <- y
-    y <- y + 1
+    df$year <- y
     
-    if(i == 1){df <- output}
-    else{df <- rbind(df, output)}
-    
+    if (y == 2002) output <- df 
+    else           output %<>% rbind(df)
   }
-  df
+  
+  output %<>%
+    mutate(
+      age = replace(age, age %in% c(7, 9), NA),
+      sex = recode(sex, "male", "female", .default = NA_character_),
+      race = recode(race, "white", "black", "other", "other", "hispanic", NA_character_)) %>%
+    pull_peers_MSA(add_info = F) %>%
+    organize()
+  
+  output
 }
 
 #' Read in County Business Pattern data

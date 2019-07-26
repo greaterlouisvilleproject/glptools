@@ -2,14 +2,14 @@
 % Please edit documentation in R/trendline_helpers.R
 \name{tl_limits}
 \alias{tl_limits}
-\title{Add x and y axis limits}
+\title{Add x and y axis limits and plot labels}
 \usage{
 tl_limits(p, df, xmin, xmax, ylimits, major_break_settings,
-  minor_break_settings)
+  minor_break_settings, y_title)
 }
 \value{
 A ggplot object
 }
 \description{
-Add x and y axis limits
+Add x and y axis limits and plot labels
 }

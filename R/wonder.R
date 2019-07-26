@@ -37,24 +37,25 @@ clean_wonder <- function(df, method = "sum"){
 
   #new names for variables
   names_recode <- c(
-    `County Code`           = "FIPS",
-    Year                    = "year",
-    `Single-Year Ages Code` = "age",
-    `Ten-Year Age Groups Code` = "age_10_codes",
-    Deaths                  = "deaths",
-    Population              = "population",
-    `Birth Weight 12 Code`  = "weight",
-    Births                  = "births",
-    Race                    = "race",
-    `Bridged Race`          = "race",
-    `Age Adjusted Rate`     = "rate",
+    `County Code`                  = "FIPS",
+    Year                           = "year",
+    `Single-Year Ages Code`        = "age",
+    `Ten-Year Age Groups Code`     = "age_10_codes",
+    Deaths                         = "deaths",
+    Population                     = "population",
+    `Birth Weight 12 Code`         = "weight",
+    Births                         = "births",
+    Race                           = "race",
+    `Bridged Race`                 = "race",
+    Gender                         = "sex",
+    `Age Adjusted Rate`            = "rate",
     `Multiple Cause of death Code` = "cod")
 
   
   #list of variables to keep (same as above list)
   keep_names <- c("FIPS", "year", "age", "age_10", 
                   "deaths", "population", "weight", "births", 
-                  "race", "rate", "cod")
+                  "race", "sex", "rate", "cod")
 
   #list of variables to change to numeric
   numeric_names <- c("year", "age", "deaths", "population", 
@@ -79,12 +80,12 @@ clean_wonder <- function(df, method = "sum"){
   
   #filter rows containing totals (which do not contain specific years)
   df <- df %>%
-    filter_if(names(df) %in% c("FIPS", "year", "age", "age_10", "race"), all_vars(!is.na(.)))
+    filter_at(df %cols_in% c("FIPS", "year", "age", "age_10", "race", "sex"), all_vars(!is.na(.)))
   
   #convert variables to numeric and subset data frame to variables of interest
   df <- df %>%
-    mutate_if(names(df) %in% numeric_names, as.numeric) %>%
-    select_if(names(df) %in% keep_names)
+    mutate_at(df %cols_in% numeric_names, as.numeric) %>%
+    select_at(df %cols_in% keep_names)
   
   if("race" %in% names(df)){
     df %<>%
@@ -92,33 +93,37 @@ clean_wonder <- function(df, method = "sum"){
         race = replace(race, race == "Black or African American", "black"),
         race = replace(race, race == "White", "white"))
   }
+  if("sex" %in% names(df)){
+    df %<>% mutate(sex = str_to_lower(sex))
+  }
   
   #Merge Saint Louis Counties
   
   #list of variables to group by for summarizing St. Louis data
-  group_vars <- c("FIPS", "year", "age", "age_10", "weight", "race")
-  
-  #merge St. Louis city and county
-  df <- df %>%
-    mutate(
-      FIPS = replace(FIPS, FIPS %in% c("29189", "29510"), "MERGED"),
-      FIPS = replace(FIPS, FIPS == "01073", "1073"))
-  
-  #Merge St. Louis using a sum
-  if(method == "sum"){
+  if("FIPS" %in% names(df)){
+    group_vars <- c("FIPS", "year", "age", "age_10", "weight", "race", "sex")
+    
+    #merge St. Louis city and county
     df <- df %>%
-      group_by_if(names(df) %in% group_vars) %>%
-      summarise_all(sum) %>%
-      ungroup()
+      mutate(
+        FIPS = replace(FIPS, FIPS %in% c("29189", "29510"), "MERGED"),
+        FIPS = replace(FIPS, FIPS == "01073", "1073"))
+    
+    #Merge St. Louis using a sum
+    if(method == "sum"){
+      df <- df %>%
+        group_by_at(df %cols_in% group_vars) %>%
+        summarise_all(sum) %>%
+        ungroup()
+    }
+    #Merge St. Louis using a weighted average
+    else if (method == "weight"){
+      df <- df %>%
+        group_by_at(df %cols_in% group_vars) %>%
+        summarise(rate = weighted.mean(rate, population)) %>%
+        ungroup()
+    }
   }
-  #Merge St. Louis using a weighted average
-  else if (method == "weight"){
-    df <- df %>%
-      group_by_if(names(df) %in% group_vars) %>%
-      summarise(rate = weighted.mean(rate, population)) %>%
-      ungroup()
-  }
-  else(df <- NA)
   
   df
 
@@ -137,7 +142,9 @@ age_adj_rate <- function(df, var, age_var = "age", pop_var = "population"){
   df$age_var <- df[[age_var]]
   df$pop_var <- df[[pop_var]]
 
-  #label age groups
+  grouping_vars <- c("FIPS", "year", "race", "sex")
+  
+  # Label age groups
   if(age_var == "age"){
     age_groups <-
       data.frame(
@@ -161,15 +168,15 @@ age_adj_rate <- function(df, var, age_var = "age", pop_var = "population"){
     df$age_group <- df$age_var
   }
 
-  #summarise variable and population variable by groups
+  # Summarise variable and population variable by age groups
   df <- df %>%
-    group_by(age_group, FIPS, year) %>%
+    group_by_at(df %cols_in% c("age_group", grouping_vars)) %>%
     summarise(
       var = sum(var, na.rm = TRUE),
       pop_var = sum(pop_var, na.rm = TRUE)) %>%
     ungroup()
 
-  #standard population from the CDC: https://wonder.cdc.gov/wonder/help/ucd.html#2000%20Standard%20Population
+  # Standard population from the CDC: https://wonder.cdc.gov/wonder/help/ucd.html#2000%20Standard%20Population
   std_pop <-
     data.frame(
       age_group = 0:10,
@@ -186,14 +193,15 @@ age_adj_rate <- function(df, var, age_var = "age", pop_var = "population"){
         0.044842,
         0.015508))
 
-  #subset standardized population to included ages present in the sample, standardize to total 1, and join to data frame
+  # Subset standardized population to only ages present in the sample, 
+  #   standardize to total 1, and join to data frame
   std_pop <- std_pop %>%
-    filter(age_group %in% unique(df$age_group)) %>%
+    filter(age_group %in% df$age_group) %>%
     mutate(weight = weight / sum(weight))
 
   df <- df %>%
-    left_join(std_pop, by = c("age_group")) %>%
-    group_by(FIPS, year) %>%
+    left_join(std_pop, by = "age_group") %>%
+    group_by_at(df %cols_in% grouping_vars) %>%
     summarise(rate = sum(var / pop_var * weight) * 100000) %>%
     ungroup()
   
