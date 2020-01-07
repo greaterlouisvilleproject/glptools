@@ -2,21 +2,69 @@
 % Please edit documentation in R/ranking.R
 \name{ranking}
 \alias{ranking}
-\title{Health Insurance}
+\title{GLP Ranking}
 \usage{
-ranking(df, var, year = "", sex = "total", race = "total",
-  order = "Descending", peers = "Current", plot_title = "",
-  y_title = "Percent", caption_text = "", text = TRUE,
-  subtitle_text = "", sigfig = 3, decimals = 0.1)
+ranking(df, var, plot_title = "", year = NULL, sex = "total",
+  race = "total", peers = "Current", order = "Descending",
+  y_title = "Percent", caption_text = "", subtitle_text = "",
+  bar_label = TRUE, sigfig = 3, accuracy = 0.1,
+  label_function = NULL, alternate_text = NULL)
 }
 \arguments{
-\item{love}{Do you love cats? Defaults to TRUE.}
+\item{df}{A data frame}
+
+\item{var}{The variable name, can be quoted or unquoted}
+
+\item{plot_title}{Plot title}
+
+\item{year}{The year of observations to use.
+Defaults to the most recent year of data available for \code{var} in \code{df}.}
+
+\item{sex}{Filters \code{df} using the sex column, if present.
+Defaults to \code{total}, or can be \code{male} or \code{female}}
+
+\item{race}{Filters \code{df} using the race column, if present.
+Defaults to \code{total}, or can be \code{white}, \code{black}, \code{hispanic}, \code{asian}, or \code{other}.}
+
+\item{peers}{\code{Current} or \code{Baseline}}
+
+\item{order}{\code{Descending} or \code{Ascending}}
+
+\item{y_title}{Y-axis title. Defailts to \code{Percent}.}
+
+\item{caption_text}{Caption text in the bottom right of the graph..}
+
+\item{subtitle_text}{Subtitle text}
+
+\item{bar_label}{Add labels to bars? Defaults to \code{TRUE}}
+
+\item{sigfig}{Number of significant digits in bar labels.}
+
+\item{accuracy}{Accuract of bar labels}
+
+\item{label_function}{A unique label function to be used in place of the default selected based on \code{y_title}.}
+
+\item{alternate_text}{A numeric vector that specifies which, if any, bar labels should be moved to the right side of the bar.
+This is used to prevent text from being hidden due to small bars.}
 }
 \description{
-Reads in BRFSS data
+Creates a peer city ranking graph using a GLP-style data frame.
+Columns \code{FIPS} is a required column.
+Columns \code{year}, \code{sex}, and \code{race} are optional columns.
+}
+\details{
+The parameters are organized into four sections:
+\itemize{
+  \item{\strong{Required}: \code{df}, \code{var}}
+  \item{\strong{Filtering and Sorting}: \code{year}, \code{sex}, \code{race}, \code{peers}, \code{order}}
+  \item{\strong{Add Text}: \code{plot_title}, \code{y_title}, \code{caption_text}, \code{subtitle_text}}
+  \item{\strong{Manipulate Bar Labels}: \code{bar_label}, \code{sigfig}, \code{accuracy}, \code{label_function}, \code{alternate_text}}
+}
 }
 \examples{
-cat_function()
+ranking(education_county, bach_plus, plot_title = "Bachelor's or Higher", caption_text = "GLP")
+
+ranking(jobs_county, median_earnings_gap_bw, plot_title = "Median Earnings", caption_text = "GLP",
+        label_function = scales::dollar(accuracy = 1), alternate_text = 12:17)
 
 }
-\keyword{cats}

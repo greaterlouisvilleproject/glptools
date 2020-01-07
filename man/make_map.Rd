@@ -2,20 +2,57 @@
 % Please edit documentation in R/map.R
 \name{make_map}
 \alias{make_map}
-\title{BRFSS}
+\title{GLP MAp}
 \usage{
-make_map(var, name, map, legend_title, units = "Percent",
-  map_style = "sequential", palette = "", reverse = F,
-  continuous = T, var_bins, tiles = T, save_file = "",
+make_map(maps, var, hover_name, legend_title, units = "Percent",
+  color_style = "sequential", palette = "", reverse_pal = F,
+  continuous = T, var_bins, tiles = T, bold_nh = T, save_file = "",
   save_image = "")
 }
 \arguments{
-\item{love}{Do you love cats? Defaults to TRUE.}
+\item{maps}{A list of map files}
+
+\item{var}{The variable name}
+
+\item{hover_name}{The title of the variable for the hover box}
+
+\item{legend_title}{The title for the legend, including <br> in place of line breaks}
+
+\item{units}{The units, defaults to \code{Percent}.
+Specific formatting is applied for \code{Percent}, \code{Dollars}, and \code{none}.
+Default blank formatting is applied for any other units.}
+
+\item{color_style, palette}{\code{color_style} creates a palette with sensible defaults:
+\code{sequential} for a purple palette or \code{divergent} for a red/green palette.
+\code{palette} can be used to replace \code{color_style} by providing a specific
+\code{RColorBrewer::brewer.pal} function.}
+
+\item{reverse_pal}{Reverses the palette (particularly useful for switching a red-green palette).}
+
+\item{continuous, var_bins}{Is the data continuous? Defaults to \code{TRUE}.
+If not, use \code{var_bins} to provide either the number of bins or a vector of cutpoints.}
+
+\item{tiles}{Include a map as a background for the leaflet map?
+Can also provide \code{FALSE} to use a grey background.
+Future: provide tile URL}
+
+\item{bold_nh}{If map of tracts, bold GLP neighborhood boundariess? Defaults to \code{TRUE}.}
+
+\item{save_file}{Provide file destination to save leaflet file.}
+
+\item{save_image}{Provide file destination (wihout file type) to save leaflet image as PDF.}
 }
 \description{
-Reads in BRFSS data
+Creates a map of Louisville
 }
-\examples{
-cat_function()
+\details{
+The parameters are organized into six sections:
+\itemize{
+  \item{\strong{Required}: \code{df}, \code{var}}
+  \item{\strong{Filter and Adjust Data}:  \code{rollmean}, \code{xmin}, \code{xmax}, \code{peers}, \code{order}}
+  \item{\strong{Demographics}:  \code{cat}, \code{include_hispanic}, \code{include_asian}}
+  \item{\strong{Add Text to Graph}: \code{plot_title}, \code{y_title}, \code{caption_text}, \code{subtitle_text}}
+  \item{\strong{Graph Elements}: \code{zero_start}, \code{ylimits}, \code{pctiles}, \code{shading}}
+  \item{\strong{Manipulate Labels}: \code{label_function}, \code{axis_function}}
 }
-\keyword{cats}
+}

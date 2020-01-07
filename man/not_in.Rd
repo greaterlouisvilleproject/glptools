@@ -5,7 +5,8 @@
 \alias{\%cols_in\%}
 \alias{\%cols_not_in\%}
 \title{Returns any variables in the vector
-  that are columns in the data frame.}
+  that are columns in the data frame
+  in the order the appear in the columns vector}
 \usage{
 df \%cols_in\% columns
 
@@ -13,7 +14,8 @@ df \%cols_not_in\% columns
 }
 \description{
 Returns any variables in the vector
-  that are columns in the data frame.
+  that are columns in the data frame
+  in the order the appear in the columns vector
 
 Returns any variables in the vector
   that are NOT columns in the data frame.

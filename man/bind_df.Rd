@@ -4,7 +4,7 @@
 \alias{bind_df}
 \title{Joins data frames by common GLP ID variables: FIPS, MSA, year, race, and sex.}
 \usage{
-bind_df(...)
+bind_df(..., by = NULL)
 }
 \arguments{
 \item{...}{Data frames.}

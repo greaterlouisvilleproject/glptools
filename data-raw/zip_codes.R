@@ -1,6 +1,7 @@
 library(readr)
 library(dplyr)
 library(magrittr)
+library(tidyr)
 source("R/general.R")
 
 path <- "data-raw/zip_codes/"
@@ -18,12 +19,9 @@ zip_crosswalk %<>%
   transmute(
     FIPS = county,
     zip,
-    population_total = population,
-    population_in_FIPS = population * res_ratio,
-    pct_in_county = res_ratio * 100) %>%
-  filter(
-    !is.na(population_total),
-    pct_in_county > 0)
+    population_total = population %>% replace_na(0),
+    population_in_FIPS = population_total * res_ratio %>% replace_na(0),
+    pct_in_county = res_ratio * 100)
 
 MSA_zip <- zip_crosswalk %>%
   pull_peers_FIPS(county_filter = "MSA_counties") %>%
@@ -35,12 +33,10 @@ MSA_zip <- zip_crosswalk %>%
     pct_in_MSA = sum(pct_in_county)) %>%
   ungroup() %>%
   left_join(MSA_df, by = "MSA") %>%
-  filter(current == 1) %>%
   select(MSA, zip, population_total, population_in_MSA)
 
 FIPS_zip <- zip_crosswalk %>%
   pull_peers_FIPS() %>%
-  filter(current == 1) %>%
   select(FIPS, zip, population_total, population_in_FIPS)
 
 usethis::use_data(FIPS_zip, overwrite = TRUE)

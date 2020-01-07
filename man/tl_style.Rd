@@ -4,7 +4,8 @@
 \alias{tl_style}
 \title{Add style elements}
 \usage{
-tl_style(p, plot_title, y_title, caption_text, subtitle_text, cat_names)
+tl_style(p, plot_title, y_title, caption_text, subtitle_text, cat_names,
+  x_title = "Year")
 }
 \value{
 A ggplot object

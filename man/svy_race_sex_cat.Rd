@@ -4,12 +4,12 @@
 \alias{svy_race_sex_cat}
 \title{Survey microdata by race and sex on a categorical variable}
 \usage{
-svy_race_sex_cat(survey, var)
+svy_race_sex_cat(df, var, weight_var = "PERWT", geog = "FIPS")
 }
 \arguments{
-\item{survey}{A survey object containing FIPS, year, and optional race and sex columns.}
-
 \item{var}{A column name to perform svymean on.}
+
+\item{survey}{A survey object containing FIPS, year, and optional race and sex columns.}
 }
 \description{
 This function uses the survey package to break

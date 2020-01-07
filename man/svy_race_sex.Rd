@@ -4,12 +4,12 @@
 \alias{svy_race_sex}
 \title{Survey microdata by race and sex}
 \usage{
-svy_race_sex(survey, var, race = T, sex = T, cross = T)
+svy_race_sex(df, var, weight_var = "PERWT", geog = "FIPS")
 }
 \arguments{
-\item{survey}{A survey object containing FIPS, year, and optional race and sex columns.}
-
 \item{var}{A column name to perform svymean on.}
+
+\item{survey}{A survey object containing FIPS, year, and optional race and sex columns.}
 
 \item{race}{Break down by race? Defaults to \code{TRUE}.}
 

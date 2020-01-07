@@ -10,11 +10,12 @@
 `%p%` <- function (a, b) paste0(a, b)
 
 #' Returns any variables in the vector
-#'   that are columns in the data frame.
+#'   that are columns in the data frame
+#'   in the order the appear in the columns vector
 #'
 #' @name not_in
 #' @export
-`%cols_in%` <- function (df, columns) names(df)[names(df) %in% columns]
+`%cols_in%` <- function (df, columns) columns[setdiff(match(names(df), columns), NA)]
 
 #' Returns any variables in the vector
 #'   that are NOT columns in the data frame.
@@ -52,7 +53,8 @@ rollmeanr <- function(x, r){
 #' @export
 unfactor <- function(x){
   x <- as.character(x)
-  if(mean(is.na(as.numeric(x))) < 0.01){
+
+  if(suppressWarnings(mean(is.na(as.numeric(x)))) < 0.01){
     x <- as.numeric(x)
   }
   x
@@ -65,6 +67,47 @@ unfactor <- function(x){
 #' @export
 norm_z <- function(x){
   z <- (x - mean(x, na.rm = TRUE))/sd(x, na.rm = TRUE)
+}
+
+#' Subset a data frame containing MSA data to peer cities and add current and baseline peer data.
+#'
+#' @param df A data frame containing the column MSA
+#' @export
+sum_FIPS_to_MSA <- function(df) {
+  df %<>%
+    left_join(MSA_FIPS, by = "FIPS") %>%
+    select(-FIPS) %>%
+    group_by(MSA, year) %>%
+    summarise_all(sum) %>%
+    ungroup() %>%
+    filter(!is.na(MSA))
+}
+
+#' Subset a data frame containing MSA data to peer cities and add current and baseline peer data.
+#'
+#' @param df A data frame containing the column MSA
+#' @export pull_peers
+pull_peers <- function(df, add_info = T, county_filter = T, geography = "", additional_counties = ""){
+
+  if (geography == "") if ("MSA" %in% names(df)) geography <- "MSA" else geography <- "FIPS"
+
+  if ("FIPS" %in% names(df)) df %<>% mutate(FIPS = FIPS %>% as.character %>% replace(FIPS == "01073", "1073"))
+  if ("MSA" %in% names(df))  df %<>% mutate(MSA = MSA %>% as.character)
+
+  if (add_info & geography == "FIPS") df %<>% left_join(FIPS_df, by = "FIPS")
+  if (add_info & geography == "MSA")  df %<>% left_join(MSA_df, by = "MSA")
+  if (county_filter & geography == "FIPS") df %<>% filter(FIPS %in% c(FIPS_df$FIPS, additional_counties))
+  if (county_filter & geography == "MSA") {
+    if ("FIPS" %in% names(df)) {
+      df %<>% filter(FIPS %in% c(MSA_FIPS$FIPS, additional_counties))
+    } else {
+      df %<>% filter(MSA %in% c(MSA_FIPS$MSA, additional_counties))
+    }
+  }
+
+  df %<>% organize()
+
+  df
 }
 
 #' Subset a data frame containing MSA data to peer cities and add current and baseline peer data.
@@ -92,7 +135,7 @@ pull_peers_MSA <- function(df, add_info = T) {
 #' @param df A data frame containing the column MSA
 #' @param add_info Add city names, current peer, and baseline peer columns? Defaults to TRUE.
 #' @export
-pull_peers_FIPS <- function(df, add_info = T, county_filter = "core_counties"){
+pull_peers_FIPS <- function(df, add_info = T, county_filter = "core_counties", additional_counties = ""){
 
   df %<>%
     mutate(
@@ -100,15 +143,10 @@ pull_peers_FIPS <- function(df, add_info = T, county_filter = "core_counties"){
       FIPS = replace(FIPS, FIPS == "01073", "1073"))
 
   if (county_filter == "core_counties"){
-    if(add_info){
-      df %<>%
-        left_join(FIPS_df, by = "FIPS") %>%
-        filter(!is.na(city))
-    } else {
-      df %<>% filter(FIPS %in% FIPS_df$FIPS)
-    }
+    if (add_info) df %<>% left_join(FIPS_df, by = "FIPS")
+    df %<>% filter(FIPS %in% c(FIPS_df$FIPS, additional_counties))
   } else if (county_filter == "MSA_counties") {
-    df %<>% filter(FIPS %in% MSA_FIPS$FIPS)
+    df %<>% filter(FIPS %in% c(MSA_FIPS$FIPS, additional_counties))
   }
   df %<>% organize()
 
@@ -180,8 +218,10 @@ stl_merge <- function(df_original, ..., weight_var = "", method = "mean"){
 
     df <- df_original
 
-    if (method == "mean") df %<>% summarise(!!v := weighted.mean(.data[[v]], .data[[weight_var]]))
-    else df %<>% summarise_at(v, sum)
+    if      (method == "mean") df %<>% summarise(!!v := weighted.mean(.data[[v]], .data[[weight_var]]))
+    else if (method == "max")  df %<>% summarise(!!v := max(.data[[v]], na.rm = TRUE))
+    else if (method == "min")  df %<>% summarise(!!v := min(.data[[v]], na.rm = TRUE))
+    else if (method == "sum")  df %<>% summarise_at(v, sum)
 
     df %<>% ungroup()
 
@@ -196,14 +236,19 @@ stl_merge <- function(df_original, ..., weight_var = "", method = "mean"){
 #'
 #' @param ... Data frames.
 #' @export
-bind_df <- function(...){
+bind_df <- function(..., by = NULL){
   data_frames <- list(...)
 
   grouping_vars <- c("FIPS", "MSA", "year", "race", "sex", "frl_status",
                      "district", "year", "demographic",
-                     "Id", "variable", "neighborhood")
+                     "Id", "variable", "neighborhood", "tract")
 
-  grouping_vars <- grouping_vars[grouping_vars %in% names(data_frames[[1]])]
+  if (is.null(by)) {
+    grouping_vars <- grouping_vars[grouping_vars %in% names(data_frames[[1]])]
+  }
+  else {
+    grouping_vars <- by
+  }
 
   output <- purrr::reduce(data_frames, full_join, by = grouping_vars)
 
@@ -219,10 +264,12 @@ bind_df <- function(...){
 #' @export
 reshape_sex <- function(df) {
 
+  geog <- df_type(df)
+
   df %<>%
 
     #gather columns
-    gather(-FIPS, -year, key = "variable", value = "value") %>%
+    gather(-!!geog, -year, key = "variable", value = "value") %>%
 
     #divide columns at "."
     separate(variable, c("variable", "sex"), "\\.", extra = "drop", fill = "right") %>%
@@ -236,6 +283,7 @@ reshape_sex <- function(df) {
   df
 }
 
+
 #' Organizes common GLP data by columns and rows and replaces FIPS 01073 with 1073.
 #'
 #' Columns: MSA, FIPS, city, year, sex, race, baseline, current,
@@ -246,10 +294,13 @@ reshape_sex <- function(df) {
 organize <- function(df) {
 
   if (df_type(df) %in% c("block", "tract", "neighborhood")) {
-    columns <- c("GEO_ID", "neighborhood", "tract", "block", "line1", "line2", "line3")
-    columns <- columns[columns %in% names(df)]
-    df %<>% select(columns, everything())
-    df
+    columns <- c("tract", "neighborhood", "block", "year", "line1", "line2", "line3")
+    columns <- df %cols_in% columns
+    df %<>%
+      select(columns, everything()) %>%
+      arrange_at(columns)
+
+    return(df)
   }
 
   columns <- df %cols_in% c("MSA", "FIPS", "city", "year", "sex", "race", "frl_status", "baseline", "current")
@@ -277,31 +328,20 @@ organize <- function(df) {
 df_type <- function(df){
   cols <- names(df)
 
-if ("FIPS" %in% cols) {
-    "county"
-  } else if ("MSA" %in% cols) {
-    "MSA"
-  } else if ("frl_status" %in% cols) {
-    "ky"
-  } else if (all(cols %in% c("year", "variable", "category", "value"))) {
-    "graph"
-  } else if (all(cols %in% c("year", "city", "variable", "category", "value"))) {
-    "graph_max_min"
-  } else if ("block" %in% cols) {
-    "block"
-  } else if ("tract" %in% cols) {
-    "tract"
-  } else if ("neighborhood" %in% cols | "nh" %in% cols){
-    "neighborhood"
-  } else if ("zip" %in% cols){
-    "zip"
-  } else if ("market" %in% cols){
-    "market"
-  } else if ("county" %in% cols){
-    "county"
-  } else {
-    NA
-  }
+  case_when(
+    "FIPS" %in% cols       ~ "FIPS",
+    "MSA"  %in% cols       ~ "MSA",
+    "frl_status" %in% cols ~ "ky",
+    all(cols %in% c("year", "variable", "category", "value"))         ~ "graph",
+    all(cols %in% c("year", "city", "variable", "category", "value")) ~ "graph_max_min",
+    "block" %in% cols                                           ~ "block",
+    "tract" %in% cols                                           ~ "tract",
+    "neighborhood" %in% cols & "Phoenix Hill-Smoketown-Shelby Park" %in% df[["neighborhood"]] ~ "nh",
+    "neighborhood" %in% cols                                    ~ "muw",
+    "zip" %in% cols                                             ~ "zip",
+    "market" %in% cols                                          ~ "market",
+    "county" %in% cols                                          ~ "county",
+    TRUE ~ NA_character_)
 }
 
 #' Join two data frames or return one
@@ -343,9 +383,10 @@ assign_row_join <- function(df_1, df_2){
 #' @param remove_calc Whether to remove the columns \code{rpp_index} and \code{cpi_index} after adjustments.
 #' Defaults to \code{TRUE}.
 #' @export
-COLA <- function(df, ..., base_year = 2017, remove_calc = TRUE, inflation = T, rpp = T){
-
+COLA <- function(df, ..., base_year = 2018, remove_calc = TRUE, inflation = T, rpp = T){
   variables <- dplyr:::tbl_at_vars(df, vars(...))
+
+  geog <- df_type(df)
 
   COLA_df %<>%
     group_by(FIPS) %>%
@@ -354,7 +395,17 @@ COLA <- function(df, ..., base_year = 2017, remove_calc = TRUE, inflation = T, r
     ungroup() %>%
     select(-cpi, -base_cpi)
 
-  df %<>% left_join(COLA_df, by = c("FIPS", "year"))
+  if (geog == "MSA") {
+    COLA_df %<>%
+      left_join(MSA_FIPS, by = "FIPS") %>%
+      select(-FIPS)
+  } else if (geog == "tract") {
+    COLA_df %<>%
+      filter(FIPS == 21111) %>%
+      select(-FIPS)
+  }
+
+  df %<>% left_join(COLA_df, by = COLA_df %cols_in% c(geog, "year"))
 
   if (inflation & rpp) {
     df %<>% mutate_at(vars(variables), ~ . * rpp_index * cpi_index)
@@ -367,7 +418,6 @@ COLA <- function(df, ..., base_year = 2017, remove_calc = TRUE, inflation = T, r
   if (remove_calc) df %<>% select(-rpp_index, -cpi_index)
 
   df
-
 }
 
 #' Return the years in a data frame
@@ -424,6 +474,111 @@ update_sysdata <- function(...) {
   }
 
   save(list = ls(envir = temp_env), file = "R/sysdata.rda", envir = temp_env)
+}
+
+#' Create tract, nh, and muw map files from a map data frame
+#'
+#' @export
+process_map <- function(map_df, variables, pop, method = "percent",
+                        return_name = NULL, maps = c("tract", "nh", "muw")) {
+
+  # create function based on method
+  fxn <- switch(method,
+                "percent" = function(x, y) sum(x) / sum(y) * 100,
+                "sum"     = function(x, y) sum(x),
+                "median"  = function(x, y) Hmisc::wtd.quantile(x, y, na.rm = T, probs = .5))
+
+  # If median is selected, remove Airport to prevent errors
+  if (method == "median") map_df %<>% filter(tract != "1400000US21111980100")
+
+  # Group by geography and year,
+  #   bind to neighborhood labels (if applicable),
+  #   and summarise values
+  if ("tract" %in% maps) {
+    df_tract <- map_df %>%
+      group_by(tract, year) %>%
+      mutate_at(vars(variables), ~ fxn(., .data[[pop]])) %>%
+      select(tract, year, variables) %>%
+      ungroup()
+  }
+
+  if ("nh" %in% maps) {
+    df_nh <- map_df %>%
+      left_join(nh_tract, by = c("tract" = "GEO_ID")) %>%
+      group_by(neighborhood, year) %>%
+      summarise_at(vars(variables), ~ fxn(., .data[[pop]])) %>%
+      ungroup()
+  }
+
+  if ("muw" %in% maps) {
+    df_muw <- map_df %>%
+      left_join(muw_tract, by = c("tract" = "GEO_ID")) %>%
+      group_by(neighborhood, year) %>%
+      summarise_at(vars(variables), ~ fxn(., .data[[pop]])) %>%
+      ungroup()
+  }
+
+
+  # Replace Airport values with NAs. If median was selected, bind Airport rows.
+  if (method %in% c("percent", "sum")) {
+    df_tract %<>% mutate_at(vars(variables), ~ replace(., tract == "1400000US21111980100", NA))
+    df_nh    %<>% mutate_at(vars(variables), ~ replace(., neighborhood == "Airport", NA))
+    df_muw   %<>% mutate_at(vars(variables), ~ replace(., neighborhood == "Airport", NA))
+  } else if (method == "median") {
+    df_tract %<>% bind_rows(crossing(tract = "1400000US21111980100",
+                                     year = df_tract$year,
+                                     !!variables := NA))
+    df_nh %<>% bind_rows(crossing(neighborhood = "Airport",
+                                     year = df_nh$year,
+                                     !!variables := NA))
+    df_muw %<>% bind_rows(crossing(neighborhood = "Airport",
+                                  year = df_muw$year,
+                                  !!variables := NA))
+  }
+
+  # Create list to output based on map parameter
+  output <- purrr::map(maps, ~ paste0("df_", .x) %>% assign(.,get(.)))
+
+  if (!is.null(return_name)) {
+    output %<>% setNames(paste0(return_name, "_", maps))
+  }
+
+  output
+}
+
+#' Add or replace a file in sysdata.rda
+#'   Any files in the current environment are added to the sysdata.rda file
+#'
+#' @export
+get_sysdata <- function(df) {
+  temp_env <- new.env()
+  load("R/sysdata.rda", envir = temp_env)
+
+  output <- get(df, envir = temp_env)
+}
+
+#' Transform data from 2000 census tracts to 2010 census tracts
+#'
+#' @export
+tract_00_to_10 <- function(df, years, ...) {
+  df00 <- df %>%
+    filter(year %in% years) %>%
+    left_join(tract00_tract_10, by = c("tract" = "tract00")) %>%
+    group_by(tract10, year) %>%
+    summarise_at(vars(...), ~sum(. * percent / 100)) %>%
+    ungroup() %>%
+    rename(tract = tract10)
+
+  airport <- data.frame(
+    tract = "1400000US21111980100",
+    year = unique(df00$year),
+    stringsAsFactors = FALSE)
+
+  df10 <- df %>%
+    filter(year %not_in% years)
+
+  bind_rows(df00, airport, df10) %>%
+    organize()
 }
 
 # DEPRECATED

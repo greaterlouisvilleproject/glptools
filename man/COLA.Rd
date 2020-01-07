@@ -4,7 +4,8 @@
 \alias{COLA}
 \title{Adjust data for cost of living and inflation}
 \usage{
-COLA(df, ..., remove_calc = TRUE)
+COLA(df, ..., base_year = 2018, remove_calc = TRUE, inflation = T,
+  rpp = T)
 }
 \arguments{
 \item{df}{A data frame.}

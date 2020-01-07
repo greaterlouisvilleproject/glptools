@@ -19,60 +19,50 @@ tl_filter <- function(df,
                       include_hispanic,
                       include_asian,
                       return_only_df = F) {
-
   #Filter to specified sex, race, and FRL status.
   #If sex or race are not ID variables, or if no sex or race was specified, do not subset.
 
   # If county or MSA, filter to peer set and non-relevant category to total
-  if (df_type(df) %in% c("county", "MSA") & peers %in% c("current", "Current"))   df %<>% filter(current == 1)
-  if (df_type(df) %in% c("county", "MSA") & peers %in% c("baseline", "Baseline")) df %<>% filter(baseline == 1)
+  if (df_type(df) %in% c("FIPS", "MSA") & peers %in% c("current", "Current"))   df %<>% filter(current == 1)
+  if (df_type(df) %in% c("FIPS", "MSA") & peers %in% c("baseline", "Baseline")) df %<>% filter(baseline == 1)
+
+  default_categories <- c("Male" = "male", "Female" = "female",
+                          "White" = "white", "Black" = "black", "Hispanic" = "hispanic", "Asian" = "asian",
+                          "FRL" = "frl", "non-FRL" = "nonfrl")
 
   # Determine category names
-  sexes <- c("male", "female")
+  sexes <- c("Male" = "male", "Female" = "female")
+  frls <- c("FRL" = "frl", "non-FRL" = "nonfrl")
+  races <- c("White" = "white", "Black" = "black", "Hispanic" = "hispanic", "Asian" = "asian")
 
-  if      (df_type(df) == "ky" & include_asian)                     races <- c("white", "black", "hispanic", "asian")
-  else if (df_type(df) == "ky" & !include_asian)                    races <- c("white", "black", "hispanic")
-  else if (df_type(df) %in% c("county", "MSA") & include_hispanic)  races <- c("white", "black", "hispanic")
-  else if (df_type(df) %in% c("county", "MSA") & !include_hispanic) races <- c("white", "black")
+  if      (df_type(df) == "ky" & include_asian)                     races = races
+  else if (df_type(df) == "ky" & !include_asian)                    races = races[1:3]
+  else if (df_type(df) %in% c("FIPS", "MSA") & include_hispanic)    races = races[1:3]
+  else if (df_type(df) %in% c("FIPS", "MSA") & !include_hispanic)   races = races[1:2]
 
-  # Create category names and filter data frame based on cat_names column
-  if (any(c("sex", "race", "frl_status") %in% names(df))){
-    if (length(cat) > 1) {
-      cat_names <- cat
-      df %<>%
-        filter_at(df %cols_in% c("sex", "race", "frl_status"), ~ . == "total") %>%
-        gather(var, key = "category", value = "var")
-    } else if (cat == "") {
-      cat_names <- ""
-      df %<>% filter_at(df %cols_in% c("sex", "race", "frl_status"), ~ . == "total")
+  if      (length(cat) > 1)     cat_names <- cat
+  else if (cat == "")           cat_names <- ""
+  else if (cat == "sex")        cat_names <- sexes
+  else if (cat == "race")       cat_names <- races
+  else if (cat == "frl_status") cat_names <- frls
+  else                          cat_names <- cat
 
-    } else if (cat %in% c("sex", sexes)) {
-      if (cat == "sex") cat_names <- sexes else cat_names <- cat
-      df %<>%
-        filter_at(df %cols_in% c("race", "frl_status"),  ~ . == "total") %>%
-        filter(sex %in% cat_names) %>%
-        rename(category = sex)
+  # reshape multi-variable graphs
+  if (length(cat) > 1) df %<>% gather(var, key = "category", value = "var")
+  # reshape and rename demographic graphs
+  else if (cat != "") {
+    df %<>%
+      filter(!!sym(cat) %in% cat_names) %>%
+      rename(category = !!cat)
+  }
 
-    } else if (cat %in% c("race", races)) {
-      if (cat == "race") cat_names <- races else cat_names <- cat
-      df %<>%
-        filter_at(df %cols_in% c("sex", "frl_status"),  ~ . == "total") %>%
-        filter(race %in% cat_names) %>%
-        rename(category = race)
-
-    } else if (cat == "frl") {
-      cat_names <- c("frl", "nonfrl")
-      df %<>%
-        filter_at(df %cols_in% c("sex", "race"),  ~ . == "total") %>%
-        filter(frl_status %in% cat_names) %>%
-        rename(category = frl_status)
-    }
-  } else {
-    cat_names <- ""
+  # filter any remaining demographic variables to totals
+  if (any(names(df) %in% c("sex", "race", "frl_status"))) {
+    df %<>% filter_at(df %cols_in% c("sex", "race", "frl_status"), ~ . == "total")
   }
 
   # Remove category if there is only one group
-  if (cat != "" & length(cat_names) == 1) df %<>% select(-category)
+  if (all(cat != "") & length(cat_names) == 1) df %<>% select(-category)
 
   if (return_only_df) df else make_list(df, cat_names)
 }
@@ -94,7 +84,7 @@ tl_reshape_data <- function(df, pctiles){
 
   # Create a data frame with Louisville and
   #   a data frame without Louisville.
-  if (df_type(df) == "county"){
+  if (df_type(df) == "FIPS"){
     df_wol <- df %>% filter(FIPS != 21111)
     lville <- df %>% filter(FIPS == 21111)
   } else if (df_type(df) == "MSA"){
@@ -137,7 +127,7 @@ tl_reshape_data_maxmin <- function(df,
                                    order,
                                    zero_start){
 
-  if (df_type(df) == "county") {
+  if (df_type(df) == "FIPS") {
     df %<>%
       arrange(FIPS, year) %>%
       group_by(FIPS)
@@ -282,16 +272,9 @@ tl_add_line_data <- function(df, type, cat_names,
   # var_levels matches the values of style_group
   # var_names to use in the legend in the appropriate order
   # factor style_group using var_levels and var_names
-
-  if (length(cat_names) > 1) {
-    default_categories <- c("Male" = "male", "Female" = "female",
-                           "White" = "white", "Black" = "black", "Hispanic" = "hispanic", "Asian" = "asian",
-                           "FRL" = "frl", "non-FRL" = "nonfrl")
-
-    if (is.null(names(cat_names))) categories <- default_categories[default_categories %in% cat_names] else categories <- cat_names
-
-    cat_levels <- unname(categories) %>% paste0("_") #c("male", "female") OR c("act_english", "act_math")
-    cat_labels <- names(categories)  %>% paste0(" ")#c("Male", "Female") OR c("English", "Math")
+  if (all(cat_names != "")) {
+    cat_levels <- unname(cat_names) %>% paste0("_") #c("male", "female") OR c("act_english", "act_math")
+    cat_labels <- names(cat_names)  %>% paste0(" ") #c("Male", "Female") OR c("English", "Math")
   } else {
     cat_levels <- ""
     cat_labels <- ""

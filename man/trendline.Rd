@@ -2,21 +2,102 @@
 % Please edit documentation in R/trendline.R
 \name{trendline}
 \alias{trendline}
-\title{BRFSS}
+\alias{trend}
+\alias{trend_maxmin}
+\alias{trend_data}
+\alias{trend_data_maxmin}
+\title{GLP Trendline}
 \usage{
-trendline(type, df, var, cat = "", rollmean = 1, plot_title = "",
+trend(df, var, rollmean = 1, xmin = "", xmax = "",
+  peers = "current", cat = "", include_hispanic = F,
+  include_asian = T, plot_title = "", y_title = "",
+  caption_text = "", subtitle_text = "", ylimits = "", pctiles = T,
+  shading = F, label_function = NULL, axis_function = NULL)
+
+trend_maxmin(df, var, rollmean = 1, xmin = "", xmax = "",
+  peers = "current", order = "descending", plot_title = "",
   y_title = "", caption_text = "", subtitle_text = "",
-  peers = "current", ylimits = "", shading = F, pctiles = T,
-  include_hispanic = F, include_asian = T, order = "descending",
-  xmin = "", xmax = "", zero_start = F)
+  zero_start = F, ylimits = "", label_function = NULL,
+  axis_function = NULL)
+
+trend_data(df, var = "var", rollmean = 1, xmin = "", xmax = "",
+  peers = "current", cat = "", include_hispanic = F,
+  include_asian = T, pctiles = T)
+
+trend_data_maxmin(df, var = "var", rollmean = 1, xmin = "",
+  xmax = "", peers = "current", order = "descending",
+  zero_start = F)
 }
 \arguments{
-\item{love}{Do you love cats? Defaults to TRUE.}
+\item{df}{A data frame}
+
+\item{var}{The variable name, can be quoted or unquoted}
+
+\item{rollmean}{A rolling mean. Defaults to 1.}
+
+\item{xmin}{First year}
+
+\item{xmax}{Last year}
+
+\item{peers}{\code{Current} or \code{Baseline}.}
+
+\item{cat}{A character vector that specifies a demographic category. Can be \code{race} or \code{sex}
+to display a set of lines for each category, or can be a specific group like \code{white} or \code{female}.}
+
+\item{include_hispanic}{Include lines for Hispanics, if applicable? Defaults to \code{FALSE}.}
+
+\item{include_asian}{Include lines for Asians, if applicable? Defaults to \code{TRUE}. Mostly used for KY education data.}
+
+\item{plot_title}{Plot title}
+
+\item{y_title}{Y-axis title. Defailts to \code{Percent}.}
+
+\item{caption_text}{Caption text in the bottom right of the graph.}
+
+\item{subtitle_text}{Subtitle text}
+
+\item{ylimits}{A vector of the form \code{c(min, max)} specifying the extent of the graph's y-axis.
+Defaults to the minimum and maximum points on the graph with a buffer of 10\% of the points' range.}
+
+\item{pctiles}{Include 25thand 75th percentile lines on graph? Defaults to \code{TRUE}.}
+
+\item{shading}{Replace 25th and 75th percentile lines with shaded areas? (Currently not working.)}
+
+\item{label_function}{A unique label function to be used in place of the default selected based on \code{y_title}.}
+
+\item{axis_function}{A unique axis label function to be used in place of the default selected based on \code{y_title}.}
+
+\item{order}{\code{Descending} or \code{Ascending}. (For max_min functions)}
+
+\item{zero_start}{For max_min functions: should the lines all begin at 0? Defaults to \code{FALSE}.}
 }
 \description{
-Reads in BRFSS data
+Creates a peer city trendline graph using a GLP-style data frame.
+Columns \code{FIPS} and \code{year} are required columns.
+Columns , \code{sex}, and \code{race} are optional columns.
 }
-\examples{
+\details{
+The parameters are organized into six sections:
+\itemize{
+  \item{\strong{Required}: \code{df}, \code{var}}
+  \item{\strong{Filter and Adjust Data}:  \code{rollmean}, \code{xmin}, \code{xmax}, \code{peers}, \code{order}}
+  \item{\strong{Demographics}:  \code{cat}, \code{include_hispanic}, \code{include_asian}}
+  \item{\strong{Add Text to Graph}: \code{plot_title}, \code{y_title}, \code{caption_text}, \code{subtitle_text}}
+  \item{\strong{Graph Elements}: \code{zero_start}, \code{ylimits}, \code{pctiles}, \code{shading}}
+  \item{\strong{Manipulate Labels}: \code{label_function}, \code{axis_function}}
+}
+}
+\section{Functions}{
+\itemize{
+\item \code{trend}: Creates a peer city trendline graph using a GLP-style data frame.
 
+\item \code{trend_maxmin}: Creates a peer city max-min graph using a GLP-style data frame.
+
+\item \code{trend_data}: Returns the data frame used in the trendline graph
+
+\item \code{trend_data_maxmin}: Returns the data frame used in the max-min graph
+}}
+
+\examples{
+trend(education_county, "bach_plus")
 }
-\keyword{cats}
