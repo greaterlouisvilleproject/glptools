@@ -1,24 +1,24 @@
-FIPS,city,baseline,current,state
-1073,Birmingham,1,1,AL
-12031,Jacksonville,1,0,FL
-18097,Indianapolis,1,1,IN
-21111,Louisville,1,1,KY
-26081,Grand Rapids,0,1,MI
-29095,Kansas City,1,1,MO
-29189,St. Louis,0,1,MO
-29510,St. Louis,0,1,MO
-31055,Omaha,1,1,NE
-37081,Greensboro,1,1,NC
-37119,Charlotte,1,1,NC
-37183,Raleigh,1,0,NC
-39049,Columbus,1,1,OH
-39061,Cincinnati,1,1,OH
-39113,Dayton,1,0,OH
-40109,Oklahoma City,0,1,OK
-40143,Tulsa,0,1,OK
-45045,Greenville,0,1,SC
-47037,Nashville,1,1,TN
-47093,Knoxville,0,1,TN
-47157,Memphis,1,1,TN
-51760,Richmond,1,0,VA
-MERGED,St. Louis,0,1,MO
+FIPS,city,baseline,current,state_abbr,state,county
+1073,Birmingham,1,1,AL,Alabama,Jefferson
+12031,Jacksonville,1,0,FL,Florida,Duval
+18097,Indianapolis,1,1,IN,Indiana,Marion
+21111,Louisville,1,1,KY,Kentucky,Jefferson
+26081,Grand Rapids,0,1,MI,Michigan,Kent
+29095,Kansas City,1,1,MO,Missouri,Jackson
+29189,St. Louis,0,1,MO,Missouri,St. Louis County
+29510,St. Louis,0,1,MO,Missouri,St. Louis City
+31055,Omaha,1,1,NE,Nebraska,Douglas
+37081,Greensboro,1,1,NC,North Carolina,Guilford
+37119,Charlotte,1,1,NC,North Carolina,Mecklenburg
+37183,Raleigh,1,0,NC,North Carolina,Wake
+39049,Columbus,1,1,OH,Ohio,Franklin
+39061,Cincinnati,1,1,OH,Ohio,Hamilton
+39113,Dayton,1,0,OH,Ohio,Montgomery
+40109,Oklahoma City,0,1,OK,Oklahoma,Oklahoma
+40143,Tulsa,0,1,OK,Oklahoma,Tulsa
+45045,Greenville,0,1,SC,South Carolina,Greenville
+47037,Nashville,1,1,TN,Tennessee,Davidson
+47093,Knoxville,0,1,TN,Tennessee,Knox
+47157,Memphis,1,1,TN,Tennessee,Shelby
+51760,Richmond,1,0,VA,Virginia,Richmond City
+MERGED,St. Louis,0,1,MO,Missouri,St. Louis
