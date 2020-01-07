@@ -33,7 +33,7 @@ MSA_PUMA_10 %<>%
 
 MSA_PUMA_10 <- data.frame(
   MSA_PUMA_10,
-  year = rep(2012:2017, each = nrow(MSA_PUMA_10)))
+  year = rep(2012:2018, each = nrow(MSA_PUMA_10)))
 
 MSA_PUMA <- bind_rows(MSA_PUMA_00, MSA_PUMA_10)
 

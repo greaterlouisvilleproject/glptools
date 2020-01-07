@@ -344,12 +344,20 @@ df_type <- function(df){
     TRUE ~ NA_character_)
 }
 
-#' Join two data frames or return one
+#' Join two data frames when one might not exist
+#'
+#' When accumulating data within a loop, you usually have to check whether to create a data frame
+#' or bind two data frames together. This function is a shortcut: it checks to see is df_1 exists.
+#' If so, it binds the two data frames together as usual. If not, it catches the error and returns df_2.
 #'
 #' @param df_1 A data frame that might exist
-#' @param df_2 A data frame to join to \code{df_1} column-wise
-#' @param by   Any values to pass to \code{full_join}.
-#' If none are supplied, glptools::bind_df is used.
+#' @param df_2 A data frame to join to \code{df_1}
+#' @param by   If using \code{assign_col_join}, Any values to pass to \code{full_join}.
+#' If none are supplied, \code{glptools::bind_df} is used.
+#' @name assign_join
+NULL
+
+#' @describeIn assign_join Joins two data frames column-wise when one might not exist
 #' @export
 assign_col_join <- function(df_1, df_2, by){
   tryCatch({
@@ -361,10 +369,7 @@ assign_col_join <- function(df_1, df_2, by){
     })
 }
 
-#' Join two data frames or return one
-#'
-#' @param df_1 A data frame that might exist
-#' @param df_2 A data frame to join to \code{df_1} row-wise
+#' @describeIn assign_join Joins two data frames row-wise when one might not exist
 #' @export
 assign_row_join <- function(df_1, df_2){
   tryCatch({

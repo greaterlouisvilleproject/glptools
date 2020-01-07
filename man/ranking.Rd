@@ -4,11 +4,24 @@
 \alias{ranking}
 \title{GLP Ranking}
 \usage{
-ranking(df, var, plot_title = "", year = NULL, sex = "total",
-  race = "total", peers = "Current", order = "Descending",
-  y_title = "Percent", caption_text = "", subtitle_text = "",
-  bar_label = TRUE, sigfig = 3, accuracy = 0.1,
-  label_function = NULL, alternate_text = NULL)
+ranking(
+  df,
+  var,
+  plot_title = "",
+  year = NULL,
+  sex = "total",
+  race = "total",
+  peers = "Current",
+  order = "Descending",
+  y_title = "Percent",
+  caption_text = "",
+  subtitle_text = "",
+  bar_label = TRUE,
+  sigfig = 3,
+  accuracy = 0.1,
+  label_function = NULL,
+  alternate_text = NULL
+)
 }
 \arguments{
 \item{df}{A data frame}

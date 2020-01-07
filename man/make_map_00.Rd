@@ -4,8 +4,13 @@
 \alias{make_map_00}
 \title{BRFSS}
 \usage{
-make_map_00(var, name, units = "Percent", map_style = "sequential",
-  legend_title = "")
+make_map_00(
+  var,
+  name,
+  units = "Percent",
+  map_style = "sequential",
+  legend_title = ""
+)
 }
 \arguments{
 \item{love}{Do you love cats? Defaults to TRUE.}

@@ -8,25 +8,68 @@
 \alias{trend_data_maxmin}
 \title{GLP Trendline}
 \usage{
-trend(df, var, rollmean = 1, xmin = "", xmax = "",
-  peers = "current", cat = "", include_hispanic = F,
-  include_asian = T, plot_title = "", y_title = "",
-  caption_text = "", subtitle_text = "", ylimits = "", pctiles = T,
-  shading = F, label_function = NULL, axis_function = NULL)
+trend(
+  df,
+  var,
+  rollmean = 1,
+  xmin = "",
+  xmax = "",
+  peers = "current",
+  cat = "",
+  include_hispanic = F,
+  include_asian = T,
+  plot_title = "",
+  y_title = "",
+  caption_text = "",
+  subtitle_text = "",
+  ylimits = "",
+  pctiles = T,
+  shading = F,
+  label_function = NULL,
+  axis_function = NULL
+)
 
-trend_maxmin(df, var, rollmean = 1, xmin = "", xmax = "",
-  peers = "current", order = "descending", plot_title = "",
-  y_title = "", caption_text = "", subtitle_text = "",
-  zero_start = F, ylimits = "", label_function = NULL,
-  axis_function = NULL)
+trend_maxmin(
+  df,
+  var,
+  rollmean = 1,
+  xmin = "",
+  xmax = "",
+  peers = "current",
+  order = "descending",
+  plot_title = "",
+  y_title = "",
+  caption_text = "",
+  subtitle_text = "",
+  zero_start = F,
+  ylimits = "",
+  label_function = NULL,
+  axis_function = NULL
+)
 
-trend_data(df, var = "var", rollmean = 1, xmin = "", xmax = "",
-  peers = "current", cat = "", include_hispanic = F,
-  include_asian = T, pctiles = T)
+trend_data(
+  df,
+  var = "var",
+  rollmean = 1,
+  xmin = "",
+  xmax = "",
+  peers = "current",
+  cat = "",
+  include_hispanic = F,
+  include_asian = T,
+  pctiles = T
+)
 
-trend_data_maxmin(df, var = "var", rollmean = 1, xmin = "",
-  xmax = "", peers = "current", order = "descending",
-  zero_start = F)
+trend_data_maxmin(
+  df,
+  var = "var",
+  rollmean = 1,
+  xmin = "",
+  xmax = "",
+  peers = "current",
+  order = "descending",
+  zero_start = F
+)
 }
 \arguments{
 \item{df}{A data frame}

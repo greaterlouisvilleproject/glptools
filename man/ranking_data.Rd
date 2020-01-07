@@ -4,9 +4,16 @@
 \alias{ranking_data}
 \title{Health Insurance}
 \usage{
-ranking_data(df, variables, years = "", sex = "total",
-  race = "total", descending = TRUE, peers = "Current",
-  new_vars = "")
+ranking_data(
+  df,
+  variables,
+  years = "",
+  sex = "total",
+  race = "total",
+  descending = TRUE,
+  peers = "Current",
+  new_vars = ""
+)
 }
 \arguments{
 \item{love}{Do you love cats? Defaults to TRUE.}

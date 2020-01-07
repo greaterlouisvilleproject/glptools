@@ -4,10 +4,22 @@
 \alias{make_map}
 \title{GLP MAp}
 \usage{
-make_map(maps, var, hover_name, legend_title, units = "Percent",
-  color_style = "sequential", palette = "", reverse_pal = F,
-  continuous = T, var_bins, tiles = T, bold_nh = T, save_file = "",
-  save_image = "")
+make_map(
+  maps,
+  var,
+  hover_name,
+  legend_title,
+  units = "Percent",
+  color_style = "sequential",
+  palette = "",
+  reverse_pal = F,
+  continuous = T,
+  var_bins,
+  tiles = T,
+  bold_nh = T,
+  save_file = "",
+  save_image = ""
+)
 }
 \arguments{
 \item{maps}{A list of map files}

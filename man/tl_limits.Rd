@@ -4,8 +4,18 @@
 \alias{tl_limits}
 \title{Add x and y axis limits and plot labels}
 \usage{
-tl_limits(p, df, xmin, xmax, ylimits, major_break_settings,
-  minor_break_settings, y_title, label_function, axis_function)
+tl_limits(
+  p,
+  df,
+  xmin,
+  xmax,
+  ylimits,
+  major_break_settings,
+  minor_break_settings,
+  y_title,
+  label_function,
+  axis_function
+)
 }
 \value{
 A ggplot object

@@ -4,12 +4,29 @@
 \alias{tl}
 \title{The workhorse behind other trendline functions}
 \usage{
-tl(type, df, var, rollmean = 1, xmin = "", xmax = "",
-  peers = "current", order = "descending", cat = "",
-  include_hispanic = F, include_asian = T, plot_title = "",
-  y_title = "", caption_text = "", subtitle_text = "",
-  zero_start = F, ylimits = "", pctiles = T, shading = F,
-  label_function = NULL, axis_function = NULL)
+tl(
+  type,
+  df,
+  var,
+  rollmean = 1,
+  xmin = "",
+  xmax = "",
+  peers = "current",
+  order = "descending",
+  cat = "",
+  include_hispanic = F,
+  include_asian = T,
+  plot_title = "",
+  y_title = "",
+  caption_text = "",
+  subtitle_text = "",
+  zero_start = F,
+  ylimits = "",
+  pctiles = T,
+  shading = F,
+  label_function = NULL,
+  axis_function = NULL
+)
 }
 \description{
 The workhorse behind other trendline functions

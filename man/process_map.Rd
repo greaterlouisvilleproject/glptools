@@ -4,8 +4,14 @@
 \alias{process_map}
 \title{Create tract, nh, and muw map files from a map data frame}
 \usage{
-process_map(map_df, variables, pop, method = "percent",
-  return_name = NULL, maps = c("tract", "nh", "muw"))
+process_map(
+  map_df,
+  variables,
+  pop,
+  method = "percent",
+  return_name = NULL,
+  maps = c("tract", "nh", "muw")
+)
 }
 \description{
 Create tract, nh, and muw map files from a map data frame
