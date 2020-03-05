@@ -8,10 +8,27 @@ process_map(
   map_df,
   variables,
   pop,
-  method = "percent",
   return_name = NULL,
+  method = "percent",
   maps = c("tract", "nh", "muw")
 )
+}
+\arguments{
+\item{map_df}{A data frame of census tracts with a 20-digit ID}
+
+\item{variables}{A character vector of variables}
+
+\item{pop}{The population variable}
+
+\item{return_name}{The name of the maps to return. Suffixes will be appended.}
+
+\item{method}{The method used to aggregate tracts.
+\code{percent} adds counts and populations to create a percentage
+\code{mean} takes values and weights to create a weighted mean
+\code{sum} adds counts and ignores the populations
+\code{median} creates a weighted median}
+
+\item{maps}{The type of maps to return. Defaults to tract, nh, and muw.}
 }
 \description{
 Create tract, nh, and muw map files from a map data frame

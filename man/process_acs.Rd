@@ -4,7 +4,7 @@
 \alias{process_acs}
 \title{Process ACS microdata from IPUMS.}
 \usage{
-process_acs(df, gq = F, pull_peers = T, remove_vars = T)
+process_acs(df, gq = T, pull_peers = T, remove_vars = T)
 }
 \arguments{
 \item{df}{A dataframe of microdata from IPUMS.}

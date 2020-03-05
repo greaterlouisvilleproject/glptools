@@ -4,7 +4,7 @@
 #' @param starting_year The first year for which there is data.
 #' @export
 #' @return A data frame
-acs_time <- function(folder, geog = "FIPS", starting_year = 2005, additional_counties = ""){
+acs_time <- function(folder, geog = "FIPS", starting_year = 2005, additional_geogs = ""){
   wd <- getwd()
   directory <- paste0(wd, "/", folder)
   file_names <- list.files(directory)
@@ -14,9 +14,15 @@ acs_time <- function(folder, geog = "FIPS", starting_year = 2005, additional_cou
     file_path <- paste0(wd, "/", folder, "/", file_names[i])
     df <- read_csv(file_path, skip = 1)
 
-    if ("Id" %in% names(df)) df %<>% rename(id = Id, `Geographic Area Name` = Geography) %>% select(-Id2)
+    if ("Id" %in% names(df)){
+      df %<>%
+        rename(
+          id = Id,
+          `Geographic Area Name` = Geography) %>%
+        select(-Id2)
+    }
 
-    if        (any(str_detect(df$`Geographic Area Name`, "Metro Area"))) {
+    if (any(str_detect(df$`Geographic Area Name`, "Metro Area"))) {
       geog_name <- "MSA"
     } else if (any(str_detect(df$`Geographic Area Name`, "Census Tract"))) {
       geog_name <- "tract"
@@ -31,19 +37,13 @@ acs_time <- function(folder, geog = "FIPS", starting_year = 2005, additional_cou
     if (geog_name != "tract") {
       df %<>%
         mutate(!!geog_name := str_sub(!!sym(geog_name), 10)) %>%
-        pull_peers(add_info = F, geography = geog, additional_counties = additional_counties)
+        pull_peers(add_info = F, geog = geog, additional_geogs = additional_geogs)
     }
 
     df$year <- y
     y <- y + 1
 
-    if(i == 1){
-      output <- df
-    }
-    else{
-      names(df) <- names(output)
-      output <- rbind(output, df)
-    }
+    output <- assign_row_join(output, df)
   }
   output
 }

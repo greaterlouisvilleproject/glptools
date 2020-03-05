@@ -49,7 +49,7 @@ make_map <- function(maps, var,
                      bold_nh = T,
                      save_file = "", save_image = ""){
 
-  browser()
+  if(typeof(maps) != "list") {maps <- list(maps)}
 
   # Get type of maps
   geographies <- map_chr(maps, df_type)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/general.R
 \name{sum_FIPS_to_MSA}
 \alias{sum_FIPS_to_MSA}
-\title{Subset a data frame containing MSA data to peer cities and add current and baseline peer data.}
+\title{Group data by MSA and summarise}
 \usage{
 sum_FIPS_to_MSA(df)
 }
@@ -10,5 +10,5 @@ sum_FIPS_to_MSA(df)
 \item{df}{A data frame containing the column MSA}
 }
 \description{
-Subset a data frame containing MSA data to peer cities and add current and baseline peer data.
+Group data by MSA and summarise
 }

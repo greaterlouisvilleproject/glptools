@@ -8,19 +8,13 @@
 #' @param pull_peers Subset the data to peers? Defaults to \code{TRUE}.
 #' Subsets to peer MSAs if present. Otherwise, subsets to peers counties.
 #' @export
-process_acs <- function(df, gq = F, pull_peers = T, remove_vars = T){
+process_acs <- function(df, gq = T, pull_peers = T, remove_vars = T){
 
   # Rename some columns
-  suppressWarnings(
-    df %<>%
-      rename_at(df %cols_in% c("YEAR", "AGE", "SEX"), funs(str_to_lower))
-  )
+  suppressWarnings(df %<>% rename_at(df %cols_in% c("YEAR", "AGE", "SEX"), funs(str_to_lower)))
 
-  # Remove group quarters residents
-  if (!gq) {
-    df %<>%
-      filter(GQ == 1 | GQ == 2)
-  }
+  # Remove group quarters residents if gq = FALSE
+  if (!gq) df %<>% filter(GQ == 1 | GQ == 2)
 
   # Rename the MSA column and label the Tulsa MSA
   if ("MET2013" %in% names(df)) {
@@ -31,19 +25,19 @@ process_acs <- function(df, gq = F, pull_peers = T, remove_vars = T){
     df$MSA[df$STATEFIP == 40 & df$year >= 2012 & df$PUMA %in% c(1201, 1202, 1203, 1204, 1301)] <- 46140
   }
 
-  # Add FIPS codes to data and rename St. Louis
+  # Add FIPS codes to data and change St. Louis FIPS codes to MERGED
   df %<>% left_join(FIPS_PUMA, by = c("STATEFIP", "PUMA", "year"))
-
-  # df %<>% mutate(replace(FIPS, STATEFIP == 21 & PUMA %in% c(1901, 1902), "21067"))
 
   df$FIPS[df$FIPS == 29189] = "MERGED"
   df$FIPS[df$FIPS == 29510] = "MERGED"
 
+  # df %<>% mutate(replace(FIPS, STATEFIP == 21 & PUMA %in% c(1901, 1902), "21067")) # Adds in Lexington
+
   # Subset data to peers at the MSA or county level
   if ("MSA" %in% names(df) & pull_peers) {
-    df %<>% pull_peers_MSA(add_info = FALSE)
+    df %<>% pull_peers(add_info = FALSE)
   } else if (pull_peers) {
-    df %<>% pull_peers_FIPS(add_info = FALSE)
+    df %<>% pull_peers(add_info = FALSE)
   }
 
   # Recode race
@@ -51,7 +45,7 @@ process_acs <- function(df, gq = F, pull_peers = T, remove_vars = T){
     df$race <- "other"
     df$race[df$RACE == 1 & df$HISPAN == 0] <- "white"
     df$race[df$RACE == 2 & df$HISPAN == 0] <- "black"
-    df$race[df$HISPAN == 1] <- "hispanic"
+    df$race[df$HISPAN %in% 1:4] <- "hispanic"
 
     df %<>% select(-RACE, -RACED, -HISPAN, -HISPAND)
   }

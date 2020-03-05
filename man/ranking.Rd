@@ -19,8 +19,9 @@ ranking(
   bar_label = TRUE,
   sigfig = 3,
   accuracy = 0.1,
-  label_function = NULL,
-  alternate_text = NULL
+  label_function,
+  alternate_text = NULL,
+  ranking_colors = TRUE
 )
 }
 \arguments{
@@ -78,6 +79,6 @@ The parameters are organized into four sections:
 ranking(education_county, bach_plus, plot_title = "Bachelor's or Higher", caption_text = "GLP")
 
 ranking(jobs_county, median_earnings_gap_bw, plot_title = "Median Earnings", caption_text = "GLP",
-        label_function = scales::dollar(accuracy = 1), alternate_text = 12:17)
+        label_function = scales::dollar_format(accuracy = 1), alternate_text = 12:17)
 
 }

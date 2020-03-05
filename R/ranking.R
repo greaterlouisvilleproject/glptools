@@ -41,14 +41,15 @@
 #' ranking(education_county, bach_plus, plot_title = "Bachelor's or Higher", caption_text = "GLP")
 #'
 #' ranking(jobs_county, median_earnings_gap_bw, plot_title = "Median Earnings", caption_text = "GLP",
-#'         label_function = scales::dollar(accuracy = 1), alternate_text = 12:17)
+#'         label_function = scales::dollar_format(accuracy = 1), alternate_text = 12:17)
 #'
 ranking <- function(df, var, plot_title = "",
                     year = NULL, sex = "total", race = "total", peers = "Current",
                     order = "Descending",
                     y_title = "Percent", caption_text = "", subtitle_text = "",
                     bar_label = TRUE, sigfig = 3, accuracy = 0.1,
-                    label_function = NULL, alternate_text = NULL){
+                    label_function, alternate_text = NULL,
+                    ranking_colors = TRUE){
 
   # Copy variable var to a new column for use with the '$' operator
   var <- dplyr:::tbl_at_vars(df, vars(!!enquo(var)))
@@ -70,8 +71,7 @@ ranking <- function(df, var, plot_title = "",
   }
 
   # Add peer data if not already present
-  if (df_type(df) == "FIPS" & "current" %not_in% names(df)) df %<>% pull_peers_FIPS()
-  if (df_type(df) == "MSA"  & "current" %not_in% names(df)) df %<>% pull_peers_MSA()
+  if (df_type(df) %in% c("FIPS", "MSA") & "current" %not_in% names(df)) df %<>% pull_peers()
 
   # Filter to peer parameter
   if (peers %in% c("current", "Current"))   df %<>% filter(current == 1)
@@ -90,14 +90,28 @@ ranking <- function(df, var, plot_title = "",
       names = paste0(rank, ". ", city))
 
   # Set bar colors
-  breaks <- classInt::classIntervals(na.omit(df$var), 3, style = "jenks")
-  df$color <- NA
-  df$color[df$var <= breaks$brks[2]] <- "green"
-  df$color[df$var > breaks$brks[2] & df$var <= breaks$brks[3]] <- "yellow"
-  df$color[df$var > breaks$brks[3]] <- "red"
+  if (ranking_colors) {
+
+    color_values <- c("#96ca4f", "#ffd600", "#db2834")
+    color_names <- c("green", "yellow", "red")
+    if (order %in% c("descending", "Descending")) {color_names  = rev(color_names)}
+
+    breaks <- classInt::classIntervals(na.omit(df$var), 3, style = "jenks")
+    df$color <- NA
+    df$color[df$var <= breaks$brks[2]] <- color_names[1]
+    df$color[df$var > breaks$brks[2] & df$var <= breaks$brks[3]] <- color_names[2]
+    df$color[df$var > breaks$brks[3]] <- color_names[3]
+
+  } else {
+    df$color <- "blue"
+    color_values <- "#f58021"
+    color_names <- c("blue")
+  }
+
+  if (order %in% c("descending", "Descending")) color_values = rev(color_values)
 
   # Create numeric labels
-  if (!is.null(label_function)) {
+  if (!missing(label_function)) {
     label_text <- df$var %>% signif(sigfig) %>% label_function()
   } else if (y_title == "Dollars") {
     if(mean(df$var, na.rm = TRUE) > 10000) {
@@ -130,7 +144,7 @@ ranking <- function(df, var, plot_title = "",
   p <- ggplot(data = df,
               aes(x = factor(names, levels=rev(unique(names))),
                   y = var,
-                  fill = factor(color)))
+                  fill = factor(color, levels = color_names, ordered = TRUE)))
 
   p <- p + guides(fill = FALSE)
 
@@ -142,9 +156,7 @@ ranking <- function(df, var, plot_title = "",
     coord_flip() +
     ggthemes::theme_tufte()
 
-  if (order %in% c("ascending", "Ascending"))   p <- p + scale_fill_manual(values = c("#96ca4f", "#db2834", "#ffd600"))
-  if (order %in% c("descending", "Descending")) p <- p + scale_fill_manual(values = c("#db2834", "#96ca4f", "#ffd600"))
-
+  p <- p + scale_fill_manual(values = color_values)
 
   # Add features
   title_scale <- min(1, 48 / nchar(plot_title))
@@ -160,7 +172,7 @@ ranking <- function(df, var, plot_title = "",
 
   if(subtitle_text != ""){
     p <- p + theme(plot.subtitle = element_text(hjust = 0.5, size = 48)) +
-             labs(subtitle = subtitle_text)
+      labs(subtitle = subtitle_text)
   }
 
   # Add numeric labels to bars based on bar_label parameter
@@ -195,8 +207,7 @@ ranking_data <- function(df, variables, years = "", sex = "total", race = "total
   variables <- dplyr:::tbl_at_vars(df, vars(!!enquo(variables)))
 
   # Add peer data if not already present
-  if (df_type(df) == "FIPS" & "current" %not_in% names(df)) df %<>% pull_peers_FIPS()
-  if (df_type(df) == "MSA"  & "current" %not_in% names(df)) df %<>% pull_peers_MSA()
+  if (df_type(df) %in% c("FIPS", "MSA") & "current" %not_in% names(df)) df %<>% pull_peers()
 
   # Filter to peer parameter
   if (peers %in% c("current", "Current"))   df %<>% filter(current == 1)

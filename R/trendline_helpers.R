@@ -1,3 +1,86 @@
+#' The workhorse behind other trendline functions
+#'
+tl <- function(type, df, var,
+               rollmean = 1, xmin = "", xmax = "", peers = "current", order = "descending",
+               cat = "", include_hispanic = F, include_asian = T,
+               plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
+               zero_start = F, ylimits = "", pctiles = T, shading = F,
+               label_function = NULL, axis_function = NULL){
+
+  if (length(var) == 1) df$var <- df[[var]]
+
+  if (df_type(df) == "FIPS" & "current" %not_in% names(df)) df %<>% pull_peers()
+  if (df_type(df) == "MSA" &  "current" %not_in% names(df)) df %<>% pull_peers()
+
+  # Filter data to peer set, race, sex, or other categories.
+  # Create category names.
+  output <- tl_filter(df, var, peers, cat, include_hispanic, include_asian)
+
+  #list2env(output, envir = .GlobalEnv)
+
+  df        <- output[["df"]]
+  cat_names <- output[["cat_names"]]
+
+  if(xmin == "" | is.na(xmin)) xmin <- min(years_in_df(df, var))
+  if(xmax == "" | is.na(xmax)) xmax <- max(years_in_df(df, var))
+
+  # Calculate mean, percentiles, and Louisville values
+  if(type %in% c("standard", "kentucky", "data")){
+    df %<>% tl_reshape_data(pctiles)
+  } else if(type %in% c("maxmin", "data_maxmin")) {
+    df %<>% tl_reshape_data_maxmin(xmin, xmax, order, zero_start)
+  }
+
+
+  # Calculate rolling mean
+  output <- tl_rolling_mean(df, xmin, xmax, rollmean, subtitle_text)
+
+  df            <- output[["df"]]
+  xmin          <- output[["xmin"]]
+  xmax          <- output[["xmax"]]
+  subtitle_text <- output[["subtitle_text"]]
+
+  # If called from a data function, return df and exit trendline function
+  if(type %in% c("data", "data_maxmin")) return(df)
+
+  # Create line settings for the graph
+  if(type %in% c("standard", "kentucky")){
+    df %<>% tl_add_line_data(type, cat_names, pctiles)
+  } else if(type == "maxmin") {
+    df %<>% tl_add_line_data_maxmin()
+  }
+
+
+  # Calculate break settings
+  output <- tl_break_settings(df, xmin, xmax, rollmean)
+
+  major_break_settings <- output[["major_break_settings"]]
+  minor_break_settings <- output[["minor_break_settings"]]
+
+
+  # Initial plot
+  g <- tl_plot(df)
+
+
+  # Axis limits
+  g %<>% tl_limits(df, xmin, xmax, ylimits, major_break_settings, minor_break_settings,
+                   y_title, label_function, axis_function)
+
+
+  # Add style
+  g %<>% tl_style(plot_title, y_title, caption_text, subtitle_text, cat_names)
+
+
+  #add color and line types
+  if(type %in% c("standard", "kentucky")){
+    g %<>% tl_lines(df, shading, cat_names, pctiles)
+  } else if(type == "maxmin") {
+    g %<>% tl_lines_maxmin(df)
+  }
+
+  g
+}
+
 #' Makes a named list of objects
 #'
 #' The name of each object in the list matches its name in the environment.
@@ -317,7 +400,6 @@ tl_add_line_data_maxmin <- function(df){
   #style_group groups data based on aesthetic. (Percentile lines are identical in style.)
 
   #for best and worst performing peer graphs, the two are identical.
-
   var_levels <- c("Louisville", "best", "worst", "mean")
 
   var_labels <- c("Louisville",
@@ -363,18 +445,26 @@ tl_break_settings <- function(df, xmin, xmax, rollmean){
   #If 2000 is included and 2001 is not, then skip interim years. By default,
   #a minor break will occur between 2000 and the first year of ACS data. Remove that line.
   #Otherwise, include every year.
-  if(census){
-    major_break_settings <- c(2000, seq(2005 + floor(rollmean / 2), xmax, skip))
-    minor_break_settings <- seq(2005 + floor(rollmean / 2) + 1, xmax - 1, skip)
-  } else {
 
-    #If there are an odd number of years and every other year is displayed,
-    #show the most recent year
-    if((xmax - xmin) %% 2 == 1 & skip == 2){
+  #If there are an odd number of years and every other year is displayed,
+  #show the most recent year
+  first_value <- if_else(census, 2005 + floor(rollmean / 2), xmin)
+  odd_years <- (xmax - first_value) %% 2 == 1
+  skip_first <- odd_years & (skip == 2)
+
+  if(census){
+    if(skip_first) {
+      major_break_settings <- c(2000, seq(first_value + 1, xmax, skip))
+      minor_break_settings <- seq(first_value, xmax - 1, skip)
+    } else {
+      major_break_settings <- c(2000, seq(first_value, xmax - 1, skip))
+      minor_break_settings <- seq(first_value + 1, xmax - 1, skip)
+    }
+  } else {
+    if (skip_first){
       major_break_settings = seq(xmin + 1, xmax, skip)
       minor_break_settings = waiver()
-    }
-    else{
+    } else {
       major_break_settings = seq(xmin, xmax, skip)
       minor_break_settings = waiver()
     }
@@ -634,6 +724,7 @@ tl_lines <- function(p, df, shading, cat_names, pctiles){
 #'
 tl_lines_maxmin <- function(p, df){
   #Extract stlyle labels to match setting with legend
+
   line_types <- levels(df$style_group)
 
   #caluculate number of categories

@@ -46,89 +46,6 @@
 #' @name trendline
 NULL
 
-#' The workhorse behind other trendline functions
-#'
-tl <- function(type, df, var,
-               rollmean = 1, xmin = "", xmax = "", peers = "current", order = "descending",
-               cat = "", include_hispanic = F, include_asian = T,
-               plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
-               zero_start = F, ylimits = "", pctiles = T, shading = F,
-               label_function = NULL, axis_function = NULL){
-
-  if (length(var) == 1) df$var <- df[[var]]
-
-  if (df_type(df) == "FIPS" & "current" %not_in% names(df)) df %<>% pull_peers_FIPS()
-  if (df_type(df) == "MSA" &  "current" %not_in% names(df)) df %<>% pull_peers_MSA()
-
-  # Filter data to peer set, race, sex, or other categories.
-  # Create category names.
-  output <- tl_filter(df, var, peers, cat, include_hispanic, include_asian)
-
-  df        <- output[["df"]]
-  cat_names <- output[["cat_names"]]
-
-  if(xmin == "" | is.na(xmin)) xmin <- min(years_in_df(df, var))
-  if(xmax == "" | is.na(xmax)) xmax <- max(years_in_df(df, var))
-
-
-  # Calculate mean, percentiles, and Louisville values
-  if(type %in% c("standard", "kentucky", "data")){
-    df %<>% tl_reshape_data(pctiles)
-  } else if(type %in% c("maxmin", "data_maxmin")) {
-    df %<>% tl_reshape_data_maxmin(xmin, xmax, order, zero_start)
-  }
-
-
-  # Calculate rolling mean
-  output <- tl_rolling_mean(df, xmin, xmax, rollmean, subtitle_text)
-
-  df            <- output[["df"]]
-  xmin          <- output[["xmin"]]
-  xmax          <- output[["xmax"]]
-  subtitle_text <- output[["subtitle_text"]]
-
-  # If called from a data function, return df and exit trendline function
-  if(type %in% c("data", "data_maxmin")) return(df)
-
-
-  # Create line settings for the graph
-  if(type %in% c("standard", "kentucky")){
-    df %<>% tl_add_line_data(type, cat_names, pctiles)
-  } else if(type == "maxmin") {
-    df %<>% tl_add_line_data_maxmin()
-  }
-
-
-  # Calculate break settings
-  output <- tl_break_settings(df, xmin, xmax, rollmean)
-
-  major_break_settings <- output[["major_break_settings"]]
-  minor_break_settings <- output[["minor_break_settings"]]
-
-
-  # Initial plot
-  g <- tl_plot(df)
-
-
-  # Axis limits
-  g %<>% tl_limits(df, xmin, xmax, ylimits, major_break_settings, minor_break_settings,
-                   y_title, label_function, axis_function)
-
-
-  # Add style
-  g %<>% tl_style(plot_title, y_title, caption_text, subtitle_text, cat_names)
-
-
-  #add color and line types
-  if(type %in% c("standard", "kentucky")){
-    g %<>% tl_lines(df, shading, cat_names, pctiles)
-  } else if(type == "maxmin") {
-    g %<>% tl_lines_maxmin(df)
-  }
-
-  g
-}
-
 #' @describeIn trendline Creates a peer city trendline graph using a GLP-style data frame.
 #' @export
 trend <- function(df, var,
@@ -162,7 +79,7 @@ trend_maxmin <- function(df, var,
   var <- dplyr:::tbl_at_vars(df, vars(!!enquo(var)))
 
   tl("maxmin", df, var,
-     rollmean, xmin, xmax, peers, order = "descending",
+     rollmean, xmin, xmax, peers, order,
      cat = "", include_hispanic = F, include_asian = T,
      plot_title, y_title, caption_text, subtitle_text,
      zero_start, ylimits, pctiles = F, shading = F,

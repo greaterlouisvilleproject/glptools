@@ -2,19 +2,32 @@
 % Please edit documentation in R/general.R
 \name{pull_peers}
 \alias{pull_peers}
-\title{Subset a data frame containing MSA data to peer cities and add current and baseline peer data.}
+\title{Subset a data frame containing MSA or county data to peer cities and add current and baseline peer data.}
 \usage{
 pull_peers(
   df,
   add_info = T,
-  county_filter = T,
-  geography = "",
-  additional_counties = ""
+  subset_to_peers = T,
+  geog = "",
+  additional_geogs = ""
 )
 }
 \arguments{
-\item{df}{A data frame containing the column MSA}
+\item{df}{A data frame containing the column MSA or FIPS}
+
+\item{add_info}{Either \code{TRUE} or \code{FALSE}.
+Add information columns (city, baseline, and current) to data frame? Defaults to \code{TRUE}.}
+
+\item{subset_to_peers}{Either \code{TRUE} or \code{FALSE}.
+Subset the data to peer geographies? Defaults to \code{TRUE}.}
+
+\item{geog}{Level of gegraphy to use for adding information and filtering.
+Can be \code{FIPS} or \code{MSA}
+Defaults to the MSA if present, followed by the FIPS column if present.
+(To keep MSA-level data using FIPS as the ID column, geog should be \code{MSA}.)}
+
+\item{additional_geogs}{A vector of additional MSA or FIPS codes to include.}
 }
 \description{
-Subset a data frame containing MSA data to peer cities and add current and baseline peer data.
+Subset a data frame containing MSA or county data to peer cities and add current and baseline peer data.
 }
