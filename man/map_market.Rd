@@ -4,11 +4,13 @@
 \name{map_market}
 \alias{map_market}
 \title{A map of market areas in Louisville}
-\format{A SpatialPolygonsDataFrame
+\format{
+A SpatialPolygonsDataFrame
 \describe{
 \item{\code{market}}{Market area}
 \item{\code{line1}}{\code{Market area}}
-}}
+}
+}
 \usage{
 map_market
 }

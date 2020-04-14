@@ -4,13 +4,15 @@
 \name{MSA_zip}
 \alias{MSA_zip}
 \title{A crosswalk of MSA codes to the zip codes they contain.}
-\format{A data frame with four variables:
+\format{
+A data frame with four variables:
 \describe{
 \item{\code{MSA}}{MSA code}
 \item{\code{zip}}{zip code}
 \item{\code{population_total}}{total population of zip code}
 \item{\code{population_in_MSA}}{population of zip code in MSA}
-}}
+}
+}
 \usage{
 MSA_zip
 }

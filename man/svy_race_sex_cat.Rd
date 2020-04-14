@@ -12,6 +12,5 @@ svy_race_sex_cat(df, var, weight_var = "PERWT", geog = "FIPS")
 \item{survey}{A survey object containing FIPS, year, and optional race and sex columns.}
 }
 \description{
-This function uses the survey package to break
-  down estimates by demographic group.
+Survey microdata by race and sex on a categorical variable
 }

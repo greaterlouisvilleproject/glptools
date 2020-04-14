@@ -4,7 +4,13 @@
 \alias{stl_merge}
 \title{Combines rows of data from the two St. Louis counties into one.}
 \usage{
-stl_merge(df_original, ..., weight_var = "", method = "mean")
+stl_merge(
+  df_original,
+  ...,
+  weight_var = "",
+  method = "mean",
+  other_grouping_vars = ""
+)
 }
 \arguments{
 \item{df_original}{A data frame.}

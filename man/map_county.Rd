@@ -4,12 +4,14 @@
 \name{map_county}
 \alias{map_county}
 \title{A map of counties in the Louisville MSA}
-\format{A SpatialPolygonsDataFrame
+\format{
+A SpatialPolygonsDataFrame
 \describe{
 \item{\code{FIPS}}{5-character FIPS code}
 \item{\code{county}}{county name}
 \item{\code{line1}}{\code{county}}
-}}
+}
+}
 \usage{
 map_county
 }

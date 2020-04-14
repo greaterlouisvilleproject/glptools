@@ -2,7 +2,7 @@
 % Please edit documentation in R/general.R
 \name{organize}
 \alias{organize}
-\title{Organizes common GLP data by columns and rows and replaces FIPS 01073 with 1073.}
+\title{Organizes common GLP data by columns and rows and replaces FIPS 1073 with 01073.}
 \usage{
 organize(df)
 }

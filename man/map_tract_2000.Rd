@@ -4,11 +4,13 @@
 \name{map_tract_2000}
 \alias{map_tract_2000}
 \title{A map of 2000 tracts in Louisville}
-\format{A SpatialPolygonsDataFrame
+\format{
+A SpatialPolygonsDataFrame
 \describe{
 \item{\code{tract}}{6-character tract code}
 \item{\code{line1}}{Tract \code{tract}}
-}}
+}
+}
 \usage{
 map_tract_2000
 }

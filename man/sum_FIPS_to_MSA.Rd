@@ -4,7 +4,7 @@
 \alias{sum_FIPS_to_MSA}
 \title{Group data by MSA and summarise}
 \usage{
-sum_FIPS_to_MSA(df)
+sum_FIPS_to_MSA(df, ..., other_grouping_vars = "")
 }
 \arguments{
 \item{df}{A data frame containing the column MSA}

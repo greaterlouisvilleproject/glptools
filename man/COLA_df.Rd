@@ -5,14 +5,16 @@
 \alias{COLA_df}
 \title{Inflation and cost of living data.
 The data frame is used by the function \code{COLA} to adjust dollar amounts to 2017 Louisville dollars.}
-\format{A data frame with four variables:
+\format{
+A data frame with four variables:
 \describe{
 \item{\code{FIPS}}{FIPS code}
 \item{\code{year}}{year}
 \item{\code{rpp_index}}{The RPP of Louisville divided by the RPP of \code{FIPS} for that particular year.
 RPP values prior to 2008 are copied from 2008. RPP values from after 2015 are copied from 2015.}
 \item{\code{cpi_index}}{The CPI index for 2017 divided by the CPI index for \code{year}}
-}}
+}
+}
 \usage{
 COLA_df
 }

@@ -4,11 +4,13 @@
 \name{map_zip}
 \alias{map_zip}
 \title{A map of zip codes in Louisville}
-\format{A SpatialPolygonsDataFrame
+\format{
+A SpatialPolygonsDataFrame
 \describe{
 \item{\code{zip}}{5-digit zip code}
 \item{\code{line1}}{Zip code \code{zip}}
-}}
+}
+}
 \usage{
 map_zip
 }

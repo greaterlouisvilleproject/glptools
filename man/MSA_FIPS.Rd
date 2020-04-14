@@ -4,11 +4,13 @@
 \name{MSA_FIPS}
 \alias{MSA_FIPS}
 \title{A crosswalk of MSA codes to the FIPS codes of their core counties.}
-\format{A data frame with two variables:
+\format{
+A data frame with two variables:
 \describe{
 \item{\code{MSA}}{MSA code}
 \item{\code{FIPS}}{FIPS code}
-}}
+}
+}
 \usage{
 MSA_FIPS
 }

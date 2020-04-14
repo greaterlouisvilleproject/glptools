@@ -4,13 +4,15 @@
 \name{FIPS_df}
 \alias{FIPS_df}
 \title{A list of GLP peer counties.}
-\format{A data frame with four variables:
+\format{
+A data frame with four variables:
 \describe{
 \item{\code{FIPS}}{FIPS code}
 \item{\code{city}}{city name}
 \item{\code{baseline}}{1 if the city was an original peer, otherwise 0}
 \item{\code{current}}{1 if the city is a current peer, otherwise 0}
-}}
+}
+}
 \usage{
 FIPS_df
 }

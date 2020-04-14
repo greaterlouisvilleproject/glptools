@@ -4,13 +4,15 @@
 \name{map_block_group}
 \alias{map_block_group}
 \title{A map of block groups in Louisville}
-\format{A SpatialPolygonsDataFrame
+\format{
+A SpatialPolygonsDataFrame
 \describe{
 \item{\code{GEO_ID}}{15-digit GEO_ID code consisting of FIPS, tract, and block numbers}
 \item{\code{tract}}{6-character tract code}
 \item{\code{block_group}}{numeric block group code}
 \item{\code{line1}}{Block group \code{block}}
-}}
+}
+}
 \usage{
 map_block_group
 }

@@ -4,7 +4,8 @@
 \name{MSA_PUMA}
 \alias{MSA_PUMA}
 \title{A crosswalk of MSA codes to the PUMAs they contain.}
-\format{A data frame with four variables:
+\format{
+A data frame with four variables:
 \describe{
 \item{\code{MSA}}{MSA code}
 \item{\code{year}}{year.
@@ -12,7 +13,8 @@
   PUMAS based on the 2010 census are labelled with the years 2013 to 2017.}
 \item{\code{STATEFIP}}{State FIPS code}
 \item{\code{PUMA}}{Public Use Microdata Area}
-}}
+}
+}
 \usage{
 MSA_PUMA
 }

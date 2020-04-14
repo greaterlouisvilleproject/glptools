@@ -4,19 +4,19 @@
 \alias{svy_race_sex}
 \title{Survey microdata by race and sex}
 \usage{
-svy_race_sex(df, var, weight_var = "PERWT", geog = "FIPS")
+svy_race_sex(df, var, weight_var = "PERWT", geog = "FIPS", sex = T, race = T)
 }
 \arguments{
 \item{var}{A column name to perform svymean on.}
 
-\item{survey}{A survey object containing FIPS, year, and optional race and sex columns.}
+\item{sex}{Break down by sex? Defaults to \code{TRUE}.}
 
 \item{race}{Break down by race? Defaults to \code{TRUE}.}
 
-\item{sex}{Break down by sex? Defaults to \code{TRUE}.}
+\item{survey}{A survey object containing FIPS, year, and optional race and sex columns.}
 
 \item{cross}{Break down by race and sex? Defaults to \code{TRUE}.}
 }
 \description{
-This function uses the survey package to break down estimates by demographic group.
+Survey microdata by race and sex
 }

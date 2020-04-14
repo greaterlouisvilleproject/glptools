@@ -4,13 +4,15 @@
 \name{FIPS_zip}
 \alias{FIPS_zip}
 \title{A crosswalk of FIPS codes to the zip codes they contain.}
-\format{A data frame with four variables:
+\format{
+A data frame with four variables:
 \describe{
 \item{\code{FIPS}}{FIPS code}
 \item{\code{zip}}{zip code}
 \item{\code{population_total}}{total population of zip code}
 \item{\code{population_in_MSA}}{population of zip code in FIPS}
-}}
+}
+}
 \usage{
 FIPS_zip
 }

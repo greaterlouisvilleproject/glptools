@@ -4,11 +4,13 @@
 \name{watterson_tract}
 \alias{watterson_tract}
 \title{Identifies which tracts are mostly inside the Watterson.}
-\format{A data frame with two variables:
+\format{
+A data frame with two variables:
 \describe{
 \item{\code{GEO_ID}}{20-digit GEO_ID code}
 \item{\code{watterson}}{1 if the tract is mostly inside the Watterson, otherwise 0}
-}}
+}
+}
 \usage{
 watterson_tract
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/general.R
 \name{per_capita_adj}
 \alias{per_capita_adj}
-\title{Create tract, nh, and muw map files from a map data frame}
+\title{Create population-adjusted variables}
 \usage{
 per_capita_adj(df, ..., geog, keep_vars = T, keep_pop = F)
 }
@@ -18,5 +18,5 @@ per_capita_adj(df, ..., geog, keep_vars = T, keep_pop = F)
 \item{keep_pop}{Keep population in data frame}
 }
 \description{
-Create tract, nh, and muw map files from a map data frame
+Create population-adjusted variables
 }

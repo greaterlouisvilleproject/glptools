@@ -4,11 +4,13 @@
 \name{ma_tract}
 \alias{ma_tract}
 \title{A crosswalk from tracts to market areas.}
-\format{A data frame with two variables:
+\format{
+A data frame with two variables:
 \describe{
 \item{\code{GEO_ID}}{20-digit GEO_ID code}
 \item{\code{market_area}}{market area name}
-}}
+}
+}
 \usage{
 ma_tract
 }

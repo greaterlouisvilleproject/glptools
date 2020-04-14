@@ -4,12 +4,14 @@
 \name{population_df_merged}
 \alias{population_df_merged}
 \title{Population}
-\format{A data frame with three variables:
+\format{
+A data frame with three variables:
 \describe{
 \item{\code{FIPS}}{FIPS codes (character)}
 \item{\code{year}}{year}
 \item{\code{population}}{population}
-}}
+}
+}
 \usage{
 population_df_merged
 }

@@ -15,7 +15,7 @@
 #'
 #' @name not_in
 #' @export
-`%cols_in%` <- function (df, columns) columns[setdiff(match(names(df), columns), NA)]
+`%cols_in%` <- function (df, columns) columns[columns %in% names(df)]
 
 #' Returns any variables in the vector
 #'   that are NOT columns in the data frame.
@@ -43,23 +43,6 @@ rollmeanr <- function(x, r){
   y
 }
 
-#' Change a vector from a factor to character/numeric
-#'
-#' If the vector can be converted to a numeric vector and fewer than 10% of the values become NA,
-#' the vector is converted to a numeric vector. Otherwise it is converted to a character vector.
-#'
-#' @param x A numeric or character vector encoded as a factor
-#' @return A numeric or character vector
-#' @export
-unfactor <- function(x){
-  x <- as.character(x)
-
-  if(suppressWarnings(mean(is.na(as.numeric(x)))) < 0.01){
-    x <- as.numeric(x)
-  }
-  x
-}
-
 #' Normalize a vector
 #'
 #' @param x A numeric vector
@@ -73,12 +56,17 @@ norm_z <- function(x){
 #'
 #' @param df A data frame containing the column MSA
 #' @export
-sum_FIPS_to_MSA <- function(df) {
+sum_FIPS_to_MSA <- function(df, ..., other_grouping_vars = "") {
+
+  variables <- dplyr:::tbl_at_vars(df, vars(...))
+
+  grouping_vars <- c("MSA", "year", "sex", "race", other_grouping_vars)
+
   df %<>%
     left_join(MSA_FIPS, by = "FIPS") %>%
     select(-FIPS) %>%
-    group_by(MSA, year) %>%
-    summarise_all(sum) %>%
+    group_by_at(. %cols_in% grouping_vars) %>%
+    summarise_at(variables, sum) %>%
     ungroup() %>%
     filter(!is.na(MSA))
 }
@@ -106,9 +94,9 @@ pull_peers <- function(df, add_info = T, subset_to_peers = T, geog = "", additio
   }
   if(geog == "") stop("MSA and FIPS columns are missing from the data frame.")
 
-  # Ensure the Brimingham FIPS code is four digits and that the MSA column is of type character
+  # Ensure the Brimingham FIPS code is five digits and that the MSA column is of type character
   if ("MSA" %in% names(df))  df %<>% mutate(MSA = MSA %>% as.character())
-  if ("FIPS" %in% names(df)) df %<>% mutate(FIPS = FIPS %>% as.character %>% replace(FIPS == "01073", "1073"))
+  if ("FIPS" %in% names(df)) df %<>% mutate(FIPS = FIPS %>% as.character %>% replace(. == "1073", "01073"))
 
   # Add information columns
   if (add_info) {
@@ -132,38 +120,6 @@ pull_peers <- function(df, add_info = T, subset_to_peers = T, geog = "", additio
   df
 }
 
-#' Adds a FIPS column to a data frame containing a column of MSA codes.
-#'
-#' @param df A data frame containing the column MSA
-#' @export
-add_FIPS_to_MSA <- function(df){
-
-  df$FIPS<-NA
-  df$FIPS[df$MSA == 24340] = 26081
-  df$FIPS[df$MSA == 41180] = "MERGED"
-  df$FIPS[df$MSA == 36420] = 40109
-  df$FIPS[df$MSA == 46140] = 40143
-  df$FIPS[df$MSA == 24860] = 45045
-  df$FIPS[df$MSA == 28940] = 47093
-  df$FIPS[df$MSA == 13820] = 1073
-  df$FIPS[df$MSA == 31140] = 21111
-  df$FIPS[df$MSA == 26900] = 18097
-  df$FIPS[df$MSA == 28140] = 29095
-  df$FIPS[df$MSA == 36540] = 31055
-  df$FIPS[df$MSA == 24660] = 37081
-  df$FIPS[df$MSA == 16740] = 37119
-  df$FIPS[df$MSA == 18140] = 39049
-  df$FIPS[df$MSA == 17140] = 39061
-  df$FIPS[df$MSA == 34980] = 47037
-  df$FIPS[df$MSA == 32820] = 47157
-  df$FIPS[df$MSA == 27260] = 12031
-  df$FIPS[df$MSA == 39580] = 37183
-  df$FIPS[df$MSA == 19380] = 39113
-  df$FIPS[df$MSA == 40060] = 51760
-
-  df
-}
-
 #' Combines rows of data from the two St. Louis counties into one.
 #'
 #' @param df_original A data frame.
@@ -171,7 +127,7 @@ add_FIPS_to_MSA <- function(df){
 #' @param weight_var A variable to use when weighting the counties. Defaults to \code{population}.
 #' @param method "mean" or "sum". Defaults to mean.
 #' @export
-stl_merge <- function(df_original, ..., weight_var = "", method = "mean"){
+stl_merge <- function(df_original, ..., weight_var = "", method = "mean", other_grouping_vars = ""){
 
   weight_var <- as.character(substitute(weight_var))
   variables <- dplyr:::tbl_at_vars(df_original, vars(...))
@@ -186,7 +142,7 @@ stl_merge <- function(df_original, ..., weight_var = "", method = "mean"){
     }
   }
 
-  grouping_vars <- c("FIPS", "year", "sex", "race")
+  grouping_vars <- c("FIPS", "year", "sex", "race", other_grouping_vars)
 
   df_original %<>%
     mutate(FIPS = replace(FIPS, FIPS %in% c("29189", "29510"), "MERGED")) %>%
@@ -218,9 +174,8 @@ stl_merge <- function(df_original, ..., weight_var = "", method = "mean"){
 bind_df <- function(..., by = NULL){
   data_frames <- list(...)
 
-  grouping_vars <- c("FIPS", "MSA", "year", "race", "sex", "frl_status",
-                     "district", "year", "demographic",
-                     "Id", "variable", "neighborhood", "tract")
+  grouping_vars <- c("FIPS", "MSA", "zip", "tract", "neighborhood", "disctrict", "year",
+                     "race", "sex", "frl_status", "demographic", "variable")
 
   if (is.null(by)) {
     grouping_vars <- grouping_vars[grouping_vars %in% names(data_frames[[1]])]
@@ -263,7 +218,7 @@ reshape_sex <- function(df) {
 }
 
 
-#' Organizes common GLP data by columns and rows and replaces FIPS 01073 with 1073.
+#' Organizes common GLP data by columns and rows and replaces FIPS 1073 with 01073.
 #'
 #' Columns: MSA, FIPS, city, year, sex, race, baseline, current,
 #' Rows: MSA, FIPS, year, sex, race
@@ -292,7 +247,7 @@ organize <- function(df) {
 
   if("FIPS" %in% names(df)){
     df %<>%
-      mutate(FIPS = replace(FIPS, FIPS == "01073", "1073"))
+      mutate(FIPS = replace(FIPS, FIPS == "1073", "01073"))
   }
 
   df
@@ -322,6 +277,29 @@ df_type <- function(df){
     "county" %in% cols                                          ~ "county",
     TRUE ~ NA_character_)
 }
+
+#' Check if each row of a data frame is unique
+#'
+#' Returns
+#'
+#' @param df A data frame.
+#' @export
+unique_check <- function(df) {
+  grouping_vars <- c("MSA", "FIPS", "tract", "neighborhood",
+                     "year", "sex", "race")
+
+  grouping_vars <- df %cols_in% grouping_vars
+
+  num_per_group <- df %>%
+    group_by_at(grouping_vars) %>%
+    summarise(n = n()) %>%
+    arrange(n) %>%
+    pull(n) %>%
+    unique()
+
+  num_per_group
+}
+
 
 #' Join two data frames when one might not exist
 #'
@@ -385,7 +363,7 @@ COLA <- function(df, ..., base_year = 2018, remove_calc = TRUE, inflation = T, r
       select(-FIPS)
   } else if (geog %in% c("tract", "nh")) {
     COLA_df %<>%
-      filter(FIPS == 21111) %>%
+      filter(FIPS == "21111") %>%
       select(-FIPS)
   }
   df %<>% left_join(COLA_df, by = COLA_df %cols_in% c(geog, "year"))
@@ -461,7 +439,7 @@ update_sysdata <- function(...) {
 
 #' Create tract, nh, and muw map files from a map data frame
 #'
-#' @param map_df A data frame of census tracts with a 20-digit ID
+#' @param map_df A data frame of census tracts with a 20-digit ID colum
 #' @param variables A character vector of variables
 #' @param pop The population variable
 #' @param method The method used to aggregate tracts.
@@ -473,8 +451,18 @@ update_sysdata <- function(...) {
 #' @param maps The type of maps to return. Defaults to tract, nh, and muw.
 #'
 #' @export
-process_map <- function(map_df, variables, pop, return_name = NULL,
-                        method = "percent",maps = c("tract", "nh", "muw")) {
+process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
+                        method = "percent", maps = c("tract", "nh", "muw")) {
+
+  variables <- dplyr:::tbl_at_vars(map_df, vars(...))
+  grouping_vars <- map_df %cols_in% c("year", "race", "sex")
+
+  if (missing(pop)) {
+    map_df %<>% left_join(glpdata:::population_tract, by = c("tract", "year"))
+    pop <- "population"
+  } else {
+    pop <- as.character(substitute(pop))
+  }
 
   # create function based on method
   fxn <- switch(method,
@@ -484,54 +472,54 @@ process_map <- function(map_df, variables, pop, return_name = NULL,
                 "median"  = function(x, y) Hmisc::wtd.quantile(x, y, na.rm = T, probs = .5))
 
   # If median is selected, remove Airport to prevent errors
-  if (method == "median") map_df %<>% filter(tract != "1400000US21111980100")
+  if (method == "median") map_df %<>% filter(tract != "21111980100")
 
   # Group by geography and year,
   #   bind to neighborhood labels (if applicable),
   #   and summarise values
   if ("tract" %in% maps) {
     df_tract <- map_df %>%
-      group_by(tract, year) %>%
-      mutate_at(vars(variables), ~ fxn(., .data[[pop]])) %>%
-      select(tract, year, variables) %>%
+      group_by_at(c("tract", grouping_vars)) %>%
+      mutate_at(variables, ~ fxn(., .data[[pop]])) %>%
+      select(all_of(c("tract", grouping_vars, variables))) %>%
       ungroup()
   }
 
   if ("nh" %in% maps) {
     df_nh <- map_df %>%
-      left_join(nh_tract, by = c("tract" = "GEO_ID")) %>%
-      group_by(neighborhood, year) %>%
-      summarise_at(vars(variables), ~ fxn(., .data[[pop]])) %>%
+      left_join(nh_tract, by = "tract") %>%
+      group_by_at(c("neighborhood", grouping_vars)) %>%
+      summarise_at(variables, ~ fxn(., .data[[pop]])) %>%
       ungroup()
   }
 
   if ("muw" %in% maps) {
     df_muw <- map_df %>%
-      left_join(muw_tract, by = c("tract" = "GEO_ID")) %>%
-      group_by(neighborhood, year) %>%
-      summarise_at(vars(variables), ~ fxn(., .data[[pop]])) %>%
+      left_join(muw_tract, by = "tract") %>%
+      group_by_at(c("neighborhood", grouping_vars)) %>%
+      summarise_at(variables, ~ fxn(., .data[[pop]])) %>%
       ungroup()
   }
 
 
   # Replace Airport values with NAs. If median was selected, bind Airport rows.
   if (method %in% c("percent", "mean", "sum")) {
-    if ("tract" %in% maps) df_tract %<>% mutate_at(vars(variables),
-                                                   ~ replace(., tract == "1400000US21111980100", NA))
-    if ("nh" %in% maps)    df_nh    %<>% mutate_at(vars(variables),
+    if ("tract" %in% maps) df_tract %<>% mutate_at(variables,
+                                                   ~ replace(., tract == "21111980100", NA))
+    if ("nh" %in% maps)    df_nh    %<>% mutate_at(variables,
                                                    ~ replace(., neighborhood == "Airport", NA))
-    if ("muw" %in% maps)   df_muw   %<>% mutate_at(vars(variables),
+    if ("muw" %in% maps)   df_muw   %<>% mutate_at(variables,
                                                    ~ replace(., neighborhood == "Airport", NA))
   } else if (method == "median") {
-    if ("tract" %in% maps) df_tract %<>% bind_rows(crossing(tract = "1400000US21111980100",
-                                                   year = df_tract$year,
-                                                   !!variables := NA))
-    if ("nh" %in% maps)    df_nh %<>% bind_rows(crossing(neighborhood = "Airport",
-                                                year = df_nh$year,
-                                                !!variables := NA))
-    if ("muw" %in% maps)   df_muw %<>% bind_rows(crossing(neighborhood = "Airport",
-                                                 year = df_muw$year,
-                                                 !!variables := NA))
+    if ("tract" %in% maps) df_tract %<>% complete(nesting(year), tract = "21111980100")
+    if ("nh" %in% maps)    df_nh    %<>% complete(nesting(year), neighborhood = "Airport")
+    if ("muw" %in% maps)  df_muw    %<>% complete(nesting(year), neighborhood = "Airport")
+  }
+
+  if (pop_adjust) {
+    if ("tract" %in% maps) df_tract %<>% per_capita_adj(variables)
+    if ("nh" %in% maps)    df_nh    %<>% per_capita_adj(variables)
+    if ("muw" %in% maps)   df_muw   %<>% per_capita_adj(variables)
   }
 
   # Create list to return based on map parameter
@@ -542,7 +530,7 @@ process_map <- function(map_df, variables, pop, return_name = NULL,
   output
 }
 
-#' Create tract, nh, and muw map files from a map data frame
+#' Create population-adjusted variables
 #'
 #' @param df A data frame
 #' @param ... Variables
@@ -557,9 +545,7 @@ per_capita_adj <- function(df, ..., geog, keep_vars = T, keep_pop = F) {
   variables <- dplyr:::tbl_at_vars(df, vars(...))
 
   # Determine geography and other variables to join by
-  if(missing(geog)) {
-    geog <- df_type(df)
-  }
+  if (missing(geog)) geog <- df %cols_in% c("MSA", "FIPS", "tract", "neighborhood", "zip")
 
   if(length(geog) > 1) {
     stop("Too many geography columns. Provide geog argument.")
@@ -569,11 +555,11 @@ per_capita_adj <- function(df, ..., geog, keep_vars = T, keep_pop = F) {
 
   # Create a clean, minimal population data frame
   tryCatch({
-    pop_df <- switch(geog,
+    pop_df <- switch(df_type(df),
                      "MSA"   = glpdata:::population_msa_1yr,
                      "FIPS"  = glpdata:::population_county,
                      "tract" = glpdata:::population_tract,
-                     "neighborhood"    = glpdata:::population_nh,
+                     "nh"    = glpdata:::population_nh,
                      "muw"   = glpdata:::population_muw)
   },
   error = function(e){
@@ -581,8 +567,8 @@ per_capita_adj <- function(df, ..., geog, keep_vars = T, keep_pop = F) {
   })
 
   if("year" %not_in% join_vars) pop_df %<>% filter(year == 2018)
-  if("sex"  %not_in% join_vars & geog %in% c("FIPS", "MSA")) pop_df %<>% filter(sex == "total")
-  if("race" %not_in% join_vars & geog %in% c("FIPS", "MSA")) pop_df %<>% filter(race == "total")
+  pop_df %<>% filter(sex == "total")
+  pop_df %<>% filter(race == "total")
 
   pop_df %<>% select_at(c(join_vars, "population"))
 
@@ -624,23 +610,22 @@ get_sysdata <- function(df) {
 #'
 #' @export
 tract_00_to_10 <- function(df, years, ...) {
+
+  id_cols <- df %cols_in% c("year", "sex", "race")
+
   df00 <- df %>%
     filter(year %in% years) %>%
     left_join(tract00_tract_10, by = c("tract" = "tract00")) %>%
-    group_by_at(c("tract10", df %cols_in% c("year", "sex", "race"))) %>%
+    group_by_at(c("tract10", id_cols)) %>%
     summarise_at(vars(...), ~sum(. * percent / 100)) %>%
     ungroup() %>%
     rename(tract = tract10)
 
-  airport <- data.frame(tract = "1400000US21111980100", stringsAsFactors = FALSE)
-  airport <- crossing(airport, year = unique(df00$year))
-  if ("sex" %in%  names(df)) airport <- crossing(airport, sex = unique(df00$sex))
-  if ("race" %in% names(df)) airport <- crossing(airport, race = unique(df00$race))
+  df00 %<>% complete(nesting(!!!syms(id_cols)), tract = "21111980100")
 
-  df10 <- df %>%
-    filter(year %not_in% years)
+  df10 <- df %>% filter(year %not_in% years)
 
-  bind_rows(df00, airport, df10) %>%
+  bind_rows(df00, df10) %>%
     organize()
 }
 

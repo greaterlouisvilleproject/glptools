@@ -4,11 +4,13 @@
 \name{nh_tract}
 \alias{nh_tract}
 \title{A crosswalk from tracts to neighborhoods.}
-\format{A data frame with two variables:
+\format{
+A data frame with two variables:
 \describe{
 \item{\code{GEO_ID}}{20-digit GEO_ID code}
 \item{\code{neighborhood}}{neighborhood name}
-}}
+}
+}
 \usage{
 nh_tract
 }

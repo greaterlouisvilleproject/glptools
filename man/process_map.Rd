@@ -6,17 +6,15 @@
 \usage{
 process_map(
   map_df,
-  variables,
-  pop,
+  ...,
+  pop = "total",
   return_name = NULL,
   method = "percent",
   maps = c("tract", "nh", "muw")
 )
 }
 \arguments{
-\item{map_df}{A data frame of census tracts with a 20-digit ID}
-
-\item{variables}{A character vector of variables}
+\item{map_df}{A data frame of census tracts with a 20-digit ID colum}
 
 \item{pop}{The population variable}
 
@@ -29,6 +27,8 @@ process_map(
 \code{median} creates a weighted median}
 
 \item{maps}{The type of maps to return. Defaults to tract, nh, and muw.}
+
+\item{variables}{A character vector of variables}
 }
 \description{
 Create tract, nh, and muw map files from a map data frame
