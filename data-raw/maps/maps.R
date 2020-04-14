@@ -1,5 +1,6 @@
 library(dplyr)
 library(readr)
+library(stringr)
 library(magrittr)
 library(rgdal)
 
@@ -24,7 +25,7 @@ attr(muw_tract, 'spec') <- NULL
 
 muw_tract %<>%
   transmute(
-    GEO_ID = "1400000US21111" %p% `Tract FIPS Code`,
+    tract = "21111" %p% `Tract FIPS Code`,
     neighborhood = Neighborhood)
 
 
@@ -54,9 +55,25 @@ map_county <- readOGR(path %p% "county", layer = "cb_2017_us_county_5m",
                       GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
 
 # Create MUW map
+map_block_group <- map_block_group[map_block_group@data$COUNTYFP == "111",]
+map_block_group@data %<>%
+  transmute(
+    block_group = GEOID,
+    tract = "21111" %p% TRACTCE,
+    name = as.numeric(BLKGRPCE))
+
+map_tract@data %<>%
+  transmute(
+    tract = str_sub(GEO_ID, -11),
+    name = as.numeric(NAME)) %>%
+  left_join(nh_tract, by = "tract")
+
+
 map_muw <- map_tract
 
-map_muw@data %<>% left_join(muw_tract, by = "GEO_ID")
+map_muw@data %<>%
+  select(-neighborhood) %>%
+  left_join(muw_tract, by =  "tract")
 
 row.names(map_muw) <- row.names(map_muw@data)
 map_muw <- spChFIDs(map_muw, row.names(map_muw))
@@ -70,24 +87,11 @@ nh_names <- data.frame(neighborhood = nh_names, row.names = nh_names, stringsAsF
 map_muw <- SpatialPolygonsDataFrame(map_muw, nh_names)
 
 
-map_block_group <- map_block_group[map_block_group@data$COUNTYFP == "111",]
-map_block_group@data %<>%
-  transmute(
-    GEO_ID = GEOID,
-    tract = TRACTCE,
-    block_group = as.numeric(BLKGRPCE))
-
-map_tract@data %<>%
-  left_join(nh_tract, by = "GEO_ID") %>%
-  transmute(
-    GEO_ID,
-    tract = as.numeric(NAME),
-    neighborhood)
-
 map_tract_2000 <- map_tract_2000[map_tract_2000@data$COUNTY == "111",]
 map_tract_2000@data %<>%
   transmute(
-    tract = NAME)
+    tract = TRACT,
+    name = as.numeric(NAME))
 
 map_zip@data %<>%
   transmute(

@@ -23,14 +23,14 @@ rpp$`2007` <- rpp$`2008`
 rpp$`2018` <- rpp$`2017`
 rpp$`2019` <- rpp$`2017`
 
-rpp <- rpp %>%
+rpp %<>%
   filter(LineCode == 1) %>%
   select(-GeoName, -LineCode, -Description) %>%
   gather(-GeoFips, key = year, value = "rpp") %>%
   mutate(year = as.numeric(year)) %>%
   rename(MSA = GeoFips) %>%
   add_FIPS_to_MSA() %>%
-  pull_peers_FIPS() %>%
+  pull_peers(geog = "FIPS") %>%
   select(FIPS, year, rpp)
 
 COLA_df <- rpp %>%

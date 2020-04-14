@@ -1,8 +1,8 @@
 # GLP FIPS and MSA peers
-source("data-raw/basic_info.R")
+source("data-raw/basic_info/basic_info.R")
 
 # MSA to FIPS crosswalk
-source("data-raw/MSA_FIPS.R")
+source("data-raw/MSA_FIPS/MSA_FIPS.R")
 
 # MSA and FIPS to PUMA crosswalks
 source("data-raw/MSA_PUMA.R")
