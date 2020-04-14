@@ -1,5 +1,6 @@
 library(readr)
 library(dplyr)
+library(stringr)
 library(magrittr)
 source("R/general.R")
 
@@ -15,8 +16,8 @@ tract00_tract_10 <- tract_crosswalk %>%
     str_sub(GEOID00, 1, 5) == "21111",
     POPPCT00 > 0) %>%
   transmute(
-    tract00 = "1400000US" %p% GEOID00,
-    tract10 = "1400000US" %p% GEOID10,
+    tract00 = GEOID00,
+    tract10 = GEOID10,
     percent = POPPCT00)
 
 tract10_tract_00 <- tract_crosswalk %>%
@@ -24,7 +25,7 @@ tract10_tract_00 <- tract_crosswalk %>%
     str_sub(GEOID00, 1, 5) == "21111",
     POPPCT00 > 0) %>%
   transmute(
-    tract10 = "1400000US" %p% GEOID10,
+    tract10 = GEOID10,
     tract00 = GEOID00,
     percent = POPPCT10)
 

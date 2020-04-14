@@ -105,7 +105,7 @@ ranking <- function(df, var, plot_title = "",
   } else {
     df$color <- "blue"
     color_values <- "#f58021"
-    color_names <- c("blue")
+    color_names <- "blue"
   }
 
   if (order %in% c("descending", "Descending")) color_values = rev(color_values)
@@ -126,14 +126,13 @@ ranking <- function(df, var, plot_title = "",
   }
 
   # Set text format, highlight and italicise Louisville text, highlight Louisville bar
-  df$textfont <- "Museo Sans 300"
-  df$textfont[df$city == "Louisville"] <- "Museo Sans 300 Italic"
-
-  df$textcolor <- "black"
+  df$textcolor <- "#000000"
   df$textcolor[df$city == "Louisville"] <- "#00a9b7"
 
-  df$linecolor <- "white"
+  df$linecolor <- "#ffffff"
   df$linecolor[df$city == "Louisville"] <- "#00a9b7"
+
+  df$lou <- if_else(df$city == "Louisville", 1, 0)
 
   df$text_alignment <- 1.1
   if (!is.null(alternate_text)) df$text_alignment[df$rank %in% alternate_text] <- -0.1
@@ -142,28 +141,29 @@ ranking <- function(df, var, plot_title = "",
 
   # Initial plot
   p <- ggplot(data = df,
-              aes(x = factor(names, levels=rev(unique(names))),
+              aes(x = factor(names, levels = rev(names)),
                   y = var,
-                  fill = factor(color, levels = color_names, ordered = TRUE)))
+                  fill  = factor(color, levels = color_names, ordered = TRUE)))
 
-  p <- p + guides(fill = FALSE)
+  p <- p + guides(fill = FALSE, color = FALSE)
 
   # Add bars
   p <- p +
-    geom_bar(stat="identity",
-             color=rev(df$linecolor),
+    geom_bar(aes(color = factor(lou, levels = 0:1)),
+             stat = "identity",
              size = 2) +
     coord_flip() +
     ggthemes::theme_tufte()
 
   p <- p + scale_fill_manual(values = color_values)
+  p <- p + scale_color_manual(values = c("#ffffff", "#00a9b7"))
 
   # Add features
   title_scale <- min(1, 48 / nchar(plot_title))
 
   p <- p + theme(text = element_text(family = "Museo Sans 300"),
                  plot.title = element_text(size = 74 * title_scale, hjust = 0.5, margin = margin(b = 20, unit = "pt")),
-                 axis.text.y = element_text(hjust = 0, #family = rev(df$textfont),
+                 axis.text.y = element_text(hjust = 0,
                                             size = 60, color = rev(df$textcolor)),
                  axis.title.x = element_text(size = 60),
                  axis.ticks = element_blank(),

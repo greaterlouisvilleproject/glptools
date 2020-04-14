@@ -143,15 +143,13 @@ process_cps <- function(df, pull_peers = T){
 
 #' Survey microdata by race and sex
 #'
-#' This function uses the survey package to break down estimates by demographic group.
-#'
 #' @param survey A survey object containing FIPS, year, and optional race and sex columns.
 #' @param var A column name to perform svymean on.
 #' @param race Break down by race? Defaults to \code{TRUE}.
 #' @param sex Break down by sex? Defaults to \code{TRUE}.
 #' @param cross Break down by race and sex? Defaults to \code{TRUE}.
 #' @export
-svy_race_sex <- function(df, var, weight_var = "PERWT", geog = "FIPS"){
+svy_race_sex <- function(df, var, weight_var = "PERWT", geog = "FIPS", sex = T, race = T){
 
   var <- as.character(substitute(var))
 
@@ -164,27 +162,33 @@ svy_race_sex <- function(df, var, weight_var = "PERWT", geog = "FIPS"){
       race = "total")
 
   #By sex
-  results_sex <- df %>%
-    group_by_at(c(geog, "year", "sex")) %>%
-    summarise(!!var := weighted.mean(.data[[var]], .data[[weight_var]], na.rm = TRUE)) %>%
-    mutate(race = "total")
+  if (sex) {
+    results_sex <- df %>%
+      group_by_at(c(geog, "year", "sex")) %>%
+      summarise(!!var := weighted.mean(.data[[var]], .data[[weight_var]], na.rm = TRUE)) %>%
+      mutate(race = "total")
 
-  results %<>% bind_rows(results_sex)
+    results %<>% bind_rows(results_sex)
+  }
 
   #By race
-  results_race <- df %>%
-    group_by_at(c(geog, "year", "race")) %>%
-    summarise(!!var := weighted.mean(.data[[var]], .data[[weight_var]], na.rm = TRUE)) %>%
-    mutate(sex = "total")
+  if (race) {
+    results_race <- df %>%
+      group_by_at(c(geog, "year", "race")) %>%
+      summarise(!!var := weighted.mean(.data[[var]], .data[[weight_var]], na.rm = TRUE)) %>%
+      mutate(sex = "total")
 
-  results %<>% bind_rows(results_race)
+    results %<>% bind_rows(results_race)
+  }
 
   #By race and sex
-  results_race_sex <-  df %>%
-    group_by_at(c(geog, "year", "race", "sex")) %>%
-    summarise(!!var := weighted.mean(.data[[var]], .data[[weight_var]], na.rm = TRUE))
+  if (sex & race) {
+    results_race_sex <-  df %>%
+      group_by_at(c(geog, "year", "race", "sex")) %>%
+      summarise(!!var := weighted.mean(.data[[var]], .data[[weight_var]], na.rm = TRUE))
 
-  results %<>% bind_rows(results_race_sex)
+    results %<>% bind_rows(results_race_sex)
+  }
 
   results %<>%
     ungroup() %>%
@@ -196,9 +200,6 @@ svy_race_sex <- function(df, var, weight_var = "PERWT", geog = "FIPS"){
 }
 
 #' Survey microdata by race and sex on a categorical variable
-#'
-#' This function uses the survey package to break
-#'   down estimates by demographic group.
 #'
 #' @param survey A survey object containing FIPS, year, and optional race and sex columns.
 #' @param var A column name to perform svymean on.

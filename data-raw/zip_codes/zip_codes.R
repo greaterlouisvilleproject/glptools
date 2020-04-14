@@ -24,7 +24,7 @@ zip_crosswalk %<>%
     pct_in_county = res_ratio * 100)
 
 MSA_zip <- zip_crosswalk %>%
-  pull_peers_FIPS(county_filter = "MSA_counties") %>%
+  pull_peers(geog = "MSA", add_info = F) %>%
   left_join(MSA_FIPS, by = "FIPS") %>%
   group_by(zip, MSA) %>%
   summarise(
@@ -36,8 +36,13 @@ MSA_zip <- zip_crosswalk %>%
   select(MSA, zip, population_total, population_in_MSA)
 
 FIPS_zip <- zip_crosswalk %>%
-  pull_peers_FIPS() %>%
+  pull_peers(add_info = F) %>%
+  select(FIPS, zip, population_total, population_in_FIPS)
+
+FIPS_zip_full_MSA <- zip_crosswalk %>%
+  pull_peers(geog = "MSA", add_info = F) %>%
   select(FIPS, zip, population_total, population_in_FIPS)
 
 usethis::use_data(FIPS_zip, overwrite = TRUE)
 usethis::use_data(MSA_zip, overwrite = TRUE)
+usethis::use_data(FIPS_zip_full_MSA, overwrite = TRUE, internal = TRUE)

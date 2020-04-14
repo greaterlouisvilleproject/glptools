@@ -62,7 +62,7 @@ make_map <- function(maps, var,
     if (geog == "tract") {
       obj@data %<>%
         mutate(
-          line1 = paste0("Tract ", tract, " in the "),
+          line1 = paste0("Tract ", name, " in the "),
           line2 = paste0(neighborhood, " neighborhood"))
     } else if (geog %in% c("nh", "muw")) {
       obj@data %<>%
@@ -85,8 +85,8 @@ make_map <- function(maps, var,
 
                       "Dollars" = function(obj) {obj@data %<>% mutate(
                         line3 = paste0(hover_name, ": $", prettyNum(signif(var, 3),
-                                                              big.mark = ",",
-                                                              preserve.width = "none"))); obj},
+                                                                    big.mark = ",",
+                                                                    preserve.width = "none"))); obj},
 
                       "none" = function(obj) {obj@data %<>% mutate(
                         line3 = paste0(hover_name, ": ", round(var, 2))); obj},
@@ -157,7 +157,7 @@ make_map <- function(maps, var,
                        "Percent" = paste0(legend_title, " (%)"),
                        "Dollars" = paste0(legend_title, " ($)"),
                        "none"    = legend_title,
-                                   paste0(legend_title, " (", units, " )"))
+                       paste0(legend_title, " (", units, " )"))
 
   #create map
   geographies %<>% recode(tract = "Census Tracts", nh = "GLP Neighborhoods",
@@ -171,15 +171,15 @@ make_map <- function(maps, var,
     these_labels <- labels[[i]]
 
     m <- m %>% addPolygons(
-        data = this_map,
-        color = "#444444", weight = 1, smoothFactor = 0.5, opacity = 1.0, fillOpacity = 0.5,
-        fillColor = ~pal(var),
-        label = these_labels,
-        labelOptions = labelOptions(
-          style = list("font-weight" = "normal", "font-family" = "Arial", padding = "3px 8px"),
-          textsize = "15px",
-          direction = "auto"),
-        group = this_geog)
+      data = this_map,
+      color = "#444444", weight = 1, smoothFactor = 0.5, opacity = 1.0, fillOpacity = 0.5,
+      fillColor = ~pal(var),
+      label = these_labels,
+      labelOptions = labelOptions(
+        style = list("font-weight" = "normal", "font-family" = "Arial", padding = "3px 8px"),
+        textsize = "15px",
+        direction = "auto"),
+      group = this_geog)
 
     if (this_geog == "Census Tracts" & bold_nh) {
       m <- m %>% addPolygons(
