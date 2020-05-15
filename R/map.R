@@ -42,6 +42,7 @@
 #' @export
 make_map <- function(maps, var,
                      hover_name, legend_title,
+                     year = "", race = "total", sex = "total",
                      units = "Percent",
                      color_style = "sequential", palette = "", reverse_pal = F,
                      continuous = T, var_bins,
@@ -53,6 +54,41 @@ make_map <- function(maps, var,
 
   # Get type of maps
   geographies <- map_chr(maps, df_type)
+
+  # Filter data frames to relevant
+  filter_fxn <-  function(obj, year, sex, race) {
+    if ("year" %in% names(obj) & year == "") obj <- obj[obj$year == max(obj$year),]
+    if ("race" %in% names(obj)) obj <- obj[obj$race == race,]
+    if ("sex" %in% names(obj))  obj <- obj[obj$sex == sex,]
+
+    obj
+  }
+
+  maps %<>% map(~filter_fxn(., year, sex, race))
+
+  # Bind maps to map objects
+  bind_fxn <- function(obj, geog) {
+
+    if (geog == "tract") {
+      map_tract <- glptools::map_tract
+      map_tract@data %<>% left_join(obj, by = "tract")
+      return(map_tract)
+    } else if (geog == "nh") {
+      map_nh <- glptools::map_nh
+      map_nh@data %<>% left_join(obj, by = "neighborhood")
+      return(map_nh)
+    } else if (geog == "muw") {
+      map_muw <- glptools::map_muw
+      map_muw@data %<>% left_join(obj, by = "neighborhood")
+      return(map_muw)
+    } else if (geog == "zip") {
+      map_zip <- glptools::map_zip
+      map_zip@data %<>% left_join(obj, by = "zip")
+      return(map_zip)
+    }
+  }
+
+  maps %<>% map2(geographies, bind_fxn)
 
   # Rename variable to "var"
   maps %<>% map(function(obj) {obj@data$var <- obj@data[[var]]; obj})
@@ -117,10 +153,12 @@ make_map <- function(maps, var,
                         obj@data$line3) %>%
         lapply(htmltools::HTML)
 
-      labels[[which(obj@data$neighborhood == "Airport")]] <-
-        htmltools::HTML(sprintf("%s<br/>%s",
-                                "Louisville International Airport",
-                                "No residents"))
+      if ("neighborhood" %in% names(obj@data)) {
+        labels[[which(obj@data$neighborhood == "Airport")]] <-
+          htmltools::HTML(sprintf("%s<br/>%s",
+                                  "Louisville International Airport",
+                                  "No residents"))
+      }
     }
     labels
   }
@@ -181,9 +219,12 @@ make_map <- function(maps, var,
         direction = "auto"),
       group = this_geog)
 
-    if (this_geog == "Census Tracts" & bold_nh) {
+    if (this_geog == "Census Tracts" & bold_nh & "nh" %in% geographies) {
+
+      nh_map_id <- match("nh", geographies)
+
       m <- m %>% addPolygons(
-        data = map_nh,
+        data = maps[[nh_map_id]],
         color = "#444444", weight = 2, smoothFactor = 0.5, opacity = 1.0, fill = FALSE,
         group = "tract")
     }
