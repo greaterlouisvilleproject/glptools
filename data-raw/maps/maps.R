@@ -19,6 +19,9 @@ ma_tract %<>% rename(market_area = `Market Area`)
 watterson_tract <- read_csv(path %p% "crosswalks/tract_to_watterson.csv", col_types = "cn")
 attr(watterson_tract, 'spec') <- NULL
 
+west_lou_tract <- read_csv(path %p% "crosswalks/tract_to_west_louisville.csv", col_types = "cn")
+attr(watterson_tract, 'spec') <- NULL
+
 muw_tract <- read_csv(path %p% "MUW/Jefferson_Tract_Neighborhood.csv",
                       skip = 2, col_names = TRUE, col_types = "cc")
 attr(muw_tract, 'spec') <- NULL
@@ -95,7 +98,7 @@ map_tract_2000@data %<>%
 
 map_zip@data %<>%
   transmute(
-    zip = as.numeric(ZIPCODE))
+    zip = ZIPCODE)
 
 map_nh@data %<>%
   transmute(
@@ -110,9 +113,7 @@ map_county@data %<>%
     FIPS = FIPS,
     county = NAME)
 
-usethis::use_data(nh_tract, ma_tract, watterson_tract, muw_tract,
+usethis::use_data(nh_tract, ma_tract, watterson_tract, west_lou_tract, muw_tract,
+                  map_tract, map_nh, map_muw,
                   map_block_group, map_tract_2000, map_zip, map_market, map_county,
                   overwrite = TRUE)
-
-# Publicly visible versions are written by glpdata
-usethis::use_data(map_tract, map_nh, map_muw, overwrite = TRUE, internal = TRUE)

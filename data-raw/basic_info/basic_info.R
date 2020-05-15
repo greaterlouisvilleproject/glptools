@@ -42,7 +42,7 @@ usethis::use_data(MSA_df, overwrite = TRUE)
 
 state_df <- read_csv(path %p% "state_data.csv", col_types = "dccdd")
 
-state_df %<>% mutate(FIPS = stringr::str_pad(FIPS, 5, "left", "0"))
+state_df %<>% mutate(FIPS = stringr::str_pad(FIPS, 2, "left", "0"))
 
 attr(state_df, 'spec') <- NULL
 

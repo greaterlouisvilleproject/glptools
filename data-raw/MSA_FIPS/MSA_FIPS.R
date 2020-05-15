@@ -30,6 +30,10 @@ MSA_FIPS %<>%
   select(MSA, FIPS) %>%
   rbind(c("41180", "MERGED"))
 
+MSA_FIPS_core_county <- MSA_FIPS %>%
+  filter(FIPS %in% FIPS_df_one_stl$FIPS)
+
 usethis::use_data(MSA_FIPS_2012, overwrite = TRUE)
 usethis::use_data(MSA_FIPS, overwrite = TRUE)
+usethis::use_data(MSA_FIPS_core_county, overwrite = TRUE)
 
