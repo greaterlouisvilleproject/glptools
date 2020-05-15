@@ -6,7 +6,8 @@
 #' @param age_groups Return variables broken down by age group?
 #' @export
 build_census_var_df <- function(survey, table,
-                                age_groups = F) {
+                                age_groups = F,
+                                additional_filters = "") {
 
   # Get data frame of all variables
   var_table <- glpdata:::census_api_vars
@@ -21,18 +22,22 @@ build_census_var_df <- function(survey, table,
       table %in% tables,
       race %in% c("total", "black", "white", "hispanic"))
 
+  if (length(additional_filters) != 1 | additional_filters[1] != "") {
+    var_table %<>% filter(str_detect(label, additional_filters))
+  }
+
   # Remove data broken down by age group
   # Targets: Under 5, 85 years and over, 55 to 59 years, 65 and 66 years, 20 years
   if (!age_groups) {
     var_table %<>%
       filter(
         str_detect(label, "Under", negate = T),
-        str_detect(label, "\\d year", negate = T))
+        str_detect(label, "\\d years", negate = T))
   } else {
     var_table %<>%
       filter(
         (str_detect(label, "Under") |
-         str_detect(label, "\\d year")))
+           str_detect(label, "\\d years")))
   }
 
   # Keep only estimates and remove mrgin of error
@@ -41,9 +46,7 @@ build_census_var_df <- function(survey, table,
   var_table %<>% select(survey, year, variable, race, sex, label, table)
 
   # Check if there is one row per year, race, and sex
-  num_check <- unique_check(var_table)
-
-  if(length(num_check) != 1 | num_check != 1) warning("Seems fishy")
+  unique_check(var_table)
 
   var_table
 }
@@ -55,18 +58,9 @@ build_census_var_df <- function(survey, table,
 #' @param geog The geography to return variables for
 #' @param parallel Use future and furrr?
 #' @export
-get_census <- function(var_df, geog, parallel = F) {
+get_census <- function(var_df, geog, var_name, parallel = F, label = F, var = F) {
 
-  if (geog %in% c("FIPS", "MSA")) {
-
-    if (geog == "FIPS") {
-      geography <- FIPS_df_two_stl$FIPS
-    } else if (geog == "MSA") {
-      geography <- MSA_FIPS %>% filter(FIPS != "MERGED") %>% pull(FIPS)
-    }
-
-    var_df <- tidyr::crossing(geography, var_df)
-
+  if (geog %in% c("MSA", "FIPS")) {
     fxn <- function(survey, year, geography, data, ...) {
 
       output <- tryCatch({
@@ -78,28 +72,28 @@ get_census <- function(var_df, geog, parallel = F) {
           region = "county:" %p% str_sub(geography, 3, 5),
           key = Sys.getenv("CENSUS_API_KEY"))
 
-        api %<>% pivot_longer(cols = data$variable)
-
-        if (str_detect(survey, "acs5")) year = year - 2
-
-        output <- data.frame(
-          FIPS = geography,
-          year = year,
-          race = data$race,
-          sex = data$sex,
-          var = api$value,
-          stringsAsFactors = F)
+        api %<>%
+          pivot_longer(cols = data$variable) %>%
+          left_join(data, by = c("name" = "variable")) %>%
+          transmute(
+            FIPS = geography,
+            year = if_else(str_detect(survey, "acs5"), year - 2, year),
+            race,
+            sex,
+            value,
+            label,
+            variable = name)
       },
       error = function(cond){
-        if (str_detect(survey, "acs5")) year = year - 2
-
-        return(data.frame(
+        data.frame(
           FIPS = geography,
-          year = year,
+          year = if_else(str_detect(survey, "acs5"), year - 2, year),
           race = data$race,
-          sex = data$sex,
-          var = rep(NA_real_, nrow(data)),
-          stringsAsFactors = F))
+          sex  = data$sex,
+          value = rep(NA_real_, nrow(data)),
+          label = data$label,
+          variable = data$variable,
+          stringsAsFactors = F)
       })
 
       output
@@ -115,48 +109,51 @@ get_census <- function(var_df, geog, parallel = F) {
         region = "tract:*",
         key = Sys.getenv("CENSUS_API_KEY"))
 
-      api %<>% pivot_longer(cols = data$variable)
-
-      if (str_detect(survey, "acs5")) year = year - 2
-
-      output <- data.frame(
-        tract = paste0("21111", api$tract),
-        year = year,
-        race = data$race,
-        sex = data$sex,
-        var = api$value,
-        stringsAsFactors = F)
-
-      output
+      api %<>%
+        pivot_longer(cols = data$variable) %>%
+        left_join(data, by = c("name" = "variable")) %>%
+        transmute(
+          tract = paste0("21111", tract),
+          year  = if_else(str_detect(survey, "acs5"), year - 2, year),
+          race,
+          sex,
+          value,
+          label,
+          variable = name)
     }
   } else if (geog == "zip") {
-      fxn <- function(survey, year, data, ...) {
+    fxn <- function(survey, year, data, ...) {
 
-        api <- censusapi::getCensus(
-          name = survey,
-          vintage = year,
-          vars = data$variable,
-          region = "zip code tabulation area:*",
-          key = Sys.getenv("CENSUS_API_KEY"))
+      api <- censusapi::getCensus(
+        name = survey,
+        vintage = year,
+        vars = data$variable,
+        region = "zip code tabulation area:*",
+        key = Sys.getenv("CENSUS_API_KEY"))
 
-        api %<>% pivot_longer(cols = data$variable)
-
-        if (str_detect(survey, "acs5")) year = year - 2
-
-        output <- data.frame(
-          zip = api$zip_code_tabulation_area,
-          year = year,
-          race = data$race,
-          sex = data$sex,
-          var = api$value,
-          stringsAsFactors = F)
-
-        output
-      }
+      api %<>%
+        pivot_longer(cols = data$variable) %>%
+        left_join(data, by = c("name" = "variable")) %>%
+        transmute(
+          zip = zip_code_tabulation_area,
+          year = if_else(str_detect(survey, "acs5"), year - 2, year),
+          race,
+          sex,
+          value,
+          label,
+          variable = name)
     }
+  }
 
-  if (geog %in% c("FIPS", "MSA")) {grouping_vars <- c("survey", "geography", "year")}
-  else                            {grouping_vars <- c("survey", "year")}
+  if (geog %in% c("MSA", "FIPS")) {
+    if (geog == "FIPS") geography <- FIPS_df_two_stl$FIPS
+    if (geog == "MSA")  geography <- MSA_FIPS %>% filter(FIPS != "MERGED") %>% pull(FIPS)
+
+    var_df <- tidyr::crossing(geography, var_df)
+    grouping_vars <- c("survey", "geography", "year")
+  } else {
+    grouping_vars <- c("survey", "year")
+  }
 
   output <- var_df %>%
     group_by_at(grouping_vars) %>%
@@ -168,6 +165,8 @@ get_census <- function(var_df, geog, parallel = F) {
   } else {
     output %<>% purrr::pmap_dfr(fxn)
   }
+
+  if (!missing(var_name)) output %<>% rename(!!var_name := value)
 
   output
 }

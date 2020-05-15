@@ -4,7 +4,7 @@
 \alias{get_census}
 \title{Get data from the Census API}
 \usage{
-get_census(var_df, geog, parallel = F)
+get_census(var_df, geog, var_name, parallel = F, label = F, var = F)
 }
 \arguments{
 \item{var_df}{A data frame of variables to send to the census API
