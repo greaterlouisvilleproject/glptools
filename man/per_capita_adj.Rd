@@ -4,7 +4,14 @@
 \alias{per_capita_adj}
 \title{Create population-adjusted variables}
 \usage{
-per_capita_adj(df, ..., geog, keep_vars = T, keep_pop = F)
+per_capita_adj(
+  df,
+  ...,
+  pop_var = "population",
+  geog,
+  keep_vars = T,
+  keep_pop = F
+)
 }
 \arguments{
 \item{df}{A data frame}

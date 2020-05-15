@@ -2,13 +2,16 @@
 % Please edit documentation in R/map.R
 \name{make_map}
 \alias{make_map}
-\title{GLP MAp}
+\title{GLP Map}
 \usage{
 make_map(
   maps,
   var,
   hover_name,
   legend_title,
+  year = "",
+  race = "total",
+  sex = "total",
   units = "Percent",
   color_style = "sequential",
   palette = "",

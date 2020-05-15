@@ -1,4 +1,4 @@
-#' GLP MAp
+#' GLP Map
 #'
 #' Creates a map of Louisville
 #'
@@ -50,7 +50,7 @@ make_map <- function(maps, var,
                      bold_nh = T,
                      save_file = "", save_image = ""){
 
-  if(typeof(maps) != "list") {maps <- list(maps)}
+  if (is.data.frame(maps)) {maps <- list(maps)}
 
   # Get type of maps
   geographies <- map_chr(maps, df_type)
@@ -191,6 +191,9 @@ make_map <- function(maps, var,
   }
 
   #Create map title using legend_title parameter
+
+  if (missing(legend_title)) legend_title <- hover_name
+
   title_text <- switch(units,
                        "Percent" = paste0(legend_title, " (%)"),
                        "Dollars" = paste0(legend_title, " ($)"),
