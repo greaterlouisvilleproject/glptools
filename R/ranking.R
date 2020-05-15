@@ -64,7 +64,7 @@ ranking <- function(df, var, plot_title = "",
 
     if (length(year) > 1) {
       df %<>%
-        group_by(FIPS) %>%
+        group_by_at(df %cols_in% c("MSA", "FIPS")) %>%
         summarise(var = mean(var, na.rm = TRUE)) %>%
         ungroup()
     }
@@ -223,7 +223,7 @@ ranking_data <- function(df, variables, years = "", sex = "total", race = "total
     var_name <- v %p% "_rank"
 
     temp <- df %>%
-      select(FIPS, year, !!v) %>%
+      select_at(c(df_type(df), "year", tidyselect::all_of(v))) %>%
       group_by(year) %>%
       arrange_at(vars(v)) %>%
       {if (descending) arrange_at(., vars(v), ~ desc(.)) else arrange_at(., vars(v))} %>%
