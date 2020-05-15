@@ -7,7 +7,8 @@
 process_map(
   map_df,
   ...,
-  pop = "total",
+  pop,
+  pop_adjust = F,
   return_name = NULL,
   method = "percent",
   maps = c("tract", "nh", "muw")

@@ -138,7 +138,7 @@ stl_merge <- function(df_original, ..., weight_var = "", method = "mean", other_
     weight_var <- "population"
 
     if("population" %not_in% names(df_original)){
-      df_original %<>% left_join(population_df, by = c("FIPS", "year"))
+      df_original %<>% add_population()
     }
   }
 
@@ -217,6 +217,38 @@ reshape_sex <- function(df) {
   df
 }
 
+#' Aggregates demographic data
+#'
+#' @param df A data frame
+#' @param ... Variables to total
+#' @export
+total_demographics <- function(df, ...) {
+
+  variables <- dplyr:::tbl_at_vars(df, vars(...))
+  grouping_vars <- df %cols_in% c("MSA", "FIPS", "tract", "neighborhood",
+                                  "year", "race", "sex")
+
+  if ("total" %not_in% df$race) {
+    df_tot_race <- df %>%
+      group_by_at(setdiff(grouping_vars, "race")) %>%
+      summarise_at(variables, ~ sum(.)) %>%
+      ungroup() %>%
+      mutate(race = "total")
+
+    df %<>% bind_rows(df_tot_race)
+  }
+  if ("total" %not_in% df$sex) {
+    df_tot_sex <- df %>%
+      group_by_at(setdiff(grouping_vars, "sex")) %>%
+      summarise_at(variables, ~ sum(.)) %>%
+      ungroup() %>%
+      mutate(sex = "total")
+
+    df %<>% bind_rows(df_tot_sex)
+  }
+
+  df
+}
 
 #' Organizes common GLP data by columns and rows and replaces FIPS 1073 with 01073.
 #'
@@ -270,11 +302,11 @@ df_type <- function(df){
     all(cols %in% c("year", "city", "variable", "category", "value")) ~ "graph_max_min",
     "block" %in% cols                                           ~ "block",
     "tract" %in% cols                                           ~ "tract",
-    "neighborhood" %in% cols & "Phoenix Hill-Smoketown-Shelby Park" %in% df[["neighborhood"]] ~ "nh",
-    "neighborhood" %in% cols                                    ~ "muw",
     "zip" %in% cols                                             ~ "zip",
     "market" %in% cols                                          ~ "market",
     "county" %in% cols                                          ~ "county",
+    "neighborhood" %in% cols & "Phoenix Hill-Smoketown-Shelby Park" %in% df[["neighborhood"]] ~ "nh",
+    "neighborhood" %in% cols                                    ~ "muw",
     TRUE ~ NA_character_)
 }
 
@@ -458,7 +490,7 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
   grouping_vars <- map_df %cols_in% c("year", "race", "sex")
 
   if (missing(pop)) {
-    map_df %<>% left_join(glpdata:::population_tract, by = c("tract", "year"))
+    map_df %<>% add_population()
     pop <- "population"
   } else {
     pop <- as.character(substitute(pop))
@@ -539,19 +571,58 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
 #' @param keep_pop Keep population in data frame
 #'
 #' @export
-per_capita_adj <- function(df, ..., geog, keep_vars = T, keep_pop = F) {
+per_capita_adj <- function(df, ..., pop_var = "population", geog, keep_vars = T, keep_pop = F) {
 
   # Create list of variables from ... argument
   variables <- dplyr:::tbl_at_vars(df, vars(...))
+  pop_var <- as.character(substitute(pop_var))
+
+  join_vars <- df %cols_in% c("MSA", "FIPS", "tract", "neighborhood",
+                              "year", "race", "sex")
 
   # Determine geography and other variables to join by
+  if (pop_var == "population" & "population" %not_in% names(df)) {
+    df %<>% add_population()
+  }
+
+  # Join df to population df and divide by population.
+  # If keep_vars == TRUE, retain original variables.
+  if (keep_vars) {
+    new_df <- df %>%
+      mutate_at(variables, ~ . / .data[[pop_var]]) %>%
+      rename_at(variables, ~ paste0(., "_pp")) %>%
+      select_at(c(join_vars, paste0(variables, "_pp")))
+
+    df %<>% bind_df(new_df)
+  } else {
+    df %<>%
+      mutate_at(variables, ~ . / .data[[pop_var]])
+  }
+
+  # If keep_pop == FALSE, remove population variable
+  if (!keep_pop) df %<>% select(-population)
+
+  df
+}
+
+
+#' Add a population column to a GLP-format dataframe
+#'
+#' @param df A data frame
+#' @param geog Title of the geography column
+#'
+#' @export
+add_population <- function(df, geog) {
+  if ("population" %in% names(df)) {
+    warning("Variable 'population' already exists in data frame")
+    return(df)
+  }
+
   if (missing(geog)) geog <- df %cols_in% c("MSA", "FIPS", "tract", "neighborhood", "zip")
 
   if(length(geog) > 1) {
     stop("Too many geography columns. Provide geog argument.")
   }
-
-  join_vars <- c(geog, df %cols_in% c("year", "sex", "race"))
 
   # Create a clean, minimal population data frame
   tryCatch({
@@ -563,33 +634,18 @@ per_capita_adj <- function(df, ..., geog, keep_vars = T, keep_pop = F) {
                      "muw"   = glpdata:::population_muw)
   },
   error = function(e){
-    stop("Geography not MSA, FIPS, or tract")
+    stop("Geography not MSA, FIPS, tract, nh, or muw.")
   })
 
+  join_vars <- c(geog, df %cols_in% c("year", "sex", "race"))
+
   if("year" %not_in% join_vars) pop_df %<>% filter(year == 2018)
-  pop_df %<>% filter(sex == "total")
-  pop_df %<>% filter(race == "total")
+  if("race" %not_in% join_vars) pop_df %<>% filter(sex == "total")
+  if("sex" %not_in% join_vars)  pop_df %<>% filter(race == "total")
 
   pop_df %<>% select_at(c(join_vars, "population"))
 
-  # Join df to population df and divide by population.
-  # If keep_vars == TRUE, retain original variables.
-  if (keep_vars) {
-    new_df <- df %>%
-      left_join(pop_df, by = join_vars) %>%
-      mutate_at(variables, ~ . / population) %>%
-      rename_at(variables, ~ paste0(., "_pp")) %>%
-      select_at(c(join_vars, paste0(variables, "_pp"), "population"))
-
-    df %<>% bind_df(new_df)
-  } else {
-    df %<>%
-      left_join(pop_df, by = join_vars) %>%
-      mutate_at(variables, ~ . / population)
-  }
-
-  # If keep_pop == FALSE, remove population variable
-  if (!keep_pop) df %<>% select(-population)
+  df %<>% left_join(pop_df, by = join_vars)
 
   df
 }
