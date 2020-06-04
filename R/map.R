@@ -53,7 +53,7 @@ make_map <- function(maps, var,
   if (is.data.frame(maps)) {maps <- list(maps)}
 
   # Get type of maps
-  geographies <- map_chr(maps, df_type)
+  geographies <- purrr::map_chr(maps, df_type)
 
   # Filter data frames to relevant
   filter_fxn <-  function(obj, year, sex, race) {
@@ -64,7 +64,7 @@ make_map <- function(maps, var,
     obj
   }
 
-  maps %<>% map(~filter_fxn(., year, sex, race))
+  maps %<>% purrr::map(~filter_fxn(., year, sex, race))
 
   # Bind maps to map objects
   bind_fxn <- function(obj, geog) {
@@ -88,10 +88,10 @@ make_map <- function(maps, var,
     }
   }
 
-  maps %<>% map2(geographies, bind_fxn)
+  maps %<>% purrr::map2(geographies, bind_fxn)
 
   # Rename variable to "var"
-  maps %<>% map(function(obj) {obj@data$var <- obj@data[[var]]; obj})
+  maps %<>% purrr::map(function(obj) {obj@data$var <- obj@data[[var]]; obj})
 
   #concatenate second or third line of text for tract labels using units parameter
   line_1_2_fxn <- function(obj, geog) {
@@ -113,7 +113,7 @@ make_map <- function(maps, var,
     obj
   }
 
-  maps %<>% map2(geographies, line_1_2_fxn)
+  maps %<>% purrr::map2(geographies, line_1_2_fxn)
 
   line3_fxn <- switch(units,
                       "Percent" = function(obj) {obj@data %<>% mutate(
@@ -130,7 +130,7 @@ make_map <- function(maps, var,
                       function(obj) {obj@data %<>% mutate(
                         line3 = paste(hover_name, ": ", round(var, 2), " ", units)); obj})
 
-  maps %<>% map(line3_fxn)
+  maps %<>% purrr::map(line3_fxn)
 
   #combine lines of text into full formatted label
   label_fxn <- function(obj) {
@@ -163,7 +163,7 @@ make_map <- function(maps, var,
     labels
   }
 
-  labels <- map(maps, label_fxn)
+  labels <- purrr::map(maps, label_fxn)
 
   #Define palette using color_style parameter
   if (palette != "") {
@@ -176,8 +176,13 @@ make_map <- function(maps, var,
 
   if (reverse_pal) pal <- rev(pal)
 
-  var_range <- map(maps, function(obj) range(obj@data$var, na.rm = T)) %>%
+  var_range <- purrr::map(maps, function(obj) range(obj@data$var, na.rm = T)) %>%
     range()
+
+  na_present <- purrr::map(maps, function(obj) any(is.na(obj@data$var))) %>%
+    any()
+
+  if(na_present) var_range = c(var_range, NA_real_)
 
   if (continuous) {
     pal <- leaflet::colorNumeric(
