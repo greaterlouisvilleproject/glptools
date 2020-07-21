@@ -229,32 +229,47 @@ reshape_sex <- function(df) {
 #' @param df A data frame
 #' @param ... Variables to total
 #' @export
-total_demographics <- function(df, ...) {
+total_demographics <- function(df, ..., override_race = F, override_sex = F, other_grouping_vars = "") {
 
   variables <- dplyr:::tbl_at_vars(df, vars(...))
   grouping_vars <- df %cols_in% c("MSA", "FIPS", "tract", "neighborhood",
-                                  "year", "race", "sex")
+                                  "year", "race", "sex", other_grouping_vars)
 
-  if ("total" %not_in% df$race) {
-    df_tot_race <- df %>%
-      group_by_at(setdiff(grouping_vars, "race")) %>%
-      summarise_at(variables, ~ sum(.)) %>%
-      ungroup() %>%
-      mutate(race = "total")
+  # Summarise data frame by race and sex.
+  df_tot_sex <- df %>%
+    filter(sex != "total") %>%
+    group_by(across(setdiff(grouping_vars, "sex"))) %>%
+    summarise(across(variables, ~ sum(.)), .groups = "drop") %>%
+    mutate(sex = "total")
 
-    df %<>% bind_rows(df_tot_race)
+  # Go by variable in case NA values differ
+  # Natural join will merge matching columns with a preference
+  for (v in variables) {
+    # Keep original data frame values where v is not, NA, except for
+    #df_not_na <- df %>% filter(across(all_of(v), ~ !(is.na(.) & (race == "total" | sex == "total"))))
+    df_not_na <- df %>%
+      filter(across(all_of(v), ~ !(is.na(.)))) %>%
+      select(all_of(c(grouping_vars, v)))
+
+    # Filter total data frames to where total data frames have values but
+    # the original data frame does not
+    this_df_tot_sex  <- df_tot_sex  %>%
+      filter(across(all_of(v), ~ !(is.na(.)))) %>%
+      anti_join(df_not_na, by = grouping_vars) %>%
+      select(all_of(c(grouping_vars, v)))
+
+    #final_df_tot_sex  <- assign_col_join(final_df_tot_sex,  this_df_tot_sex,  by = grouping_vars)
+    #final_df_tot_race <- assign_col_join(final_df_tot_race, this_df_tot_race, by = grouping_vars)
+
+    df_not_na %<>%
+      bind_rows(this_df_tot_sex)
+
+    output <- assign_col_join(output, df_not_na, by = grouping_vars)
   }
-  if ("total" %not_in% df$sex) {
-    df_tot_sex <- df %>%
-      group_by_at(setdiff(grouping_vars, "sex")) %>%
-      summarise_at(variables, ~ sum(.)) %>%
-      ungroup() %>%
-      mutate(sex = "total")
 
-    df %<>% bind_rows(df_tot_sex)
-  }
+  output %<>% complete_vector_arg(grouping_vars)
 
-  df
+  output
 }
 
 #' Organizes common GLP data by columns and rows and replaces FIPS 1073 with 01073.
