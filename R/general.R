@@ -321,6 +321,7 @@ df_type <- function(df){
   cols <- names(df)
 
   case_when(
+    "PUMA" %in% cols       ~ "PUMA",
     "FIPS" %in% cols       ~ "FIPS",
     "MSA"  %in% cols       ~ "MSA",
     "frl_status" %in% cols ~ "ky",

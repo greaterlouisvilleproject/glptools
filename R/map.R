@@ -85,6 +85,10 @@ make_map <- function(maps, var,
       map_zip <- glptools::map_zip
       map_zip@data %<>% left_join(obj, by = "zip")
       return(map_zip)
+    } else if (geog == "PUMA") {
+      map_PUMA <- glptools::map_PUMA
+      map_PUMA@data %<>% left_join(obj, by = "PUMA")
+      return(map_PUMA)
     }
   }
 
@@ -108,6 +112,10 @@ make_map <- function(maps, var,
       obj@data %<>%
         mutate(
           line1 = paste0("Zip code ", zip))
+    } else if (geog == "PUMA") {
+      obj@data %<>%
+        mutate(
+          line1 = paste0("PUMA ", PUMA))
     }
 
     obj
@@ -177,9 +185,11 @@ make_map <- function(maps, var,
   if (reverse_pal) pal <- rev(pal)
 
   var_range <- purrr::map(maps, function(obj) range(obj@data$var, na.rm = T)) %>%
+    unlist() %>%
     range()
 
   na_present <- purrr::map(maps, function(obj) any(is.na(obj@data$var))) %>%
+    unlist() %>%
     any()
 
   if(na_present) var_range = c(var_range, NA_real_)
@@ -229,7 +239,7 @@ make_map <- function(maps, var,
 
     if (this_geog == "Census Tracts" & bold_nh & "nh" %in% geographies) {
 
-      nh_map_id <- match("nh", geographies)
+      nh_map_id <- match("GLP Neighborhoods", geographies)
 
       m <- m %>% addPolygons(
         data = maps[[nh_map_id]],
