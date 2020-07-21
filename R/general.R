@@ -510,10 +510,10 @@ update_sysdata <- function(...) {
 #'
 #' @export
 process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
-                        method = "percent", maps = c("tract", "nh", "muw")) {
+                        method = "percent", maps = c("tract", "nh", "muw"), keep_pop = FALSE) {
 
   variables <- dplyr:::tbl_at_vars(map_df, vars(...))
-  grouping_vars <- map_df %cols_in% c("year", "race", "sex")
+  grouping_vars <- map_df %cols_in% c("year","sex", "race")
 
   if (missing(pop)) {
     map_df %<>% add_population()
@@ -537,25 +537,29 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
   #   and summarise values
   if ("tract" %in% maps) {
     df_tract <- map_df %>%
-      group_by_at(c("tract", grouping_vars)) %>%
-      mutate_at(variables, ~ fxn(., .data[[pop]])) %>%
+      group_by(across(c("tract", grouping_vars))) %>%
+      mutate(across(variables, ~ fxn(., .data[[pop]]))) %>%
       select(all_of(c("tract", grouping_vars, variables))) %>%
       ungroup()
+  }
+
+  if (method %in% c("percent", "mean", "median")) {
+    map_df %>%filter(pop != 0)
   }
 
   if ("nh" %in% maps) {
     df_nh <- map_df %>%
       left_join(nh_tract, by = "tract") %>%
-      group_by_at(c("neighborhood", grouping_vars)) %>%
-      summarise_at(variables, ~ fxn(., .data[[pop]])) %>%
+      group_by(across(c("neighborhood", grouping_vars))) %>%
+      summarise(across(variables, ~ fxn(., .data[[pop]]))) %>%
       ungroup()
   }
 
   if ("muw" %in% maps) {
     df_muw <- map_df %>%
       left_join(muw_tract, by = "tract") %>%
-      group_by_at(c("neighborhood", grouping_vars)) %>%
-      summarise_at(variables, ~ fxn(., .data[[pop]])) %>%
+      group_by(across(c("neighborhood", grouping_vars))) %>%
+      summarise(across(variables, ~ fxn(., .data[[pop]]))) %>%
       ungroup()
   }
 
@@ -571,7 +575,7 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
   } else if (method == "median") {
     if ("tract" %in% maps) df_tract %<>% complete(nesting(year), tract = "21111980100")
     if ("nh" %in% maps)    df_nh    %<>% complete(nesting(year), neighborhood = "Airport")
-    if ("muw" %in% maps)  df_muw    %<>% complete(nesting(year), neighborhood = "Airport")
+    if ("muw" %in% maps)   df_muw   %<>% complete(nesting(year), neighborhood = "Airport")
   }
 
   if (pop_adjust) {
@@ -583,7 +587,8 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
   # Create list to return based on map parameter
   output <-
     purrr::map(maps, ~ paste0("df_", .x) %>% assign(.,get(.))) %>%
-    setNames(paste0(return_name, "_", maps))
+    setNames(paste0(return_name, "_", maps)) %>%
+    purrr::map(organize)
 
   output
 }
