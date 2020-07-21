@@ -5,12 +5,11 @@
 #' @param table The table to return variables from.
 #' @param age_groups Return variables broken down by age group?
 #' @export
-build_census_var_df <- function(survey, table,
-                                age_groups = F,
+build_census_var_df <- function(survey, table, age_groups,
                                 additional_filters = "") {
 
   # Get data frame of all variables
-  var_table <- glpdata:::census_api_vars
+  var_table <- glptools:::census_api_vars
 
   # Create vector of tables, including demographic breakdowns
   tables <- table %p% c("", LETTERS[1:9])
@@ -27,23 +26,16 @@ build_census_var_df <- function(survey, table,
   }
 
   # Remove data broken down by age group
-  # Targets: Under 5, 85 years and over, 55 to 59 years, 65 and 66 years, 20 years
-  if (!age_groups) {
-    var_table %<>%
-      filter(
-        str_detect(label, "Under", negate = T),
-        str_detect(label, "\\d years", negate = T))
-  } else {
-    var_table %<>%
-      filter(
-        (str_detect(label, "Under") |
-           str_detect(label, "\\d years")))
+  # Targets: 1 year, Under 5, 85 years and over, 55 to 59 years, 65 and 66 years, 20 years
+  if (!missing(age_groups)) {
+    var_table %<>% filter(age_group %in% age_groups)
   }
+
 
   # Keep only estimates and remove mrgin of error
   if (str_detect(survey, "acs")) var_table %<>% filter(str_sub(variable, -1) == "E")
 
-  var_table %<>% select(survey, year, variable, race, sex, label, table)
+  var_table %<>% select(survey, year, variable, race, sex, age_group, age_low, age_high, label, table)
 
   # Check if there is one row per year, race, and sex
   unique_check(var_table)
@@ -80,24 +72,57 @@ get_census <- function(var_df, geog, var_name, parallel = F, label = F, var = F)
             year = if_else(str_detect(survey, "acs5"), year - 2, year),
             race,
             sex,
+            age_group,
+            age_low,
+            age_high,
             value,
             label,
             variable = name)
-      },
-      error = function(cond){
-        data.frame(
-          FIPS = geography,
-          year = if_else(str_detect(survey, "acs5"), year - 2, year),
-          race = data$race,
-          sex  = data$sex,
-          value = rep(NA_real_, nrow(data)),
-          label = data$label,
-          variable = data$variable,
-          stringsAsFactors = F)
-      })
+        },
+        error = function(cond){
+          data.frame(
+            FIPS = geography,
+            year = if_else(str_detect(survey, "acs5"), year - 2, year),
+            race = data$race,
+            sex  = data$sex,
+            age_group = data$age_group,
+            age_low = data$age_low,
+            age_high = data$age_high,
+            value = rep(NA_real_, nrow(data)),
+            label = data$label,
+            variable = data$variable,
+            stringsAsFactors = F)
+        })
 
-      output
-    }
+        output
+      }
+    } else if (geog == "tract_all") {
+      fxn <- function(survey, year, geography, data, ...) {
+
+        api <- censusapi::getCensus(
+          name = survey,
+          vintage = year,
+          vars = data$variable,
+          regionin = paste0("state:", str_sub(geography, 1, 2),
+                            "&county:", str_sub(geography, 3, 5)),
+          region = "tract:*",
+          key = Sys.getenv("CENSUS_API_KEY"))
+
+        api %<>%
+          pivot_longer(cols = data$variable) %>%
+          left_join(data, by = c("name" = "variable")) %>%
+          transmute(
+            tract = paste0(geography, tract),
+            year  = if_else(str_detect(survey, "acs5"), year - 2, year),
+            race,
+            sex,
+            age_group,
+            age_low,
+            age_high,
+            value,
+            label,
+            variable = name)
+      }
   } else if (geog == "tract") {
     fxn <- function(survey, year, data, ...) {
 
@@ -117,6 +142,9 @@ get_census <- function(var_df, geog, var_name, parallel = F, label = F, var = F)
           year  = if_else(str_detect(survey, "acs5"), year - 2, year),
           race,
           sex,
+          age_group,
+          age_low,
+          age_high,
           value,
           label,
           variable = name)
@@ -139,19 +167,24 @@ get_census <- function(var_df, geog, var_name, parallel = F, label = F, var = F)
           year = if_else(str_detect(survey, "acs5"), year - 2, year),
           race,
           sex,
+          age_group,
+          age_low,
+          age_high,
           value,
           label,
           variable = name)
     }
   }
 
-  if (geog %in% c("MSA", "FIPS")) {
-    if (geog == "FIPS") geography <- FIPS_df_two_stl$FIPS
+  if (geog %in% c("MSA", "FIPS", "tract_all")) {
+    if (geog %in% c("FIPS", "tract_all")) geography <- FIPS_df_two_stl$FIPS
     if (geog == "MSA")  geography <- MSA_FIPS %>% filter(FIPS != "MERGED") %>% pull(FIPS)
 
     var_df <- tidyr::crossing(geography, var_df)
     grouping_vars <- c("survey", "geography", "year")
   } else {
+    if (geog == "zip") var_df %<>% filter(year == 2000 | year >= 2011) # ZCTA data not available for 2009 or 2010
+
     grouping_vars <- c("survey", "year")
   }
 

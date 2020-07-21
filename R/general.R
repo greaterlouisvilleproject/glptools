@@ -650,6 +650,123 @@ add_population <- function(df, geog) {
   df
 }
 
+#' Algorithm to create GLP-style data frame from census downloads
+#'
+#' @param df A data frame from the census
+#' @param var_names Variable names
+#' @param cat_var Categorical vari
+#' @param output_name Output var name
+#'
+#' @export
+process_census <- function(df, var_names = "count", cat_var, output_name, age_groups = "all",
+                           output_percent = TRUE, output_population = FALSE) {
+
+  # Get geography and grouping variables
+  geog <- df_type(df)
+  grouping_vars <- df %cols_in% c(df_type(df), "year", "race", "sex", cat_var)
+
+  # If more than one age group, create column names using age groups. Drop "_all" from group names.
+  if (length(age_groups) > 1) {
+    output_vars <- paste0(output_name, "_", age_groups)
+  } else {
+    output_vars <- output_name
+  }
+  output_vars <- str_replace(output_vars, "_all", "")
+
+  # Summarize data within cat_var categories by grouping vars, including age group
+  for (a in age_groups) {
+
+    temp <- df
+
+    # Subset data to age group
+    if (a == "all") {
+      temp %<>% filter(age_group == "all")
+
+    } else {
+      ages <- str_split(a, "_", n = 2, simplify = TRUE) %>% as.numeric()
+
+      ages[1] <- replace_na(ages[1], 0)
+      ages[2] <- replace_na(ages[2], Inf)
+
+      temp %<>%
+        filter(
+          age_low  >= ages[1],
+          age_high <= ages[2])
+    }
+
+    # Filter out NA cat_var data, summarise data, and add age group to data frame
+    temp %<>%
+      filter(across(!!cat_var, ~ !is.na(.))) %>%
+      group_by(across(grouping_vars)) %>%
+      summarise(across(var_names, ~ sum(.))) %>%
+      ungroup() %>%
+      mutate(age_group = a)
+
+    output <- assign_row_join(output, temp)
+  }
+
+  df <- output
+
+  # If data is county-level, merge St. Louis
+  if (geog == "FIPS") {
+    df %<>% stl_merge(var_names, method = "sum", other_grouping_vars = c(cat_var, "age_group"))
+  }
+
+  # Spread age groups across columns
+  df %<>%
+    pivot_wider(id_cols = grouping_vars,
+                names_from = age_group,
+                values_from = var_names,
+                names_glue = paste0(output_name, "_{age_group}"))
+
+  # If more than one age group, create column names using age groups. Drop "_all" from group names.
+  if (length(age_groups) == 1) {
+    df %<>% rename_at(vars(paste0(output_name, "_", age_groups)), ~ output_name)
+  }
+  df %<>%
+    rename_if(str_detect(names(df), "_all"), ~str_remove(., "_all")) %>%
+    select(all_of(c(grouping_vars, output_vars)))
+
+  # Create totals
+  df %<>%
+    total_demographics(output_vars, other_grouping_vars = cat_var) %>%
+    group_by(across(c(geog, "year", "race", "sex")))
+
+  # Conserve population data is it will be resummarised for other map geographies
+  if (geog == "tract" | output_population) {
+    pop_df <- df %>%
+      summarise(across(output_vars, ~ sum(.))) %>%
+      ungroup() %>%
+      rename_at(vars(output_vars), ~ paste0(., "_pop"))
+  }
+
+  # Calculate percentages
+  if (output_percent) df %<>% mutate(across(output_vars, ~ . / sum(.) * 100))
+
+  df %<>% ungroup()
+
+  # filter and remove cat_var if logical
+  if (typeof(df[[cat_var]]) == "logical") {
+    df %<>%
+      filter(across(cat_var, ~.)) %>%
+      select(all_of(c(geog, "year", "race", "sex", output_vars)))
+  } else {
+    df %<>%
+      select(all_of(c(geog, "year", "race", "sex", cat_var, output_vars)))
+  }
+
+  if (geog == "tract" | output_population) df %<>% bind_df(pop_df)
+
+  df %<>%
+    rename_if(str_detect(names(df), "_0_"),
+              ~ str_replace(., "_0_\\d*",
+                            paste0("_under_", as.numeric(str_extract(., "(?<=_0_)\\d*")) + 1)))
+
+  df %<>% organize()
+
+  df
+}
+
 
 #' Add or replace a file in sysdata.rda
 #'   Any files in the current environment are added to the sysdata.rda file
