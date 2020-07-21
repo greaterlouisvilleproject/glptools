@@ -342,9 +342,9 @@ df_type <- function(df){
 #'
 #' @param df A data frame.
 #' @export
-unique_check <- function(df) {
+unique_check <- function(df, other_grouping_vars = "") {
   grouping_vars <- c("MSA", "FIPS", "tract", "neighborhood",
-                     "year", "sex", "race")
+                     "year", "sex", "race", other_grouping_vars)
 
   grouping_vars <- df %cols_in% grouping_vars
 
