@@ -114,6 +114,13 @@ pull_peers <- function(df, add_info = T, subset_to_peers = T, geog = "", additio
         df %<>% filter(FIPS %in% c(MSA_FIPS$FIPS, additional_geogs))
       }
     }
+    if (geog == "MSA_2012") {
+      if ("MSA" %in% names(df)) {
+        df %<>% filter(MSA %in% c(MSA_FIPS_2012$MSA, additional_geogs))
+      } else {
+        df %<>% filter(FIPS %in% c(MSA_FIPS_2012$FIPS, additional_geogs))
+      }
+    }
   }
   df %<>% organize()
 
