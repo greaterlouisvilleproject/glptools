@@ -602,14 +602,15 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
 #' @param keep_pop Keep population in data frame
 #'
 #' @export
-per_capita_adj <- function(df, ..., pop_var = "population", geog, keep_vars = T, keep_pop = F) {
+per_capita_adj <- function(df, ..., pop_var = "population", geog,
+                           keep_vars = T, keep_pop = F, other_grouping_vars = "") {
 
   # Create list of variables from ... argument
   variables <- dplyr:::tbl_at_vars(df, vars(...))
   pop_var <- as.character(substitute(pop_var))
 
   join_vars <- df %cols_in% c("MSA", "FIPS", "tract", "neighborhood",
-                              "year", "race", "sex")
+                              "year", "race", "sex", other_grouping_vars)
 
   # Determine geography and other variables to join by
   if (pop_var == "population" & "population" %not_in% names(df)) {
@@ -624,7 +625,7 @@ per_capita_adj <- function(df, ..., pop_var = "population", geog, keep_vars = T,
       rename_at(variables, ~ paste0(., "_pp")) %>%
       select_at(c(join_vars, paste0(variables, "_pp")))
 
-    df %<>% bind_df(new_df)
+    df %<>% bind_df(new_df, by = join_vars)
   } else {
     df %<>%
       mutate_at(variables, ~ . / .data[[pop_var]])
