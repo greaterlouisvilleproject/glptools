@@ -852,4 +852,41 @@ glp_load_packages <- function(graphs = F) {
   }
 }
 
+#' Load GLP-related packages
+#'
+#' @param graphs Will graphs or maps be made?
+#' @export
+complete_vector_arg <- function(df, vector) {
 
+  # Create string to evaluate as function
+  function_call <- paste(c("complete(df", vector), collapse = ", ")
+  function_call <- paste0(function_call, ")")
+
+  # If tracts are involved, split data frame between 2007 and 2008 and create
+  # separate data frames for 2000 and 2010 census tracts
+
+  if ("tract" %in% vector) {
+    df_00 <- df %>% filter(year <= 2007)
+    df_10 <- df %>% filter(year >= 2008)
+
+    tracts_00 <- unique(glptools::tract00_tract_10$tract00)
+    tracts_10 <- unique(glptools::tract00_tract_10$tract10)
+
+    function_call_00 <- function_call %>%
+      str_replace("df,", "df_00,") %>%
+      str_replace("tract,", "tract = tracts_00,")
+
+    function_call_10 <- function_call %>%
+      str_replace("df,", "df_10,") %>%
+      str_replace("tract,", "tract = tracts_10,")
+
+    output_00 <- eval(parse(text = function_call_00))
+    output_10 <- eval(parse(text = function_call_10))
+
+    output <- bind_rows(output_00, output_10)
+  } else {
+    output <- eval(parse(text = function_call))
+  }
+
+  output
+}
