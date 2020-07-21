@@ -55,7 +55,7 @@ make_map <- function(maps, var,
   # Get type of maps
   geographies <- purrr::map_chr(maps, df_type)
 
-  # Filter data frames to relevant
+  # Filter data frames to relevant subset
   filter_fxn <-  function(obj, year, sex, race) {
     if ("year" %in% names(obj) & year == "") obj <- obj[obj$year == max(obj$year),]
     if ("race" %in% names(obj)) obj <- obj[obj$race == race,]

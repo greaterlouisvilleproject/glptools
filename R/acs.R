@@ -194,7 +194,8 @@ svy_race_sex <- function(df, var, weight_var = "PERWT", geog = "FIPS", sex = T, 
     ungroup() %>%
     filter(
       !is.na(.data[[geog]]),
-      race != "other")
+      race != "other") %>%
+    organize()
 
   results
 }

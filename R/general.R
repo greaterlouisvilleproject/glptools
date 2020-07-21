@@ -260,7 +260,7 @@ total_demographics <- function(df, ...) {
 organize <- function(df) {
 
   if (df_type(df) %in% c("block", "tract", "neighborhood")) {
-    columns <- c("tract", "neighborhood", "block", "year", "line1", "line2", "line3")
+    columns <- c("tract", "neighborhood", "block", "year", "sex", "race", "line1", "line2", "line3")
     columns <- df %cols_in% columns
     df %<>%
       select(columns, everything()) %>%
@@ -269,17 +269,21 @@ organize <- function(df) {
     return(df)
   }
 
-  columns <- df %cols_in% c("MSA", "FIPS", "city", "year", "sex", "race", "frl_status", "baseline", "current")
+  columns <- df %cols_in% c("MSA", "FIPS", "city", "variable", "year", "sex", "race", "frl_status", "baseline", "current")
 
-  rows <- df %cols_in% c("MSA", "FIPS", "year", "sex", "race", "frl_status")
+  rows <- df %cols_in% c("MSA", "FIPS", "variable", "year", "sex", "race", "frl_status")
 
   df %<>%
     select(columns, everything()) %>%
     arrange_at(vars(rows))
 
-  if("FIPS" %in% names(df)){
+  if ("FIPS" %in% names(df)){
     df %<>%
       mutate(FIPS = replace(FIPS, FIPS == "1073", "01073"))
+  }
+  if ("MSA" %in% names(df)) {
+    df %<>%
+      mutate(MSA = as.character(MSA))
   }
 
   df
@@ -605,7 +609,6 @@ per_capita_adj <- function(df, ..., pop_var = "population", geog, keep_vars = T,
   df
 }
 
-
 #' Add a population column to a GLP-format dataframe
 #'
 #' @param df A data frame
@@ -766,7 +769,6 @@ process_census <- function(df, var_names = "count", cat_var, output_name, age_gr
 
   df
 }
-
 
 #' Add or replace a file in sysdata.rda
 #'   Any files in the current environment are added to the sysdata.rda file
