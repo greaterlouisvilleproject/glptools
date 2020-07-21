@@ -832,4 +832,24 @@ tract_00_to_10 <- function(df, years, ...) {
     organize()
 }
 
+#' Load GLP-related packages
+#'
+#' @param graphs Will graphs or maps be made?
+#' @export
+glp_load_packages <- function(graphs = F) {
+  library(readr)
+  library(dplyr)
+  library(tidyr)
+  library(stringr)
+  library(magrittr)
+  library(purrr)
+
+  if (graphs) {
+    library(showtext)
+    library(scales)
+    library(ggrepel)
+    library(leaflet)
+  }
+}
+
 
