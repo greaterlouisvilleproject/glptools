@@ -5,7 +5,7 @@ tl <- function(type, df, var,
                cat = "", include_hispanic = F, include_asian = T,
                plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
                zero_start = F, ylimits = "", pctiles = T, shading = F,
-               label_function = NULL, axis_function = NULL){
+               label_function = NULL, axis_function = NULL, year_breaks = NULL){
 
   if (length(var) == 1) df$var <- df[[var]]
 
@@ -14,12 +14,8 @@ tl <- function(type, df, var,
 
   # Filter data to peer set, race, sex, or other categories.
   # Create category names.
-  output <- tl_filter(df, var, peers, cat, include_hispanic, include_asian)
-
-  #list2env(output, envir = .GlobalEnv)
-
-  df        <- output[["df"]]
-  cat_names <- output[["cat_names"]]
+  tl_filter(df, var, peers, cat, include_hispanic, include_asian) %>%
+    list2env(envir = parent.env(environment()))
 
   if(xmin == "" | is.na(xmin)) xmin <- min(years_in_df(df, var))
   if(xmax == "" | is.na(xmax)) xmax <- max(years_in_df(df, var))
@@ -31,14 +27,12 @@ tl <- function(type, df, var,
     df %<>% tl_reshape_data_maxmin(xmin, xmax, order, zero_start)
   }
 
-
   # Calculate rolling mean
-  output <- tl_rolling_mean(df, xmin, xmax, rollmean, subtitle_text)
+  tl_rolling_mean(df, xmin, xmax, rollmean, subtitle_text) %>%
+    list2env(envir = parent.env(environment()))
 
-  df            <- output[["df"]]
-  xmin          <- output[["xmin"]]
-  xmax          <- output[["xmax"]]
-  subtitle_text <- output[["subtitle_text"]]
+  # add any year breaks
+  if (!is.null(year_breaks)) df %<>% tl_year_breaks(year_breaks)
 
   # If called from a data function, return df and exit trendline function
   if(type %in% c("data", "data_maxmin")) return(df)
@@ -50,26 +44,19 @@ tl <- function(type, df, var,
     df %<>% tl_add_line_data_maxmin()
   }
 
-
   # Calculate break settings
-  output <- tl_break_settings(df, xmin, xmax, rollmean)
-
-  major_break_settings <- output[["major_break_settings"]]
-  minor_break_settings <- output[["minor_break_settings"]]
-
+  output <- tl_break_settings(df, xmin, xmax, rollmean) %>%
+    list2env(envir = parent.env(environment()))
 
   # Initial plot
   g <- tl_plot(df)
-
 
   # Axis limits
   g %<>% tl_limits(df, xmin, xmax, ylimits, major_break_settings, minor_break_settings,
                    y_title, label_function, axis_function)
 
-
   # Add style
   g %<>% tl_style(plot_title, y_title, caption_text, subtitle_text, cat_names)
-
 
   #add color and line types
   if(type %in% c("standard", "kentucky")){
@@ -330,6 +317,25 @@ tl_rolling_mean <- function(df,
   }
 }
 
+#' Calculate the rolling mean of a data frame
+#'
+#' @return A list containing df, xmin, xmax ,and subtitle_text
+tl_year_breaks <- function(df, year_breaks) {
+
+  years_to_add <- crossing(
+    year = year_breaks,
+    variable = unique(df$variable),
+    value = NA_real_)
+
+  if ("category" %in% names(df)) years_to_add %<>% crossing(category = unique(df$category))
+
+  df %<>%
+    bind_rows(years_to_add) %>%
+    organize()
+
+  df
+}
+
 #' Add factor columns for ggplot to reference when assigning line groupings and styles
 #'
 #' @return A data frame
@@ -491,7 +497,7 @@ tl_plot<- function(df){
     geom_point(size = 2 * txt_scale) +
     geom_line(size = 1  * txt_scale)
 
-  if (min(df$value) < 0) p <- p + geom_hline(yintercept = 0, linetype = "longdash", size = 0.75)
+  if (min(df$value, na.rm = T) < 0) p <- p + geom_hline(yintercept = 0, linetype = "longdash", size = 0.75)
 
   p
 }
