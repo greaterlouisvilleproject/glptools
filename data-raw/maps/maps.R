@@ -57,6 +57,19 @@ map_market <- readOGR(path %p% "market area", layer = "market area",
 map_county <- readOGR(path %p% "county", layer = "cb_2017_us_county_5m",
                       GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
 
+map_PUMA <- readOGR(path %p% "puma_2010", layer = "ipums_puma_2010",
+                    GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
+
+map_PUMA@data %<>%
+  transmute(
+    STATEFIP,
+    PUMA = as.numeric(PUMA))
+
+map_PUMA <- map_PUMA[map_PUMA@data$STATEFIP == "21" &
+                     map_PUMA@data$PUMA %in% 1701:1706,]
+
+map_PUMA %<>% spTransform(map_tract@proj4string@projargs)
+
 # Create MUW map
 map_block_group <- map_block_group[map_block_group@data$COUNTYFP == "111",]
 map_block_group@data %<>%
@@ -114,6 +127,6 @@ map_county@data %<>%
     county = NAME)
 
 usethis::use_data(nh_tract, ma_tract, watterson_tract, west_lou_tract, muw_tract,
-                  map_tract, map_nh, map_muw,
+                  map_tract, map_nh, map_muw, map_PUMA,
                   map_block_group, map_tract_2000, map_zip, map_market, map_county,
                   overwrite = TRUE)
