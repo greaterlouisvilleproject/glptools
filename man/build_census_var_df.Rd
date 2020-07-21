@@ -4,7 +4,7 @@
 \alias{build_census_var_df}
 \title{Create a data frame to use for the Census API}
 \usage{
-build_census_var_df(survey, table, age_groups = F, additional_filters = "")
+build_census_var_df(survey, table, age_groups, additional_filters = "")
 }
 \arguments{
 \item{survey}{The survey to get variables from.

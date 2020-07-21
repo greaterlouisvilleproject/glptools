@@ -11,7 +11,8 @@ process_map(
   pop_adjust = F,
   return_name = NULL,
   method = "percent",
-  maps = c("tract", "nh", "muw")
+  maps = c("tract", "nh", "muw"),
+  keep_pop = FALSE
 )
 }
 \arguments{

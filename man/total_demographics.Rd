@@ -4,7 +4,13 @@
 \alias{total_demographics}
 \title{Aggregates demographic data}
 \usage{
-total_demographics(df, ...)
+total_demographics(
+  df,
+  ...,
+  override_race = F,
+  override_sex = F,
+  other_grouping_vars = ""
+)
 }
 \arguments{
 \item{df}{A data frame}

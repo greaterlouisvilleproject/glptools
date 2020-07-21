@@ -4,7 +4,7 @@
 \alias{unique_check}
 \title{Check if each row of a data frame is unique}
 \usage{
-unique_check(df)
+unique_check(df, other_grouping_vars = "")
 }
 \arguments{
 \item{df}{A data frame.}

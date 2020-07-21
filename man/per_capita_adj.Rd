@@ -10,7 +10,8 @@ per_capita_adj(
   pop_var = "population",
   geog,
   keep_vars = T,
-  keep_pop = F
+  keep_pop = F,
+  other_grouping_vars = ""
 )
 }
 \arguments{

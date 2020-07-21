@@ -26,7 +26,8 @@ trend(
   pctiles = T,
   shading = F,
   label_function = NULL,
-  axis_function = NULL
+  axis_function = NULL,
+  year_breaks = NULL
 )
 
 trend_maxmin(
@@ -44,7 +45,8 @@ trend_maxmin(
   zero_start = F,
   ylimits = "",
   label_function = NULL,
-  axis_function = NULL
+  axis_function = NULL,
+  year_breaks = NULL
 )
 
 trend_data(

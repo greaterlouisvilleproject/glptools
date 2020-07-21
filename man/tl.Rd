@@ -25,7 +25,8 @@ tl(
   pctiles = T,
   shading = F,
   label_function = NULL,
-  axis_function = NULL
+  axis_function = NULL,
+  year_breaks = NULL
 )
 }
 \description{
