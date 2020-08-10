@@ -55,7 +55,7 @@ acs_time <- function(folder, geog = "FIPS", starting_year = 2005, additional_geo
 #' @param skip Nu8mber of lines to skip.
 #' @export
 #' @return A data frame
-any_time <- function(folder, starting_year = 2005, skip = 0, col_types = NULL){
+any_time <- function(folder, starting_year = 2005, skip = 0, col_types = NULL, read_fxn){
   wd <- getwd()
   directory <- paste0(wd, "/", folder)
   file_names <- list.files(directory)
@@ -63,10 +63,14 @@ any_time <- function(folder, starting_year = 2005, skip = 0, col_types = NULL){
   y <- starting_year
   for (i in 1:n){
     file_path <- paste0(wd, "/", folder, "/", file_names[i])
-    df <- read_csv(file_path, skip = skip, col_types = col_types)
 
-    df$year <- y
-    y <- y + 1
+    if (missing(read_fxn)) df <- read_csv(file_path, skip = skip, col_types = col_types)
+    else df <- read_fxn(file_path)
+
+    if (!is.na(starting_year)) {
+      df$year <- y
+      y <- y + 1
+    }
 
     output <- assign_row_join(output, df)
   }
