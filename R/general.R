@@ -306,9 +306,9 @@ organize <- function(df) {
     return(df)
   }
 
-  columns <- df %cols_in% c("MSA", "FIPS", "city", "variable", "year", "sex", "race", "frl_status", "baseline", "current")
+  columns <- df %cols_in% c("MSA", "FIPS", "zip", "city", "variable", "year", "sex", "race", "frl_status", "baseline", "current")
 
-  rows <- df %cols_in% c("MSA", "FIPS", "variable", "year", "sex", "race", "frl_status")
+  rows <- df %cols_in% c("MSA", "FIPS", "zip", "variable", "year", "sex", "race", "frl_status")
 
   df %<>%
     select(columns, everything()) %>%
@@ -337,6 +337,7 @@ df_type <- function(df){
 
   case_when(
     "PUMA" %in% cols       ~ "PUMA",
+    "zip" %in% cols        ~ "zip",
     "FIPS" %in% cols       ~ "FIPS",
     "MSA"  %in% cols       ~ "MSA",
     "frl_status" %in% cols ~ "ky",
@@ -344,7 +345,6 @@ df_type <- function(df){
     all(cols %in% c("year", "city", "variable", "category", "value")) ~ "graph_max_min",
     "block" %in% cols                                           ~ "block",
     "tract" %in% cols                                           ~ "tract",
-    "zip" %in% cols                                             ~ "zip",
     "market" %in% cols                                          ~ "market",
     "county" %in% cols                                          ~ "county",
     "neighborhood" %in% cols & "Phoenix Hill-Smoketown-Shelby Park" %in% df[["neighborhood"]] ~ "nh",
