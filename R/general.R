@@ -828,21 +828,38 @@ get_sysdata <- function(df) {
 #' Transform data from 2000 census tracts to 2010 census tracts
 #'
 #' @export
-tract_00_to_10 <- function(df, years, ...) {
+tract_00_to_10 <- function(df, years, ..., other_grouping_vars = "") {
 
-  id_cols <- df %cols_in% c("year", "sex", "race")
+  id_cols <- df %cols_in% c("FIPS", "year", "sex", "race", other_grouping_vars)
 
   df00 <- df %>%
     filter(year %in% years) %>%
     left_join(tract00_tract_10, by = c("tract" = "tract00")) %>%
-    group_by_at(c("tract10", id_cols)) %>%
-    summarise_at(vars(...), ~sum(. * percent / 100)) %>%
-    ungroup() %>%
+    group_by(across(c("tract10", id_cols))) %>%
+    summarise(across(..., ~ sum(. * percent / 100)), .groups = "drop") %>%
     rename(tract = tract10)
 
-  df00 %<>% complete(nesting(!!!syms(id_cols)), tract = "21111980100")
-
   df10 <- df %>% filter(year %not_in% years)
+
+  bind_rows(df00, df10) %>%
+    organize()
+}
+
+#' Transform data from 2010 census tracts to 2000 census tracts
+#'
+#' @export
+tract_10_to_00 <- function(df, years, ..., other_grouping_vars = "") {
+
+  id_cols <- df %cols_in% c("FIPS", "year", "sex", "race", other_grouping_vars)
+
+  df10 <- df %>%
+    filter(year %in% years) %>%
+    left_join(tract00_tract_10, by = c("tract" = "tract10")) %>%
+    group_by(across(c("tract00", id_cols))) %>%
+    summarise(across(..., ~ sum(. * percent / 100)), .groups = "drop") %>%
+    rename(tract = tract00)
+
+  df00 <- df %>% filter(year %not_in% years)
 
   bind_rows(df00, df10) %>%
     organize()
