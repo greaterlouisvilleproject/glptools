@@ -92,14 +92,6 @@ for (y in 2009:2018) {
   census_api_vars <- assign_row_join(census_api_vars, df)
 }
 
-# Add race labels
-
-race_2000 <- c(A = "white_maybe_hispanic", B = "black", C = "AIAN", D = "asian", E = "hawaiian_PI",
-               `F` = "other", G = "two_plus", H = "hispanic", I = "white")
-
-race_acs <- c(A = "white_maybe_hispanic", B = "black", C = "AIAN", D = "asian", E = "hawaiian_PI",
-              `F` = "other", G = "two_plus", H = "white", I = "hispanic")
-
 library(furrr)
 library(future)
 
@@ -123,7 +115,10 @@ census_api_vars$age_text <- census_api_vars$label %>%
   str_split("!!|:|--") %>%
   furrr::future_map(select_age) %>%
   as.character() %>%
-  replace(. == "character(0)", "")
+  replace(. == "character(0)", "") %>%
+  str_trim()
+
+census_api_vars %>% filter(str_detect(age_text, "1 year"))
 
 census_api_vars %<>%
   mutate(
@@ -159,7 +154,17 @@ census_api_vars %<>%
 
     # for ages of format "x years", label is "x"
     str_detect(age_text, "\\d (?i)years") ~
-      str_extract(age_text, "\\d*(?= years)")))
+      str_extract(age_text, "\\d*(?= years)"),
+
+    # for ages of the format "1 year", label is "1"
+    str_detect(age_text, "^1 year$") ~ "1"))
+
+# Add race labels
+race_2000 <- c(A = "white_maybe_hispanic", B = "black", C = "AIAN", D = "asian", E = "hawaiian_PI",
+               `F` = "other", G = "two_plus", H = "hispanic", I = "white")
+
+race_acs <- c(A = "white_maybe_hispanic", B = "black", C = "AIAN", D = "asian", E = "hawaiian_PI",
+              `F` = "other", G = "two_plus", H = "white", I = "hispanic")
 
 census_api_vars %<>%
   filter(!is.na(table) & table != "N/A") %>%
