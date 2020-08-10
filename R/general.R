@@ -85,7 +85,7 @@ sum_FIPS_to_MSA <- function(df, ..., other_grouping_vars = "") {
 #' @param additional_geogs A vector of additional MSA or FIPS codes to include.
 #'
 #' @export pull_peers
-pull_peers <- function(df, add_info = T, subset_to_peers = T, geog = "", additional_geogs = ""){
+pull_peers <- function(df, add_info = F, subset_to_peers = T, geog = "", additional_geogs = ""){
 
   # If no geography provided, use MSA column. If no MSA column, use FIPS column.
   if (geog == ""){
@@ -511,7 +511,7 @@ update_sysdata <- function(...) {
 #'
 #' @export
 process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
-                        method = "percent", maps = c("tract", "nh", "muw"), keep_pop = FALSE) {
+                        method = "mean", maps = c("tract", "nh", "muw"), keep_pop = FALSE) {
 
   variables <- dplyr:::tbl_at_vars(map_df, vars(...))
   grouping_vars <- map_df %cols_in% c("year","sex", "race")

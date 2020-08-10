@@ -9,8 +9,8 @@ tl <- function(type, df, var,
 
   if (length(var) == 1) df$var <- df[[var]]
 
-  if (df_type(df) == "FIPS" & "current" %not_in% names(df)) df %<>% pull_peers()
-  if (df_type(df) == "MSA" &  "current" %not_in% names(df)) df %<>% pull_peers()
+  if (df_type(df) == "FIPS" & "current" %not_in% names(df)) df %<>% pull_peers(add_info = TRUE)
+  if (df_type(df) == "MSA" &  "current" %not_in% names(df)) df %<>% pull_peers(add_info = TRUE)
 
   # Filter data to peer set, race, sex, or other categories.
   # Create category names.

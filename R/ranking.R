@@ -71,7 +71,7 @@ ranking <- function(df, var, plot_title = "",
   }
 
   # Add peer data if not already present
-  if (df_type(df) %in% c("FIPS", "MSA") & "current" %not_in% names(df)) df %<>% pull_peers()
+  if (df_type(df) %in% c("FIPS", "MSA") & "current" %not_in% names(df)) df %<>% pull_peers(add_info = T)
 
   # Filter to peer parameter
   if (peers %in% c("current", "Current"))   df %<>% filter(current == 1)
@@ -230,7 +230,7 @@ ranking_data <- function(df, variables, years = "", sex = "total", race = "total
       mutate(!!var_name := row_number()) %>%
       ungroup()
 
-    output <- assign_col_join(output, temp, by = c("FIPS", "year"))
+    output <- assign_col_join(output, temp)
   }
 
   output %<>% organize()
