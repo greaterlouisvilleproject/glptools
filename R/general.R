@@ -889,37 +889,100 @@ glp_load_packages <- function(graphs = F) {
 #'
 #' @param graphs Will graphs or maps be made?
 #' @export
-complete_vector_arg <- function(df, vector) {
+complete_vector_arg <- function(df, columns, years, keep_empty_groups = FALSE) {
 
-  # Create string to evaluate as function
-  function_call <- paste(c("complete(df", vector), collapse = ", ")
-  function_call <- paste0(function_call, ")")
+  # Create string to evaluate as function using columns argument.
+  function_calls <- paste(c("complete(df", columns), collapse = ", ")
 
-  # If tracts are involved, split data frame between 2007 and 2008 and create
-  # separate data frames for 2000 and 2010 census tracts
+  # If data frame is tract-level, use proper set of tracts and years
+  if ("tract" %in% columns) {
 
-  if ("tract" %in% vector) {
-    df_00 <- df %>% filter(year <= 2007)
-    df_10 <- df %>% filter(year >= 2008)
+    # If years are supplied, append years to call and assign to years_00 and years_10
+    if (!missing(years)) {
+      function_calls %<>% paste0(", year = ", years)
 
-    tracts_00 <- unique(glptools::tract00_tract_10$tract00)
-    tracts_10 <- unique(glptools::tract00_tract_10$tract10)
+      years_00 <- eval(parse(text = years[1]))
+      years_10 <- eval(parse(text = years[2]))
 
-    function_call_00 <- function_call %>%
-      str_replace("df,", "df_00,") %>%
-      str_replace("tract,", "tract = tracts_00,")
+    # If years are not supplied, calculate years_00 and years_10
+    } else {
+    obs_by_year <- df %>%
+      group_by(year) %>%
+      summarise(n = n(), .groups = "drop")
 
-    function_call_10 <- function_call %>%
-      str_replace("df,", "df_10,") %>%
-      str_replace("tract,", "tract = tracts_10,")
+    n_values <- obs_by_year %>%
+      pull(n) %>%
+      unique()
 
-    output_00 <- eval(parse(text = function_call_00))
-    output_10 <- eval(parse(text = function_call_10))
+      # If only one set of tracts, only assign years_10
+      if (length(n_values == 1)) {
+        years_10 <- obs_by_year$year
 
-    output <- bind_rows(output_00, output_10)
-  } else {
-    output <- eval(parse(text = function_call))
+        tract_df <- glptools::tract00_tract_10 %>%
+          filter(str_sub(tract00, 1, 5) %in% str_sub(df$tract, 1, 5))
+
+        tracts_10 <- unique(tract_df$tract10)
+
+        function_calls %<>% str_replace("tract,", "tract = tracts_10,")
+
+      # If two sets of tracts, assign years_00 and years_10
+      } else if (length(n_values) == 2) {
+        years_00 <- with(obs_by_year, min(year[n == n_values[1]]):max(year[n == n_values[1]]))
+        years_10 <- with(obs_by_year, min(year[n == n_values[2]]):max(year[n == n_values[2]]))
+
+        df_00 <- df %>% filter(year <= tail(years_00, 1))
+        df_10 <- df %>% filter(year >= years_10[1])
+
+        tract_df <- glptools::tract00_tract_10 %>%
+          filter(str_sub(tract00, 1, 5) %in% str_sub(df$tract, 1, 5))
+
+        tracts_00 <- unique(tract_df$tract00)
+        tracts_10 <- unique(tract_df$tract10)
+
+        function_calls <-
+          c(function_calls %>%
+              str_replace("df,", "df_00,") %>%
+              str_replace("tract,", "tract = tracts_00,"),
+            function_calls %>%
+              str_replace("df,", "df_10,") %>%
+              str_replace("tract,", "tract = tracts_10,"))
+
+      # If more than two sets of tracts, throw error
+      } else if (length(n_values) > 2) {
+        stop("More than two groups of Census Tracts in data.")
+      }
+    }
   }
 
+  # Close function call parentheses
+  function_calls %<>% paste0(")")
+
+  # Evaluate and bind function calls
+
+  output <- map_dfr(function_calls, ~ eval(parse(text = .)))
+
+  # if ("tract" %in% columns & length(n_values == 2)) {
+  #   output_00 <- eval(parse(text = function_calls[1]))
+  #   output_10 <- eval(parse(text = function_calls[2]))
+  #
+  #   output <- bind_rows(output_00, output_10)
+  # } else {
+  #   output <- eval(parse(text = function_calls))
+  # }
+
+  if (!keep_empty_groups & "sex" %in% names(df) & "race" %in% names(df)) {
+
+    # Summarize combinations of race and sex
+    df %<>%
+      group_by(sex, race) %>%
+      summarise(n = n(), .groups = "drop")
+
+    # If the original data frame doesn't include cross-demographics,
+    # remove those groups from the new data frame
+    if (!any(df$sex != "total" & df$race != "total")) {
+      output %<>%
+        filter(sex == "total" | race == "total")
+    }
+  }
   output
 }
