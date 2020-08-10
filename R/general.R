@@ -674,14 +674,15 @@ add_population <- function(df, geog) {
   # Create a clean, minimal population data frame
   tryCatch({
     pop_df <- switch(df_type(df),
-                     "MSA"   = glpdata:::population_msa_1yr,
-                     "FIPS"  = glpdata:::population_county,
-                     "tract" = glpdata:::population_tract,
-                     "nh"    = glpdata:::population_nh,
-                     "muw"   = glpdata:::population_muw)
+                     "MSA"   = glpdata::population_msa_1yr,
+                     "FIPS"  = glpdata::population_county,
+                     "tract" = glpdata::population_tract,
+                     "nh"    = glpdata::population_nh,
+                     "muw"   = glpdata::population_muw,
+                     "zip"   = glpdata::population_zip)
   },
   error = function(e){
-    stop("Geography not MSA, FIPS, tract, nh, or muw.")
+    stop("Geography not MSA, FIPS, tract, nh, muw, or zip.")
   })
 
   join_vars <- c(geog, df %cols_in% c("year", "sex", "race"))
@@ -705,7 +706,8 @@ add_population <- function(df, geog) {
 #' @param output_name Output var name
 #'
 #' @export
-process_census <- function(df, var_names = "count", cat_var, output_name, age_groups = "all",
+
+process_census <- function(df, var_names = "value", cat_var, output_name, age_groups = "all",
                            output_percent = TRUE, output_population = FALSE) {
 
   # Get geography and grouping variables
@@ -745,8 +747,7 @@ process_census <- function(df, var_names = "count", cat_var, output_name, age_gr
     temp %<>%
       filter(across(!!cat_var, ~ !is.na(.))) %>%
       group_by(across(grouping_vars)) %>%
-      summarise(across(var_names, ~ sum(.))) %>%
-      ungroup() %>%
+      summarise(across(var_names, ~ sum(.)), .groups = "drop") %>%
       mutate(age_group = a)
 
     output <- assign_row_join(output, temp)
@@ -782,8 +783,7 @@ process_census <- function(df, var_names = "count", cat_var, output_name, age_gr
   # Conserve population data is it will be resummarised for other map geographies
   if (geog == "tract" | output_population) {
     pop_df <- df %>%
-      summarise(across(output_vars, ~ sum(.))) %>%
-      ungroup() %>%
+      summarise(across(output_vars, ~ sum(.)), .groups = "drop") %>%
       rename_at(vars(output_vars), ~ paste0(., "_pop"))
   }
 
