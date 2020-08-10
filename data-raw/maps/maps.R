@@ -37,10 +37,10 @@ muw_tract %<>%
 map_block_group <- readOGR(path %p% "block_group", layer = "tl_2018_21_bg",
                            GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
 
-map_tract <- readOGR(path %p% "tract", layer = "tract",
+map_tract <- readOGR(path %p% "tract_2010", layer = "tract",
                      GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
 
-map_tract_2000 <- readOGR(path %p% "tract2000", layer = "tr21_d00",
+map_tract_2000 <- readOGR(path %p% "tract_2000", layer = "tr21_d00",
                           GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
 
 map_nh <- readOGR(path %p% "neighborhood", layer = "neighborhood",
@@ -69,6 +69,35 @@ map_PUMA <- map_PUMA[map_PUMA@data$STATEFIP == "21" &
                      map_PUMA@data$PUMA %in% 1701:1706,]
 
 map_PUMA %<>% spTransform(map_tract@proj4string@projargs)
+
+# 2010 tracts
+map_tract_all_10 <- readOGR(path %p% "tract_all_2010", layer = "US_tract_2018",
+                            GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
+
+map_tract_all_10@data %<>%
+  transmute(
+    FIPS = paste0(STATEFP, COUNTYFP),
+    tract = GEOID)
+
+map_tract_all_10 <- map_tract_all_10[map_tract_all_10@data$FIPS %in% FIPS_df_two_stl$FIPS,]
+
+map_tract_all_10 <- map_tract_all_10[order(map_tract_all_10@data$tract),]
+
+# 2000 tracts
+map_tract_all_00 <- readOGR(path %p% "tract_all_2000", layer = "US_tract10_2000",
+                            GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
+
+map_tract_all_00@data %<>%
+  transmute(
+    FIPS = paste0(STATEFP00, COUNTYFP00),
+    tract = CTIDFP00)
+
+map_tract_all_00 <- map_tract_all_00[map_tract_all_00@data$FIPS %in% FIPS_df_two_stl$FIPS,]
+
+map_tract_all_00 <- map_tract_all_00[order(map_tract_all_00@data$tract),]
+
+# Check if ordered
+#mean(map_tract_all_00@data$tract[order(map_tract_all_00@data$tract)] == map_tract_all_00@data$tract)
 
 # Create MUW map
 map_block_group <- map_block_group[map_block_group@data$COUNTYFP == "111",]
@@ -127,6 +156,7 @@ map_county@data %<>%
     county = NAME)
 
 usethis::use_data(nh_tract, ma_tract, watterson_tract, west_lou_tract, muw_tract,
+                  map_tract_all_00, map_tract_all_10,
                   map_tract, map_nh, map_muw, map_PUMA,
                   map_block_group, map_tract_2000, map_zip, map_market, map_county,
                   overwrite = TRUE)
