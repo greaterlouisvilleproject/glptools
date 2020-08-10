@@ -134,13 +134,14 @@ pull_peers <- function(df, add_info = F, subset_to_peers = T, geog = "", additio
 #' @param weight_var A variable to use when weighting the counties. Defaults to \code{population}.
 #' @param method "mean" or "sum". Defaults to mean.
 #' @export
-stl_merge <- function(df_original, ..., weight_var = "", method = "mean", other_grouping_vars = ""){
+stl_merge <- function(df_original, ..., weight_var = "", method = "mean",
+                      other_grouping_vars = "", just_replace_FIPS = F, keep_counties = F){
 
   weight_var <- as.character(substitute(weight_var))
   variables <- dplyr:::tbl_at_vars(df_original, vars(...))
 
   # If no weight variable supplied and one is needed, read in total population and join to df
-  if(weight_var == "" & method == "mean"){
+  if(weight_var == "" & method == "mean" & !just_replace_FIPS){
 
     weight_var <- "population"
 
@@ -151,9 +152,17 @@ stl_merge <- function(df_original, ..., weight_var = "", method = "mean", other_
 
   grouping_vars <- c("FIPS", "year", "sex", "race", other_grouping_vars)
 
-  df_original %<>%
-    mutate(FIPS = replace(FIPS, FIPS %in% c("29189", "29510"), "MERGED")) %>%
-    group_by_at(df_original %cols_in% grouping_vars)
+  if (keep_counties) {
+    df_stl <- df_original %>%
+      select(any_of(c(grouping_vars, variables))) %>%
+      filter(FIPS %in% c("29189", "29510"))
+  }
+
+  df_original %<>% mutate(FIPS = replace(FIPS, FIPS %in% c("29189", "29510"), "MERGED"))
+
+  if (just_replace_FIPS) return(df_original)
+
+  df_original %<>% group_by(across(df_original %cols_in% grouping_vars))
 
   # For each variable to be weighted, create a new df of the applicable variables
   for(v in variables){
@@ -169,8 +178,12 @@ stl_merge <- function(df_original, ..., weight_var = "", method = "mean", other_
 
     #add the data frame to the output
     output <- assign_col_join(output, df, by = df %cols_in% grouping_vars)
-
   }
+
+  if (keep_counties) output %<>% bind_rows(df_stl)
+
+  output %<>% organize()
+
   output
 }
 
@@ -192,6 +205,8 @@ bind_df <- function(..., by = NULL){
   }
 
   output <- purrr::reduce(data_frames, full_join, by = grouping_vars)
+
+  output %<>% organize()
 
   output
 }
