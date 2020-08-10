@@ -3,9 +3,12 @@ library(dplyr)
 library(magrittr)
 source("R/general.R")
 
+# Data from the U.S. Census Burea's Delineation Files Page
+# https://www.census.gov/geographies/reference-files/time-series/demo/metro-micro/delineation-files.html
+
 # 2012 MSA definition
 
-# The Dayton MSA code changed in 2018 when
+# The Dayton MSA code changed in 2018
 # the MSA name changed from Dayton to Dayton-Kettering
 MSA_df_2012 <- MSA_df %>% mutate(MSA = replace(MSA, MSA == "19430", "19380"))
 
@@ -19,8 +22,8 @@ MSA_FIPS_2012 %<>%
   select(MSA, FIPS) %>%
   rbind(c("41180", "MERGED"))
 
-# 2018 MSA definition
-MSA_FIPS <- read_csv("data-raw/MSA_FIPS/list1_Sep_2018.csv", col_types = "c________cc_", skip = 2)
+# 2020 MSA definition
+MSA_FIPS <- read_csv("data-raw/MSA_FIPS/list1_2020.csv", col_types = "c________cc_", skip = 2)
 
 MSA_FIPS %<>%
   transmute(
