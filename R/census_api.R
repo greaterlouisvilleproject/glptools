@@ -12,7 +12,9 @@ build_census_var_df <- function(survey, table, age_groups,
   var_table <- glptools:::census_api_vars
 
   # Create vector of tables, including demographic breakdowns
-  tables <- table %p% c("", LETTERS[1:9])
+  tables <- crossing(t = table, l = c("", LETTERS[1:9])) %>%
+    mutate(out = paste0(t, l)) %>%
+    pull(out)
 
   # Filter to survey, table, and demograhpic
   var_table %<>%
@@ -50,7 +52,7 @@ build_census_var_df <- function(survey, table, age_groups,
 #' @param geog The geography to return variables for
 #' @param parallel Use future and furrr?
 #' @export
-get_census <- function(var_df, geog, var_name, parallel = F, label = F, var = F) {
+get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F) {
 
   if (geog %in% c("MSA", "FIPS")) {
     fxn <- function(survey, year, geography, data, ...) {
