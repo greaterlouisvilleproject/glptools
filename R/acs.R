@@ -16,29 +16,21 @@ process_acs <- function(df, gq = T, pull_peers = T, remove_vars = T){
   # Remove group quarters residents if gq = FALSE
   if (!gq) df %<>% filter(GQ == 1 | GQ == 2)
 
-  # Rename the MSA column and label the Tulsa MSA
-  if ("MET2013" %in% names(df)) {
+  # Add MSA Column
+  MSA_PUMA %<>% mutate(STATEFIP = as.numeric(STATEFIP))
 
-    df %<>% rename(MSA = MET2013)
-
-    df$MSA[df$STATEFIP == 40 & df$year <= 2011 & df$PUMA %in% c(1000, 1100, 1200)] <- 46140
-    df$MSA[df$STATEFIP == 40 & df$year >= 2012 & df$PUMA %in% c(1201, 1202, 1203, 1204, 1301)] <- 46140
-  }
+  df %<>% left_join(MSA_PUMA, by = c("STATEFIP", "PUMA", "year"))
 
   # Add FIPS codes to data and change St. Louis FIPS codes to MERGED
+  FIPS_PUMA %<>% mutate(STATEFIP = as.numeric(STATEFIP))
   df %<>% left_join(FIPS_PUMA, by = c("STATEFIP", "PUMA", "year"))
 
-  df$FIPS[df$FIPS == 29189] = "MERGED"
-  df$FIPS[df$FIPS == 29510] = "MERGED"
+  df %<>% stl_merge(just_replace_FIPS = TRUE)
 
   # df %<>% mutate(replace(FIPS, STATEFIP == 21 & PUMA %in% c(1901, 1902), "21067")) # Adds in Lexington
 
   # Subset data to peers at the MSA or county level
-  if ("MSA" %in% names(df) & pull_peers) {
-    df %<>% pull_peers(add_info = FALSE)
-  } else if (pull_peers) {
-    df %<>% pull_peers(add_info = FALSE)
-  }
+  if (pull_peers) df %<>% pull_peers(add_info = FALSE)
 
   # Recode race
   if ("RACE" %in% names(df)) {
@@ -205,9 +197,7 @@ svy_race_sex <- function(df, var, weight_var = "PERWT", geog = "FIPS", sex = T, 
 #' @param survey A survey object containing FIPS, year, and optional race and sex columns.
 #' @param var A column name to perform svymean on.
 #' @export
-svy_race_sex_cat <- function(df, var, weight_var = "PERWT", geog = "FIPS"){
-
-  #browser()
+svy_race_sex_cat <- function(df, var, weight_var = "PERWT", geog = "FIPS", population_var){
 
   var <- as.character(substitute(var))
 
@@ -216,53 +206,57 @@ svy_race_sex_cat <- function(df, var, weight_var = "PERWT", geog = "FIPS"){
     filter(
       !is.na(.data[[var]]),
       !is.na(.data[[geog]])) %>%
-    group_by_at(vars(geog, "year", var, race, sex)) %>%
-    summarise(freq = sum(.data[[weight_var]])) %>%
-    ungroup()
+    group_by(across(c(geog, "year", var, "race", "sex"))) %>%
+    summarise(freq = sum(.data[[weight_var]]), .groups = "drop")
 
   total_sex_race <- results %>%
-    group_by_at(vars(!!geog, "year", race, sex)) %>%
-    mutate(pct = freq / sum(freq))
+    group_by(across(c(geog, "year", "race", "sex"))) %>%
+    mutate(
+      pop = sum(freq),
+      pct = freq / pop)
 
   total_sex <- results %>%
-    group_by_at(vars(!!geog, year, race, !!var)) %>%
-    summarise(freq = sum(freq)) %>%
-    ungroup() %>%
-    group_by_at(vars(!!geog, year, race)) %>%
+    group_by(across(c(geog, "year", "race", var))) %>%
+    summarise(freq = sum(freq), .groups = "drop") %>%
+    group_by(across(c(geog, "year", "race"))) %>%
     mutate(
-      pct = freq / sum(freq),
+      pop = sum(freq),
+      pct = freq / pop,
       sex = "total")
 
   total_race <- results %>%
-    group_by_at(vars(!!geog, year, sex, !!var)) %>%
-    summarise(freq = sum(freq)) %>%
-    ungroup() %>%
-    group_by_at(vars(!!geog, year, sex)) %>%
+    group_by(across(c(geog, "year", "sex", var))) %>%
+    summarise(freq = sum(freq), .groups = "drop") %>%
+    group_by(across(c(geog, "year", "sex"))) %>%
     mutate(
-      pct = freq / sum(freq),
+      pop = sum(freq),
+      pct = freq / pop,
       race = "total")
 
   total <- results %>%
-    group_by_at(vars(!!geog, year, !!var)) %>%
-    summarise(freq = sum(freq)) %>%
-    ungroup() %>%
-    group_by_at(vars(!!geog, year)) %>%
+    group_by(across(c(geog, "year", var))) %>%
+    summarise(freq = sum(freq), .groups = "drop") %>%
+    group_by(across(c(geog, "year"))) %>%
     mutate(
-      pct = freq / sum(freq),
+      pop = sum(freq),
+      pct = freq / pop,
       race = "total",
       sex = "total")
 
   output <- bind_rows(total, total_sex, total_race, total_sex_race)
 
-  output %<>%
-    ungroup() %>%
-    select(-freq) %>%
-    mutate(pct = pct * 100) %>%
-    filter(race != "other") %>%
-    spread(key = !!var, value = pct)
+  if (missing(population_var)) population_var <- paste0(var, "_pop")
 
   output %<>%
-    mutate_at(output %cols_not_in% c("FIPS", "year", "race", "sex"), ~ replace_na(., 0)) %>%
+    ungroup() %>%
+    mutate(
+      pct = pct * 100,
+      !!population_var := pop) %>%
+    filter(race != "other") %>%
+    pivot_wider(id_cols = c(geog, year, sex, race, population_var), names_from = !!var, values_from = pct)
+
+  output %<>%
+    mutate(across(output %cols_not_in% c("FIPS", "year", "race", "sex"), ~ replace_na(., 0))) %>%
     organize()
 
   output
