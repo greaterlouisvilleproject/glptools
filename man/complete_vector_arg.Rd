@@ -4,7 +4,7 @@
 \alias{complete_vector_arg}
 \title{Load GLP-related packages}
 \usage{
-complete_vector_arg(df, vector)
+complete_vector_arg(df, columns, years, keep_empty_groups = FALSE)
 }
 \arguments{
 \item{graphs}{Will graphs or maps be made?}

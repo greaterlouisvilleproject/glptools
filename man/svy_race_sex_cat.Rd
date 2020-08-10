@@ -4,7 +4,7 @@
 \alias{svy_race_sex_cat}
 \title{Survey microdata by race and sex on a categorical variable}
 \usage{
-svy_race_sex_cat(df, var, weight_var = "PERWT", geog = "FIPS")
+svy_race_sex_cat(df, var, weight_var = "PERWT", geog = "FIPS", population_var)
 }
 \arguments{
 \item{var}{A column name to perform svymean on.}

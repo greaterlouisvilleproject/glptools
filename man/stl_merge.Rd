@@ -9,7 +9,9 @@ stl_merge(
   ...,
   weight_var = "",
   method = "mean",
-  other_grouping_vars = ""
+  other_grouping_vars = "",
+  just_replace_FIPS = F,
+  keep_counties = F
 )
 }
 \arguments{

@@ -6,7 +6,7 @@
 \usage{
 process_census(
   df,
-  var_names = "count",
+  var_names = "value",
   cat_var,
   output_name,
   age_groups = "all",

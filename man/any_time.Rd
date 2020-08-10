@@ -4,7 +4,7 @@
 \alias{any_time}
 \title{Read in a folder of CSV files}
 \usage{
-any_time(folder, starting_year = 2005, skip = 0, col_types = NULL)
+any_time(folder, starting_year = 2005, skip = 0, col_types = NULL, read_fxn)
 }
 \arguments{
 \item{folder}{A path to a folder containing ACS data.}

@@ -10,7 +10,7 @@ process_map(
   pop,
   pop_adjust = F,
   return_name = NULL,
-  method = "percent",
+  method = "mean",
   maps = c("tract", "nh", "muw"),
   keep_pop = FALSE
 )

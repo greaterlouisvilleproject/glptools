@@ -6,7 +6,7 @@
 \usage{
 pull_peers(
   df,
-  add_info = T,
+  add_info = F,
   subset_to_peers = T,
   geog = "",
   additional_geogs = ""

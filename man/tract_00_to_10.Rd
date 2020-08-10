@@ -4,7 +4,7 @@
 \alias{tract_00_to_10}
 \title{Transform data from 2000 census tracts to 2010 census tracts}
 \usage{
-tract_00_to_10(df, years, ...)
+tract_00_to_10(df, years, ..., other_grouping_vars = "")
 }
 \description{
 Transform data from 2000 census tracts to 2010 census tracts
