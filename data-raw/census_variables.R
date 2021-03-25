@@ -1,6 +1,8 @@
 library(stringr)
 library(censusapi)
 library(tidyr)
+library(furrr)
+library(future)
 library(glptools)
 
 # Decennial Census 2000 population
@@ -33,14 +35,14 @@ census_api_vars <- assign_row_join(census_api_vars, df)
 
 # Decennial Census 2000
 
-df <- listCensusMetadata("sf3", vintage = 2000, type = "variables")
+df <- listCensusMetadata("dec/sf3", vintage = 2000, type = "variables")
 
 df %<>%
   transmute(
-    table = str_extract(concept, "^.*?(?=\\.)"), # Table ID appears before period in concept
-    topic = str_extract(concept, "(?<=\\. ).*"), # Table topic appears after period in concept
+    table = group, # Table ID appears before period in concept
+    topic = concept, # Table topic appears after period in concept
     year = 2000,
-    survey = "sf3",
+    survey = "dec/sf3",
     variable = name,
     label)
 
@@ -48,7 +50,7 @@ census_api_vars <- assign_row_join(census_api_vars, df)
 
 # ACS 1-year data
 
-for (y in 2005:2018) {
+for (y in 2005:2019) {
 
   print(y)
 
@@ -68,7 +70,7 @@ for (y in 2005:2018) {
 
 # ACS 5-year data
 
-for (y in 2009:2018) {
+for (y in 2009:2019) {
 
   print(y)
 
@@ -92,9 +94,6 @@ for (y in 2009:2018) {
   census_api_vars <- assign_row_join(census_api_vars, df)
 }
 
-library(furrr)
-library(future)
-
 word_list <- c(1:105, "Householder", "Under", "under", "year", "years", "and", "or", "to", "over", "")
 
 select_age <- function(segment) {
@@ -109,7 +108,7 @@ select_age <- function(segment) {
   segment[selection]
 }
 
-plan(multiprocess)
+plan(multisession)
 
 census_api_vars$age_text <- census_api_vars$label %>%
   str_split("!!|:|--") %>%
@@ -117,8 +116,6 @@ census_api_vars$age_text <- census_api_vars$label %>%
   as.character() %>%
   replace(. == "character(0)", "") %>%
   str_trim()
-
-census_api_vars %>% filter(str_detect(age_text, "1 year"))
 
 census_api_vars %<>%
   mutate(
@@ -138,8 +135,8 @@ census_api_vars %<>%
              str_extract(age_text, "\\d*(?= years)")),
 
     # for ages of format "x years and over", label is x_plus
-    str_detect(age_text, "\\d years and over") ~
-      paste0(str_extract(age_text, "\\d*(?= years and over)"), "_", "plus"),
+    str_detect(age_text, "\\d years (and|or) over") ~
+      paste0(str_extract(age_text, "\\d*(?= years (and|or) over)"), "_", "plus"),
 
     # For poverty thresholds, descriptions of householders, veterans, no age label
     # formats: "under x.y" "own children

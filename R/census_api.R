@@ -34,10 +34,22 @@ build_census_var_df <- function(survey, table, age_groups,
   }
 
 
-  # Keep only estimates and remove mrgin of error
+  # Keep only estimates and remove margin of error
   if (str_detect(survey, "acs")) var_table %<>% filter(str_sub(variable, -1) == "E")
 
-  var_table %<>% select(survey, year, variable, race, sex, age_group, age_low, age_high, label, table)
+  # Add MOE
+  var_table_moe <- var_table %>%
+    filter(str_detect(survey, "acs")) %>%
+    mutate(
+      variable = str_replace(variable, "(?<=_\\d{3})E", "M"),
+      est_moe = if_else(str_sub(variable, -1) == "M", "MOE", "estimate"))
+
+  var_table %<>%
+    mutate(est_moe = "estimate") %>%
+    bind_rows(var_table_moe)
+
+  var_table %<>% select(survey, year, variable, est_moe,
+                        race, sex, age_group, age_low, age_high, label, table)
 
   # Check if there is one row per year, race, and sex
   unique_check(var_table)
@@ -79,6 +91,7 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
             age_high,
             value,
             label,
+            est_moe,
             variable = name)
         },
         error = function(cond){
@@ -92,8 +105,8 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
             age_high = data$age_high,
             value = rep(NA_real_, nrow(data)),
             label = data$label,
-            variable = data$variable,
-            stringsAsFactors = F)
+            est_moe = data$est_moe,
+            variable = data$variable)
         })
 
         output
@@ -114,7 +127,7 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
           pivot_longer(cols = data$variable) %>%
           left_join(data, by = c("name" = "variable")) %>%
           transmute(
-            tract = paste0(geography, tract),
+            tract = paste0(geography, str_pad(tract, 6, "right", "0")),
             year  = if_else(str_detect(survey, "acs5"), year - 2, year),
             race,
             sex,
@@ -123,6 +136,7 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
             age_high,
             value,
             label,
+            est_moe,
             variable = name)
       }
   } else if (geog == "tract") {
@@ -140,7 +154,7 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
         pivot_longer(cols = data$variable) %>%
         left_join(data, by = c("name" = "variable")) %>%
         transmute(
-          tract = paste0("21111", tract),
+          tract = paste0("21111", str_pad(tract, 6, "right", "0")),
           year  = if_else(str_detect(survey, "acs5"), year - 2, year),
           race,
           sex,
@@ -149,6 +163,7 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
           age_high,
           value,
           label,
+          est_moe,
           variable = name)
     }
   } else if (geog == "zip") {
@@ -174,6 +189,7 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
           age_high,
           value,
           label,
+          est_moe,
           variable = name)
     }
   }
@@ -195,7 +211,7 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
     nest()
 
   if (parallel) {
-    future::plan(future::multiprocess)
+    future::plan(future::multisession)
     output %<>% furrr::future_pmap_dfr(fxn)
   } else {
     output %<>% purrr::pmap_dfr(fxn)
