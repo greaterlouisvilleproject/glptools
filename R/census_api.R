@@ -221,3 +221,161 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
 
   output
 }
+
+#' Algorithm to create GLP-style data frame from census downloads
+#'
+#' @param df A data frame from the census
+#' @param var_names Variable names
+#' @param cat_var Categorical vari
+#' @param output_name Output var name
+#'
+#' @export
+process_census <- function(df, var_names = "value", cat_var, output_name, age_groups = "all",
+                           output_percent = TRUE, output_population = FALSE, sum_to_100 = TRUE) {
+
+  # Get geography and grouping variables
+  geog <- df_type(df)
+  grouping_vars <- df %cols_in% c(df_type(df), "year", "race", "sex", cat_var)
+
+  # If more than one age group, create column names using age groups. Drop "_all" from group names.
+  if (length(age_groups) > 1) {
+    output_vars <- paste0(output_name, "_", age_groups)
+  } else {
+    output_vars <- output_name
+  }
+  output_vars <- str_replace(output_vars, "_all", "")
+
+  # Summarize data within cat_var categories by grouping vars, including age group
+  for (a in age_groups) {
+
+    temp <- df
+
+    # Subset data to age group
+    if (a == "all") {
+      if("all" %in% df$age_group) temp %<>% filter(age_group == "all")
+
+    } else {
+      ages <- str_split(a, "_", n = 2, simplify = TRUE) %>% as.numeric()
+
+      ages[1] <- replace_na(ages[1], 0)
+      ages[2] <- replace_na(ages[2], Inf)
+
+      temp %<>%
+        filter(
+          age_low  >= ages[1],
+          age_high <= ages[2])
+    }
+
+    # Filter out NA cat_var data, summarise data, and add age group to data frame
+    temp %<>%
+      filter(across(!!cat_var, ~ !is.na(.))) %>%
+      group_by(across(grouping_vars))
+
+    temp_est <- temp %>%
+      filter(est_moe == "estimate") %>%
+      summarise(across(var_names, ~ sum(.)), .groups = "drop") %>%
+      mutate(
+        age_group = a,
+        var_type = "estimate")
+
+    temp_moe <- temp %>%
+      filter(est_moe == "MOE") %>%
+      summarise(across(var_names, ~ sqrt(sum(. * .))), .groups = "drop") %>%
+      mutate(
+        age_group = a,
+        var_type = "MOE")
+
+    temp <- bind_rows(temp_est, temp_moe)
+
+    output <- assign_row_join(output, temp)
+  }
+
+  df <- output
+
+  # If data is county-level, merge St. Louis
+  if (geog == "FIPS") {
+    df %<>% stl_merge(var_names, other_grouping_vars = c(cat_var, "age_group"))
+  }
+
+  # Spread age groups across columns
+  df %<>%
+    pivot_wider(id_cols = c(grouping_vars, "var_type"),
+                names_from = age_group,
+                values_from = var_names,
+                names_glue = paste0(output_name, "_{age_group}"))
+
+  # If more than one age group, create column names using age groups. Drop "_all" from group names.
+  if (length(age_groups) == 1) {
+    df %<>% rename_with(~str_remove(., paste0("_", age_groups)))
+  }
+  df %<>%
+    rename_if(str_detect(names(df), "_all"), ~str_remove(., "_all")) %>%
+    select(all_of(c(grouping_vars, "var_type", output_vars)))
+
+  # Create totals
+  df %<>% total_demographics(output_vars, other_grouping_vars = cat_var)
+
+  # Conserve population data is it will be resummarised for other map geographies
+  df_pop <- df %>%
+    filter(var_type == "estimate") %>%
+    group_by(across(c(geog, "year", "race", "sex"))) %>%
+    mutate(
+      across(output_vars, ~ sum(.), .groups = "drop"),
+      var_type = "population")
+
+  # Calculate percentages
+  if (output_percent) {
+    if (sum_to_100) {
+      df_pct <- df %>%
+        filter(var_type == "estimate") %>%
+        group_by(across(c(geog, "year", "race", "sex"))) %>%
+        mutate(
+          across(output_vars, ~ . / sum(.) * 100),
+          var_type = "percent")
+
+      df %<>% bind_rows(df_pct)
+    }
+    else df %<>% mutate(across(output_vars, ~ . / .[!.data[[cat_var]]] * 100))
+  }
+
+  # filter and remove cat_var if logical
+  if (typeof(df[[cat_var]]) == "logical") {
+    df %<>%
+      bind_rows(df_pop) %>%
+      filter(across(cat_var, ~.)) %>%
+      select(all_of(c(geog, "year", "race", "sex", "var_type", output_vars))) %>%
+      mutate(!!cat_var := TRUE)
+  } else {
+    df %<>%
+      bind_rows(df_pop) %>%
+      select(all_of(c(geog, "year", "race", "sex", "var_type", cat_var, output_vars)))
+  }
+
+  df %<>%
+    rename_if(str_detect(names(df), "_0_"),
+              ~ str_replace(., "_0_\\d*",
+                            paste0("_under_", as.numeric(str_extract(., "(?<=_0_)\\d*")) + 1)))
+
+  output_vars %<>% str_replace(., "_0_\\d*",
+                               paste0("_under_", as.numeric(str_extract(., "(?<=_0_)\\d*")) + 1))
+
+  df_ci <- df %>%
+    group_by(across(grouping_vars)) %>%
+    summarise(
+      across(output_vars, ~ .[var_type == "MOE"] / .[var_type == "population"] * 100),
+      var_type="CI",
+      .groups = "drop")
+
+  df %<>% bind_rows(df_ci)
+
+  if (typeof(df[[cat_var]]) != "logical") {
+    df %<>%
+      pivot_wider(names_from = cat_var, values_from = output_name)
+  } else {
+    df %<>% select(-cat_var)
+  }
+
+  df %<>% organize()
+
+  df
+}

@@ -1,35 +1,9 @@
-#' Read in CDC Wonder data
-#' 
-#' Each file in the folder should be named according to the FIPS code of the data.
-#' 
-#' @param folder A path to a folder containing CDC Wonder data.
-#' @param starting_year The first year for which there is data.
-#' @export
-wonder_time <- function(folder, geog_type = "FIPS"){
-  wd <- getwd()
-  wd <- paste(wd, folder, sep = "/")
-  file_names <- list.files(wd)
-  file_geog <- gsub(".txt", "", file_names)
-  n <- length(file_names)
-
-  for (i in 1:n){
-    file_path <- paste(wd, file_names[i], sep = "/")
-    df <- read_tsv(file_path)
-    df[[geog_type]] <- file_geog[i]
-    
-    if(i == 1){output <- df}
-    else{output <- rbind(output, df)}
-  }
-
-  output
-}
-
 #' Clean CDC Wonder data
 #'
 #' Processes a data frame of CDC Wonder mortality or natality data.
-#' Renames and selects colums of interest, recodes age groups, 
+#' Renames and selects colums of interest, recodes age groups,
 #' filters out rows with totals, recodes race variables, and merges St. Louis counties
-#' 
+#'
 #' @param df A data frame.
 #' @param method "sum" or "weight" to merge St. Louis.
 #' @export
@@ -47,46 +21,46 @@ clean_wonder <- function(df, method = "sum"){
     Births                         = "births",
     Race                           = "race",
     `Bridged Race`                 = "race",
+    `Mother's Bridged Race`        = "race",
     Gender                         = "sex",
     `Age Adjusted Rate`            = "rate",
     `Multiple Cause of death Code` = "cod")
 
-  
+
   #list of variables to keep (same as above list)
-  keep_names <- c("FIPS", "year", "age", "age_10", 
-                  "deaths", "population", "weight", "births", 
+  keep_names <- c("FIPS", "year", "age", "age_10",
+                  "deaths", "population", "weight", "births",
                   "race", "sex", "rate", "cod")
 
   #list of variables to change to numeric
-  numeric_names <- c("year", "age", "deaths", "population", 
+  numeric_names <- c("year", "age", "deaths", "population",
                      "weight", "births", "rate")
 
   df <- df %>%
     plyr::rename(
       replace = names_recode,
       warn_missing = FALSE)
-  
+
   if("age_10_codes" %in% names(df)){
     age_10_df <- data.frame(
-      age_10_codes = c("1", "1-4", "5-14", "15-24", "25-34", "35-44", 
+      age_10_codes = c("1", "1-4", "5-14", "15-24", "25-34", "35-44",
                        "45-54", "55-64", "65-74", "75-84", "85+", "NS"),
-      age_10 = c(0:10, NA), 
-      stringsAsFactors = FALSE)
-    
-    df %<>% 
+      age_10 = c(0:10, NA))
+
+    df %<>%
       left_join(age_10_df, by = "age_10_codes") %>%
       select(-age_10_codes)
   }
-  
+
   #filter rows containing totals (which do not contain specific years)
   df <- df %>%
     filter_at(df %cols_in% c("FIPS", "year", "age", "age_10", "race", "sex"), all_vars(!is.na(.)))
-  
+
   #convert variables to numeric and subset data frame to variables of interest
   df <- df %>%
     mutate_at(df %cols_in% numeric_names, as.numeric) %>%
     select_at(df %cols_in% keep_names)
-  
+
   if("race" %in% names(df)){
     df %<>%
       mutate(
@@ -96,35 +70,30 @@ clean_wonder <- function(df, method = "sum"){
   if("sex" %in% names(df)){
     df %<>% mutate(sex = str_to_lower(sex))
   }
-  
+
+  df %<>%
+    pivot_longer(
+      df %cols_in% c("births", "deaths", "rate", "population"),
+      names_to = "var_type",
+      values_to = df %cols_in% c("births", "deaths", "rate")) %>%
+    mutate(var_type = case_when(
+      var_type %in% c("births", "deaths") ~ "estimate",
+      var_type %in% c("rate") ~ "rate",
+      var_type %in% c("population") ~ "population"))
+
   #Merge Saint Louis Counties
-  
-  #list of variables to group by for summarizing St. Louis data
-  if("FIPS" %in% names(df)){
-    group_vars <- c("FIPS", "year", "age", "age_10", "weight", "race", "sex")
-    
-    #merge St. Louis city and county
-    df <- df %>%
-      mutate(
-        FIPS = replace(FIPS, FIPS %in% c("29189", "29510"), "MERGED"),
-        FIPS = replace(FIPS, FIPS == "01073", "1073"))
-    
-    #Merge St. Louis using a sum
-    if(method == "sum"){
-      df <- df %>%
-        group_by_at(df %cols_in% group_vars) %>%
-        summarise_all(sum) %>%
-        ungroup()
-    }
-    #Merge St. Louis using a weighted average
-    else if (method == "weight"){
-      df <- df %>%
-        group_by_at(df %cols_in% group_vars) %>%
-        summarise(rate = weighted.mean(rate, population)) %>%
-        ungroup()
-    }
+  if ("FIPS" %in% names(df)) {
+    df %<>% stl_merge(df %cols_in% c("births", "deaths", "rate"),
+                      method = method,
+                      other_grouping_vars = df %cols_in% c("age", "age_10")) %>%
+      filter(var_type != "percent")
   }
-  
+
+  if ("race" %not_in% names(df)) df$race <- "total"
+  if ("sex" %not_in% names(df)) df$sex <- "total"
+
+  df %<>% organize()
+
   df
 
 }
@@ -143,7 +112,7 @@ age_adj_rate <- function(df, var, age_var = "age", pop_var = "population"){
   df$pop_var <- df[[pop_var]]
 
   grouping_vars <- c("FIPS", "year", "race", "sex")
-  
+
   # Label age groups
   if(age_var == "age"){
     age_groups <-
@@ -161,7 +130,7 @@ age_adj_rate <- function(df, var, age_var = "age", pop_var = "population"){
           rep(8, 10),
           rep(9, 10),
           rep(10, 16)))
-    
+
     df <- df %>%
       left_join(age_groups, by = c("age_var"))
   } else if(age_var == "age_10"){
@@ -193,7 +162,7 @@ age_adj_rate <- function(df, var, age_var = "age", pop_var = "population"){
         0.044842,
         0.015508))
 
-  # Subset standardized population to only ages present in the sample, 
+  # Subset standardized population to only ages present in the sample,
   #   standardize to total 1, and join to data frame
   std_pop <- std_pop %>%
     filter(age_group %in% df$age_group) %>%
@@ -204,9 +173,9 @@ age_adj_rate <- function(df, var, age_var = "age", pop_var = "population"){
     group_by_at(df %cols_in% grouping_vars) %>%
     summarise(rate = sum(var / pop_var * weight) * 100000) %>%
     ungroup()
-  
+
   df[[var]] <- df$rate
-  
+
   df <- df %>% select(-rate)
 
   df
@@ -221,14 +190,14 @@ age_adj_rate <- function(df, var, age_var = "age", pop_var = "population"){
 #' @param pop_var The population variable.
 #' @export
 stl_adj_wonder <- function(df, method = "sum", pop_var = "population"){
-  
+
   #list of variables to group by for summarizing St. Louis data
-  group_vars <- c("FIPS", "year", "age", "weight", "race")
-  
+  group_vars <- c("FIPS", "year", "age", "age_10", "weight", "race", "sex")
+
   #merge St. Louis city and county
   df <- df %>%
     mutate(FIPS = replace(FIPS, FIPS == "29189" | FIPS == "29510", "MERGED"))
-  
+
   #if any variables that should be weighted are present, weight the data frame
   if(method == "sum"){
     df <- df %>%
@@ -244,34 +213,6 @@ stl_adj_wonder <- function(df, method = "sum", pop_var = "population"){
       ungroup()
   }
   else(df <- NA)
-  
-  df
-}
 
-#' Read in CDC Wonder Data
-#' 
-#' Each file in the folder should be named according to the age included in the data.
-#'
-#' @param folder A path to a folder containing CDC Wonder data.
-#' @param seq_var The variable to sequence along.
-#' @param start The first year of age in the data.
-#' @export
-wonder_time_single <- function(folder, seq_var = "age", start = 0){
-  wd <- getwd()
-  wd <- paste(wd, folder, sep = "/")
-  file_names <- list.files(wd)
-  n <- length(file_names)
-  
-  for (i in 1:n){
-    file_path <- paste(wd, file_names[i], sep = "/")
-    data <- read_tsv(file_path)
-    
-    data[[seq_var]] <- i - 1 + start
-    
-    if(i == 1){df <- data}
-    else{df <- rbind(df, data)}
-    
-  }
-  
   df
 }

@@ -114,8 +114,10 @@ ranking <- function(df, var, plot_title = "",
   if (!missing(label_function)) {
     label_text <- df$var %>% signif(sigfig) %>% label_function()
   } else if (y_title == "Dollars") {
-    if(mean(df$var, na.rm = TRUE) > 10000) {
+    if (mean(df$var, na.rm = TRUE) > 10000) {
       label_text <- df$var %>% signif(sigfig) %>% scales::dollar(accuracy = accuracy, scale = .001, suffix = "k")
+    } else if (mean(df$var, na.rm = TRUE) > 100){
+      label_text <- df$var %>% signif(sigfig) %>% scales::dollar(accuracy = 1)
     } else {
       label_text <- df$var %>% signif(sigfig) %>% scales::dollar(accuracy = .01)
     }
@@ -150,13 +152,13 @@ ranking <- function(df, var, plot_title = "",
   # Add bars
   p <- p +
     geom_bar(aes(color = factor(lou, levels = 0:1)),
-             stat = "identity",
-             size = 2) +
+             size = 2,
+             stat = "identity") +
     coord_flip() +
     ggthemes::theme_tufte()
 
   p <- p + scale_fill_manual(values = color_values)
-  p <- p + scale_color_manual(values = c("#ffffff", "#00a9b7"))
+  p <- p + scale_color_manual(values = c(NA_character_, "#00a9b7"))
 
   # Add features
   title_scale <- min(1, 48 / nchar(plot_title))
@@ -191,15 +193,8 @@ ranking <- function(df, var, plot_title = "",
   p
 }
 
-#' Health Insurance
-#'
-#' Reads in BRFSS data
-#' @param love Do you love cats? Defaults to TRUE.
-#' @keywords cats
+#' @describeIn ranking Outputs ranking data from inside the ranking function
 #' @export
-#' @examples
-#' cat_function()
-#'
 ranking_data <- function(df, variables, years = "", sex = "total", race = "total",
                          descending = TRUE, peers = "Current", new_vars = ""){
 
@@ -207,7 +202,7 @@ ranking_data <- function(df, variables, years = "", sex = "total", race = "total
   variables <- dplyr:::tbl_at_vars(df, vars(!!enquo(variables)))
 
   # Add peer data if not already present
-  if (df_type(df) %in% c("FIPS", "MSA") & "current" %not_in% names(df)) df %<>% pull_peers()
+  if (df_type(df) %in% c("FIPS", "MSA") & "current" %not_in% names(df)) df %<>% pull_peers(add_info = TRUE)
 
   # Filter to peer parameter
   if (peers %in% c("current", "Current"))   df %<>% filter(current == 1)

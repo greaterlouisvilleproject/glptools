@@ -50,6 +50,7 @@ make_map <- function(maps, var,
                      bold_nh = T,
                      save_file = "", save_image = ""){
 
+
   if (is.data.frame(maps)) {maps <- list(maps)}
 
   # Get type of maps
@@ -57,9 +58,10 @@ make_map <- function(maps, var,
 
   # Filter data frames to relevant subset
   filter_fxn <-  function(obj, year, sex, race) {
-    if ("year" %in% names(obj) & year == "") obj <- obj[obj$year == max(obj$year),]
-    if ("race" %in% names(obj)) obj <- obj[obj$race == race,]
-    if ("sex" %in% names(obj))  obj <- obj[obj$sex == sex,]
+    if ("year"     %in% names(obj) & year == "") obj <- obj[obj$year == max(obj$year),]
+    if ("race"     %in% names(obj)) obj <- obj[obj$race == race,]
+    if ("sex"      %in% names(obj)) obj <- obj[obj$sex == sex,]
+    if ("var_type" %in% names(obj)) obj <- obj[obj$var_type == "percent",]
 
     obj
   }
@@ -70,24 +72,24 @@ make_map <- function(maps, var,
   bind_fxn <- function(obj, geog) {
 
     if (geog == "tract") {
-      map_tract <- glptools::map_tract
-      map_tract@data %<>% left_join(obj, by = "tract")
+      map_tract <- sf::st_as_sf(glptools::map_tract)
+      map_tract %<>% left_join(obj, by = "tract")
       return(map_tract)
     } else if (geog == "nh") {
-      map_nh <- glptools::map_nh
-      map_nh@data %<>% left_join(obj, by = "neighborhood")
+      map_nh <- sf::st_as_sf(glptools::map_nh)
+      map_nh %<>% left_join(obj, by = "neighborhood")
       return(map_nh)
     } else if (geog == "muw") {
-      map_muw <- glptools::map_muw
-      map_muw@data %<>% left_join(obj, by = "neighborhood")
+      map_muw <- sf::st_as_sf(glptools::map_muw)
+      map_muw %<>% left_join(obj, by = "neighborhood")
       return(map_muw)
     } else if (geog == "zip") {
-      map_zip <- glptools::map_zip
-      map_zip@data %<>% left_join(obj, by = "zip")
+      map_zip <- sf::st_as_sf(glptools::map_zip)
+      map_zip %<>% left_join(obj, by = "zip")
       return(map_zip)
     } else if (geog == "PUMA") {
-      map_PUMA <- glptools::map_PUMA
-      map_PUMA@data %<>% left_join(obj, by = "PUMA")
+      map_PUMA <- sf::st_as_sf(glptools::map_PUMA)
+      map_PUMA %<>% left_join(obj, by = "PUMA")
       return(map_PUMA)
     }
   }
@@ -95,25 +97,25 @@ make_map <- function(maps, var,
   maps %<>% purrr::map2(geographies, bind_fxn)
 
   # Rename variable to "var"
-  maps %<>% purrr::map(function(obj) {obj@data$var <- obj@data[[var]]; obj})
+  maps %<>% purrr::map(function(obj) {obj$var <- obj[[var]]; obj})
 
   #concatenate second or third line of text for tract labels using units parameter
   line_1_2_fxn <- function(obj, geog) {
     if (geog == "tract") {
-      obj@data %<>%
+      obj %<>%
         mutate(
           line1 = paste0("Tract ", name, " in the "),
           line2 = paste0(neighborhood, " neighborhood"))
     } else if (geog %in% c("nh", "muw")) {
-      obj@data %<>%
+      obj %<>%
         mutate(
           line1 = paste0(neighborhood, " neighborhood"))
     } else if (geog == "zip") {
-      obj@data %<>%
+      obj %<>%
         mutate(
           line1 = paste0("Zip code ", zip))
     } else if (geog == "PUMA") {
-      obj@data %<>%
+      obj %<>%
         mutate(
           line1 = paste0("PUMA ", PUMA))
     }
@@ -124,18 +126,18 @@ make_map <- function(maps, var,
   maps %<>% purrr::map2(geographies, line_1_2_fxn)
 
   line3_fxn <- switch(units,
-                      "Percent" = function(obj) {obj@data %<>% mutate(
+                      "Percent" = function(obj) {obj %<>% mutate(
                         line3 = paste0(hover_name, ": ", round(var, 2), "%")); obj},
 
-                      "Dollars" = function(obj) {obj@data %<>% mutate(
+                      "Dollars" = function(obj) {obj %<>% mutate(
                         line3 = paste0(hover_name, ": $", prettyNum(signif(var, 3),
                                                                     big.mark = ",",
                                                                     preserve.width = "none"))); obj},
 
-                      "none" = function(obj) {obj@data %<>% mutate(
+                      "none" = function(obj) {obj %<>% mutate(
                         line3 = paste0(hover_name, ": ", round(var, 2))); obj},
 
-                      function(obj) {obj@data %<>% mutate(
+                      function(obj) {obj %<>% mutate(
                         line3 = paste(hover_name, ": ", round(var, 2), " ", units)); obj})
 
   maps %<>% purrr::map(line3_fxn)
@@ -143,26 +145,26 @@ make_map <- function(maps, var,
   #combine lines of text into full formatted label
   label_fxn <- function(obj) {
 
-    if("line2" %in% names(obj@data)){
+    if("line2" %in% names(obj)){
       labels <- sprintf("%s<br/>%s<br/>%s",
-                        obj@data$line1,
-                        obj@data$line2,
-                        obj@data$line3) %>%
+                        obj$line1,
+                        obj$line2,
+                        obj$line3) %>%
         lapply(htmltools::HTML)
 
-      labels[[which(obj@data$neighborhood == "Airport")]] <-
+      labels[[which(obj$neighborhood == "Airport")]] <-
         htmltools::HTML(sprintf("%s<br/>%s<br/>%s",
                                 "Tract 98",
                                 "Louisville International Airport",
                                 "No residents"))
     } else {
       labels <- sprintf("%s<br/>%s",
-                        obj@data$line1,
-                        obj@data$line3) %>%
+                        obj$line1,
+                        obj$line3) %>%
         lapply(htmltools::HTML)
 
-      if ("neighborhood" %in% names(obj@data)) {
-        labels[[which(obj@data$neighborhood == "Airport")]] <-
+      if ("neighborhood" %in% names(obj)) {
+        labels[[which(obj$neighborhood == "Airport")]] <-
           htmltools::HTML(sprintf("%s<br/>%s",
                                   "Louisville International Airport",
                                   "No residents"))
@@ -184,11 +186,11 @@ make_map <- function(maps, var,
 
   if (reverse_pal) pal <- rev(pal)
 
-  var_range <- purrr::map(maps, function(obj) range(obj@data$var, na.rm = T)) %>%
+  var_range <- purrr::map(maps, function(obj) range(obj$var, na.rm = T)) %>%
     unlist() %>%
     range()
 
-  na_present <- purrr::map(maps, function(obj) any(is.na(obj@data$var))) %>%
+  na_present <- purrr::map(maps, function(obj) any(is.na(obj$var))) %>%
     unlist() %>%
     any()
 
@@ -281,7 +283,7 @@ make_map <- function(maps, var,
 }
 
 
-#' BRFSS
+#' Deprecate this
 #'
 #' Reads in BRFSS data
 #' @param love Do you love cats? Defaults to TRUE.

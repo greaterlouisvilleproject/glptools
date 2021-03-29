@@ -5,7 +5,8 @@ tl <- function(type, df, var,
                cat = "", include_hispanic = F, include_asian = T,
                plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
                zero_start = F, ylimits = "", pctiles = T, shading = F,
-               label_function = NULL, axis_function = NULL, year_breaks = NULL){
+               label_function = NULL, axis_function = NULL, year_breaks = NULL,
+               text_scale = 2, endpoint_labels = TRUE){
 
   if (length(var) == 1) df$var <- df[[var]]
 
@@ -17,8 +18,8 @@ tl <- function(type, df, var,
   tl_filter(df, var, peers, cat, include_hispanic, include_asian) %>%
     list2env(envir = parent.env(environment()))
 
-  if(xmin == "" | is.na(xmin)) xmin <- min(years_in_df(df, var))
-  if(xmax == "" | is.na(xmax)) xmax <- max(years_in_df(df, var))
+  if (xmin == "" | is.na(xmin)) xmin <- min(years_in_df(df, var))
+  if (xmax == "" | is.na(xmax)) xmax <- max(years_in_df(df, var))
 
   # Calculate mean, percentiles, and Louisville values
   if(type %in% c("standard", "kentucky", "data")){
@@ -49,14 +50,14 @@ tl <- function(type, df, var,
     list2env(envir = parent.env(environment()))
 
   # Initial plot
-  g <- tl_plot(df)
+  g <- tl_plot(df, text_scale)
 
   # Axis limits
   g %<>% tl_limits(df, xmin, xmax, ylimits, major_break_settings, minor_break_settings,
-                   y_title, label_function, axis_function)
+                   y_title, label_function, axis_function, endpoint_labels)
 
   # Add style
-  g %<>% tl_style(plot_title, y_title, caption_text, subtitle_text, cat_names)
+  g %<>% tl_style(plot_title, y_title, caption_text, subtitle_text, cat_names, text_scale)
 
   #add color and line types
   if(type %in% c("standard", "kentucky")){
@@ -436,8 +437,9 @@ tl_add_line_data_maxmin <- function(df){
 #' @param ... df, xmin, xmax, rollmean
 #' @return major break settings and minor break settings
 tl_break_settings <- function(df, xmin, xmax, rollmean){
-  #If 5 or fewers years of data displayed, show every year on x-axis
-  #Otherwise, show every other year on x-axis
+
+  # If 5 or fewer years of data displayed, show every year on x-axis
+  # Otherwise, show every other year on x-axis
   if(xmax - xmin <= 5){
     skip = 1
   } else {
@@ -448,33 +450,30 @@ tl_break_settings <- function(df, xmin, xmax, rollmean){
   census <- 2000 %in% years_in_df(df) &
     all(2001:2004 %not_in% years_in_df(df))
 
-  #If 2000 is included and 2001 is not, then skip interim years. By default,
-  #a minor break will occur between 2000 and the first year of ACS data. Remove that line.
-  #Otherwise, include every year.
-
-  #If there are an odd number of years and every other year is displayed,
-  #show the most recent year
+  # If census, then skip interim years not in the data.
   first_value <- if_else(census, 2005 + floor(rollmean / 2), xmin)
-  odd_years <- (xmax - first_value) %% 2 == 1
-  skip_first <- odd_years & (skip == 2)
 
-  if(census){
-    if(skip_first) {
-      major_break_settings <- c(2000, seq(first_value + 1, xmax, skip))
-      minor_break_settings <- seq(first_value, xmax - 1, skip)
-    } else {
-      major_break_settings <- c(2000, seq(first_value, xmax - 1, skip))
-      minor_break_settings <- seq(first_value + 1, xmax - 1, skip)
-    }
+  # The major break settings are generated backwards to ensure the most
+  # recent year is labeled and receives a major break line regardless
+  # of whether there are an even or odd number of years. (It's reversed later.)
+  major_break_settings <- seq(xmax, first_value, skip * -1)
+
+  # Minor breaks are generated unless there are not enough years for skip == 2.
+  # They are also generated in reverse to align correctly with major breaks.
+  if (skip == 2) {
+    minor_break_settings <- seq(xmax - 1, first_value, skip * -1)
   } else {
-    if (skip_first){
-      major_break_settings = seq(xmin + 1, xmax, skip)
-      minor_break_settings = waiver()
-    } else {
-      major_break_settings = seq(xmin, xmax, skip)
-      minor_break_settings = waiver()
-    }
+    minor_break_settings = waiver()
   }
+
+  # If the data includes 2000, 2000 is added to the major breaks.
+  if (census) {
+    major_break_settings = c(major_break_settings, 2000)
+  }
+
+  # Reverse the break settings
+  major_break_settings = rev(major_break_settings)
+  minor_break_settings = rev(minor_break_settings)
 
   make_list(major_break_settings, minor_break_settings)
 }
@@ -483,7 +482,7 @@ tl_break_settings <- function(df, xmin, xmax, rollmean){
 #'
 #' @param df A data frame
 #' @return A ggplot object
-tl_plot<- function(df){
+tl_plot<- function(df, text_scale){
   p <- ggplot(data = df,
               aes(x = year, y = value,
                   group = line_group,
@@ -491,11 +490,9 @@ tl_plot<- function(df){
                   linetype = style_group,
                   alpha = style_group,
                   label = value))
-  txt_scale <- 2
-
   p <- p +
-    geom_point(size = 2 * txt_scale) +
-    geom_line(size = 1  * txt_scale)
+    geom_point(size = 2 * text_scale) +
+    geom_line(size = 1  * text_scale)
 
   if (min(df$value, na.rm = T) < 0) p <- p + geom_hline(yintercept = 0, linetype = "longdash", size = 0.75)
 
@@ -507,7 +504,7 @@ tl_plot<- function(df){
 #' @return A ggplot object
 tl_limits <- function(p, df, xmin, xmax, ylimits,
                       major_break_settings, minor_break_settings, y_title,
-                      label_function, axis_function){
+                      label_function, axis_function, endpoint_labels){
 
   if(length(ylimits) == 1){
     #midpoint <- (max(df$value, na.rm = TRUE) +
@@ -554,7 +551,11 @@ tl_limits <- function(p, df, xmin, xmax, ylimits,
 
   label_length <- max(nchar(label_text))
 
-  xmax_adjustment <- 0.01 + 0.0125 * label_length
+  if (endpoint_labels) {
+    xmax_adjustment <- 0.01 + 0.0125 * label_length
+  } else (
+    xmax_adjustment <- 0
+  )
 
   p <- p +
     scale_x_continuous(
@@ -566,17 +567,19 @@ tl_limits <- function(p, df, xmin, xmax, ylimits,
       breaks = pretty_breaks(),
       labels = axis_format)
 
-  p <- p +
-    geom_text_repel(
-      data = df_label,
-      aes(label = label_text),
-      xlim = c(xmax + (xmax - xmin) * .01, xmax + (xmax - xmin) * xmax_adjustment),
-      size = 18,
-      hjust = 0,
-      alpha = 1,
-      segment.alpha = 0,
-      family = "Museo Sans 300",
-      show.legend = FALSE)
+  if (endpoint_labels) {
+    p <- p +
+      geom_text_repel(
+        data = df_label,
+        aes(label = label_text),
+        xlim = c(xmax + (xmax - xmin) * .01, xmax + (xmax - xmin) * xmax_adjustment),
+        size = 18,
+        hjust = 0,
+        alpha = 1,
+        segment.alpha = 0,
+        family = "Museo Sans 300",
+        show.legend = FALSE)
+  }
 
   p
 }
@@ -586,34 +589,33 @@ tl_limits <- function(p, df, xmin, xmax, ylimits,
 #' @return A ggplot object
 tl_style <- function(p, plot_title, y_title,
                      caption_text, subtitle_text,
-                     cat_names, x_title = "Year"){
+                     cat_names, text_scale, x_title = "Year"){
 
-  txt_scale <- 2
   title_scale <- min(1, 48 / nchar(plot_title))
 
   #adjust theme
   p <- p + theme_bw(
-    base_size = 11 * txt_scale,
+    base_size = 11 * text_scale,
                     base_family = "Museo Sans 300")
 
   p <- p + theme(
     legend.title     = element_blank(),
     legend.position  = "top",
-    legend.margin    = margin(t = 0.4 * txt_scale, unit = "cm"),
-    legend.spacing.x = unit(0.4 * txt_scale, "cm"),
-    legend.text      = element_text(size = 20 * txt_scale,
-                                    margin = margin(b = 0.2 * txt_scale, t = 0.2 * txt_scale, unit = "cm")),
+    legend.margin    = margin(t = 0.4 * text_scale, unit = "cm"),
+    legend.spacing.x = unit(0.4 * text_scale, "cm"),
+    legend.text      = element_text(size = 20 * text_scale,
+                                    margin = margin(b = 0.2 * text_scale, t = 0.2 * text_scale, unit = "cm")),
 
-    axis.text    = element_text(size = 24 * txt_scale),
-    axis.title   = element_text(size = 30 * txt_scale),
-    axis.title.x = element_text(margin = margin(t = 0.3 * txt_scale, unit = "cm")),
-    axis.title.y = element_text(margin = margin(r = 0.3 * txt_scale, unit = "cm")),
+    axis.text    = element_text(size = 24 * text_scale),
+    axis.title   = element_text(size = 30 * text_scale),
+    axis.title.x = element_text(margin = margin(t = 0.3 * text_scale, unit = "cm")),
+    axis.title.y = element_text(margin = margin(r = 0.3 * text_scale, unit = "cm")),
 
-    plot.title = element_text(size = 42 * txt_scale * title_scale,
+    plot.title = element_text(size = 42 * text_scale * title_scale,
                               hjust = .5,
-                              margin = margin(b = 0.4 * txt_scale, unit = "cm")),
+                              margin = margin(b = 0.4 * text_scale, unit = "cm")),
 
-    plot.caption = element_text(size = 18 * txt_scale,
+    plot.caption = element_text(size = 18 * text_scale,
                                 lineheight = 0.5))
 
 
@@ -627,17 +629,26 @@ tl_style <- function(p, plot_title, y_title,
   #add subtitle if included
   if(subtitle_text != ""){
     p <- p +
-      theme(plot.subtitle = element_text(hjust = 0.5, size = 24 * txt_scale)) +
+      theme(plot.subtitle = element_text(hjust = 0.5, size = 24 * text_scale)) +
       labs(subtitle = subtitle_text)
   }
 
   # If two rows of legend entries will be displayed, align the categories vertically.
   if(length(cat_names) >= 4){
     p <- p + guides(colour = guide_legend(label.position = "top",
-                                          keywidth = unit(6 * txt_scale, "lines")))
+                                          keywidth = unit(6 * text_scale, "lines")))
   } else {
     p <- p + guides(colour = guide_legend(label.position = "top"))
   }
+
+  p <- p +
+    theme(
+      panel.background = element_rect(fill = "transparent", color = NA), # bg of the panel
+      plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+      legend.background = element_rect(fill = "transparent", color = "transparent"), # get rid of legend bg
+      legend.box.background = element_rect(fill = "transparent", color = "transparent"), # get rid of legend panel bg
+      legend.key = element_rect(fill = "transparent",colour = NA)
+    )
 
   p
 }
@@ -657,7 +668,7 @@ tl_lines <- function(p, df, shading, cat_names, pctiles){
   if(v == 1){
     line_col   <- c("#00a9b7", "black", "grey50")
   } else {
-    pal <- brewer_pal("qual", "Set1")(v)
+    pal <- c("#0e4a99", "#f58021", "#00a9b7", "#800055", "#356E39", "#CFB94C", "#7E9C80")[1:v]
     line_col   <- c(rep(pal, each = 2))
     if (pctiles) line_col = c(line_col, "grey50")
   }

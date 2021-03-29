@@ -1,9 +1,50 @@
-#' Read in ACS data
+#' GLP Readers
 #'
-#' @param folder A path to a folder containing ACS data.
+#' Read a folder of files to a data frame
+#'
+#' @param folder A path to a folder containing files.
+#' Years are assigned based on the file order, so the alphabetical order should match the chronological order.
 #' @param starting_year The first year for which there is data.
+#' @param geog The geographic level of the data, usually \code{FIPS}, \code{MSA}, or \code{tract}
+#' @param additional_geogs Additional geographies to be included in the final data frame.
+#' @param skip Number of lines to skip from the top of the file
+#' @param col_types Types of columns to pass to the reader functions
+#' @param read_fxn Reader function
+#'
+#' @return A data frame subset to peers
+#'
+#' @examples
+#' acs_time("bach_plus", additional_geogs = "21067")
+#'
+#' @name readers
+NULL
+
+#' @describeIn readers Reads in a folder of data
 #' @export
-#' @return A data frame
+any_time <- function(folder, starting_year = 2005, skip = 0, col_types = NULL, read_fxn){
+  wd <- getwd()
+  directory <- paste0(wd, "/", folder)
+  file_names <- list.files(directory)
+  n <- length(file_names)
+  y <- starting_year
+  for (i in 1:n){
+    file_path <- paste0(wd, "/", folder, "/", file_names[i])
+
+    if (missing(read_fxn)) df <- read_csv(file_path, skip = skip, col_types = col_types)
+    else df <- read_fxn(file_path)
+
+    if (!is.na(starting_year)) {
+      df$year <- y
+      y <- y + 1
+    }
+
+    output <- assign_row_join(output, df)
+  }
+  output
+}
+
+#' @describeIn readers Reads in a folder of ACS data
+#' @export
 acs_time <- function(folder, geog = "FIPS", starting_year = 2005, additional_geogs = ""){
   wd <- getwd()
   directory <- paste0(wd, "/", folder)
@@ -48,39 +89,7 @@ acs_time <- function(folder, geog = "FIPS", starting_year = 2005, additional_geo
   output
 }
 
-#' Read in a folder of CSV files
-#'
-#' @param folder A path to a folder containing ACS data.
-#' @param starting_year The first year for which there is data.
-#' @param skip Nu8mber of lines to skip.
-#' @export
-#' @return A data frame
-any_time <- function(folder, starting_year = 2005, skip = 0, col_types = NULL, read_fxn){
-  wd <- getwd()
-  directory <- paste0(wd, "/", folder)
-  file_names <- list.files(directory)
-  n <- length(file_names)
-  y <- starting_year
-  for (i in 1:n){
-    file_path <- paste0(wd, "/", folder, "/", file_names[i])
-
-    if (missing(read_fxn)) df <- read_csv(file_path, skip = skip, col_types = col_types)
-    else df <- read_fxn(file_path)
-
-    if (!is.na(starting_year)) {
-      df$year <- y
-      y <- y + 1
-    }
-
-    output <- assign_row_join(output, df)
-  }
-  output
-}
-
-#' Read in BRFSS data
-#'
-#' @param folder A path to a folder containing BRFSS data.
-#' @param starting_year The first year for which there is data.
+#' @describeIn readers Reads in a folder of BRFSS data
 #' @export
 brfss_time <- function(folder){
 
@@ -89,7 +98,8 @@ brfss_time <- function(folder){
   file_names <- list.files(wd)
   n <- length(file_names)
 
-  for (y in 2002:2017) {
+  for (y in 2002:2019) {
+
     file_path <- paste(wd, file_names[y - 2001], sep = "/")
     df <- Hmisc::sasxport.get(file_path)
 
@@ -97,25 +107,30 @@ brfss_time <- function(folder){
 
     age_var <-
       c("a.impage", # 2002
-        "x.impage", "x.impage", "x.impage", "x.impage", "x.impage", "x.impage", #2003 - 2008
-        "age", "age", "age", "age", #2009 - 2012
-        "x.age80", "x.age80", "x.age80", "x.age80", "x.age80") #2013 - 2017
+        rep("x.impage", 6), #2003 - 2008
+        rep("age", 4), #2009 - 2012
+        rep("x.age80", 7)) #2013 - 2019
 
     race_var <-
       c("a.racegr", # 2002
-        "x.racegr2", "x.racegr2", "x.racegr2", "x.racegr2", "x.racegr2",
-        "x.racegr2", "x.racegr2", "x.racegr2", "x.racegr2", "x.racegr2", #2003 - 2012
-        "x.racegr3", "x.racegr3", "x.racegr3", "x.racegr3", "x.racegr3") #2013 - 2017
+        rep("x.racegr2", 10),  #2003 - 2012
+        rep("x.racegr3", 7)) #2013 - 2019
+
+    sex_var <-
+      c(rep("sex", 16), # 2002 - 2017
+        "sex1", # 2018
+        "x.sex") # 2019
 
     diabetes_var <-
       c(rep("diabetes", 2), # 2002 - 2003
         rep("diabete2", 7), # 2004 - 2010
-        rep("diabete3", 7)) # 2011 - 2017
+        rep("diabete3", 8), # 2011 - 2018
+        rep("diabete4", 1)) # 2019
 
     asthma_var <-
       c("a.asthms",
         rep("x.asthmst", 8), # 2003 - 2010
-        rep("x.asthms1", 7)) # 2011 - 2017
+        rep("x.asthms1", 9)) # 2011 - 2019
 
     if (y == 2002) {
 
@@ -133,10 +148,20 @@ brfss_time <- function(folder){
 
     } else if (y >= 2003) {
 
+      check <- c("x.mmsa", "x.mmsawt", age_var[y - 2001], sex_var[y - 2001],
+                 race_var[y - 2001], "genhlth", "physhlth", "menthlth", diabetes_var[y - 2001],
+                 asthma_var[y - 2001], "persdoc2")
+
+      if (all(check %in% names(df))) {
+        print(y)
+      } else {
+        print(paste0(y, ": missing ", check[check %not_in% names(df)]))
+      }
+
       df <- data.frame(MSA = df$x.mmsa,
                        wgt = df$x.mmsawt,
                        age = df[[age_var[y - 2001]]],
-                       sex = df$sex,
+                       sex = df[[sex_var[y - 2001]]],
                        race = df[[race_var[y - 2001]]],
                        genhlth = df$genhlth,
                        physdays = df$physhlth,
@@ -157,16 +182,13 @@ brfss_time <- function(folder){
       age = replace(age, age %in% c(7, 9), NA),
       sex = recode(sex, "male", "female", .default = NA_character_),
       race = recode(race, "white", "black", "other", "other", "hispanic", NA_character_)) %>%
-    pull_peers_MSA(add_info = F) %>%
+    pull_peers(add_info = F) %>%
     organize()
 
   output
 }
 
-#' Read in County Business Pattern data
-#'
-#' @param folder A path to a folder containing CBP data.
-#' @param starting_year The first year for which there is data.
+#' @describeIn readers Reads in a folder of County Business Pattern data
 #' @export
 business_time <- function(folder, starting_year = 2004){
   wd <- getwd()
@@ -208,10 +230,7 @@ business_time <- function(folder, starting_year = 2004){
   df
 }
 
-#' Read in health insurance data
-#'
-#' @param folder A path to a folder containing SAIHI data.
-#' @param starting_year The first year for which there is data.
+#' @describeIn readers Reads in a folder of SAIHI data
 #' @export
 insurance_time <- function(directory = "", starting.year=2008){
   wd <- getwd()
@@ -259,10 +278,7 @@ insurance_time <- function(directory = "", starting.year=2008){
   df
 }
 
-#' Read in unemployment data
-#'
-#' @param folder A path to a folder containing CPS unemployment data.
-#' @param starting_year The first year for which there is data.
+#' @describeIn readers Reads in a folder of CPS unemployment data
 #' @export
 unemployment_time <- function(folder, starting_year = 2000){
   wd <- getwd()
@@ -286,6 +302,55 @@ unemployment_time <- function(folder, starting_year = 2000){
       df <- rbind(df, data)
     }
   }
+  df
+}
+
+#' @describeIn readers Read in CDC Wonder data
+#'   Each file in the folder should be named according to the FIPS code of the data.
+#' @export
+wonder_time <- function(folder, geog_type = "FIPS"){
+  wd <- getwd()
+  wd <- paste(wd, folder, sep = "/")
+  file_names <- list.files(wd)
+  file_geog <- gsub(".txt", "", file_names)
+  n <- length(file_names)
+
+  for (i in 1:n){
+    file_path <- paste(wd, file_names[i], sep = "/")
+    df <- read_tsv(file_path)
+    df[[geog_type]] <- file_geog[i]
+
+    if(i == 1){output <- df}
+    else{output <- rbind(output, df)}
+  }
+
+  output
+}
+
+
+#' Read in CDC Wonder Data where each file is an age...deprecated?
+#
+#' @param folder A path to a folder containing CDC Wonder data.
+#' @param seq_var The variable to sequence along.
+#' @param start The first year of age in the data.
+#' @export
+wonder_time_age <- function(folder, seq_var = "age", start = 0){
+  wd <- getwd()
+  wd <- paste(wd, folder, sep = "/")
+  file_names <- list.files(wd)
+  n <- length(file_names)
+
+  for (i in 1:n){
+    file_path <- paste(wd, file_names[i], sep = "/")
+    data <- read_tsv(file_path)
+
+    data[[seq_var]] <- i - 1 + start
+
+    if(i == 1){df <- data}
+    else{df <- rbind(df, data)}
+
+  }
+
   df
 }
 
