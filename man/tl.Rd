@@ -26,7 +26,9 @@ tl(
   shading = F,
   label_function = NULL,
   axis_function = NULL,
-  year_breaks = NULL
+  year_breaks = NULL,
+  text_scale = 2,
+  endpoint_labels = TRUE
 )
 }
 \description{

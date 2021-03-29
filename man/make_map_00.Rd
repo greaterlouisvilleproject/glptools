@@ -2,7 +2,7 @@
 % Please edit documentation in R/map.R
 \name{make_map_00}
 \alias{make_map_00}
-\title{BRFSS}
+\title{Deprecate this}
 \usage{
 make_map_00(
   var,

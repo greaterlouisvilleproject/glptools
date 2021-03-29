@@ -14,7 +14,8 @@ tl_limits(
   minor_break_settings,
   y_title,
   label_function,
-  axis_function
+  axis_function,
+  endpoint_labels
 )
 }
 \value{

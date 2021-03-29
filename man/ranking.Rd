@@ -2,6 +2,7 @@
 % Please edit documentation in R/ranking.R
 \name{ranking}
 \alias{ranking}
+\alias{ranking_data}
 \title{GLP Ranking}
 \usage{
 ranking(
@@ -22,6 +23,17 @@ ranking(
   label_function,
   alternate_text = NULL,
   ranking_colors = TRUE
+)
+
+ranking_data(
+  df,
+  variables,
+  years = "",
+  sex = "total",
+  race = "total",
+  descending = TRUE,
+  peers = "Current",
+  new_vars = ""
 )
 }
 \arguments{
@@ -75,6 +87,11 @@ The parameters are organized into four sections:
   \item{\strong{Manipulate Bar Labels}: \code{bar_label}, \code{sigfig}, \code{accuracy}, \code{label_function}, \code{alternate_text}}
 }
 }
+\section{Functions}{
+\itemize{
+\item \code{ranking_data}: Outputs ranking data from inside the ranking function
+}}
+
 \examples{
 ranking(education_county, bach_plus, plot_title = "Bachelor's or Higher", caption_text = "GLP")
 

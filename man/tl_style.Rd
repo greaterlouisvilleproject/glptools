@@ -11,6 +11,7 @@ tl_style(
   caption_text,
   subtitle_text,
   cat_names,
+  text_scale,
   x_title = "Year"
 )
 }

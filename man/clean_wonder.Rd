@@ -13,6 +13,6 @@ clean_wonder(df, method = "sum")
 }
 \description{
 Processes a data frame of CDC Wonder mortality or natality data.
-Renames and selects colums of interest, recodes age groups, 
+Renames and selects colums of interest, recodes age groups,
 filters out rows with totals, recodes race variables, and merges St. Louis counties
 }
