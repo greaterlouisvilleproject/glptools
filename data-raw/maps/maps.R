@@ -2,29 +2,26 @@ library(dplyr)
 library(readr)
 library(stringr)
 library(magrittr)
-library(rgdal)
+library(sf)
+source("R/operators.R")
 
 path <- "data-raw/maps/"
 
 # Crosswalks
+nh_tract        <- read_csv(path %p% "crosswalks/tract_to_nh.csv",              col_types = "cc")
+ma_tract        <- read_csv(path %p% "crosswalks/tract_to_ma.csv",              col_types = "cc")
+watterson_tract <- read_csv(path %p% "crosswalks/tract_to_watterson.csv",       col_types = "cn")
+west_lou_tract  <- read_csv(path %p% "crosswalks/tract_to_west_louisville.csv", col_types = "cn")
+muw_tract       <- read_csv(path %p% "MUW/Jefferson_Tract_Neighborhood.csv",    col_types = "cc",
+                      skip = 2, col_names = TRUE)
 
-nh_tract <- read_csv(path %p% "crosswalks/tract_to_nh.csv", col_types = "cc")
 attr(nh_tract, 'spec') <- NULL
-
-ma_tract <- read_csv(path %p% "crosswalks/tract_to_ma.csv", col_types = "cc")
 attr(ma_tract, 'spec') <- NULL
+attr(watterson_tract, 'spec') <- NULL
+attr(watterson_tract, 'spec') <- NULL
+attr(muw_tract, 'spec') <- NULL
 
 ma_tract %<>% rename(market_area = `Market Area`)
-
-watterson_tract <- read_csv(path %p% "crosswalks/tract_to_watterson.csv", col_types = "cn")
-attr(watterson_tract, 'spec') <- NULL
-
-west_lou_tract <- read_csv(path %p% "crosswalks/tract_to_west_louisville.csv", col_types = "cn")
-attr(watterson_tract, 'spec') <- NULL
-
-muw_tract <- read_csv(path %p% "MUW/Jefferson_Tract_Neighborhood.csv",
-                      skip = 2, col_names = TRUE, col_types = "cc")
-attr(muw_tract, 'spec') <- NULL
 
 muw_tract %<>%
   transmute(
@@ -32,128 +29,99 @@ muw_tract %<>%
     neighborhood = Neighborhood)
 
 
-#Shapefiles
+#Shape files
 
-map_block_group <- readOGR(path %p% "block_group", layer = "tl_2018_21_bg",
-                           GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
+map_elementary  <- st_read(path %p% "20192020_Elementary_Shapefile", quiet = TRUE)
+save(map_elementary, file = "../Projects/early-childhood/map_elementary.RData")
 
-map_tract <- readOGR(path %p% "tract_2010", layer = "tract",
-                     GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
+map_block_group  <- st_read(path %p% "block_group",    quiet = TRUE)
+map_tract        <- st_read(path %p% "tract_2010",     quiet = TRUE)
+map_tract_all_00 <- st_read(path %p% "tract_all_2000", quiet = TRUE)
+map_tract_all_10 <- st_read(path %p% "tract_all_2010", quiet = TRUE)
+map_nh           <- st_read(path %p% "neighborhood",   quiet = TRUE)
+map_zip          <- st_read(path %p% "zip",            quiet = TRUE)
+map_market       <- st_read(path %p% "market area",    quiet = TRUE)
+map_county       <- st_read(path %p% "county",         quiet = TRUE)
+map_PUMA         <- st_read(path %p% "puma_2010",      quiet = TRUE)
+map_district     <- st_read("data-raw/council_tract/Council_Districts", quiet = TRUE)
 
-map_tract_2000 <- readOGR(path %p% "tract_2000", layer = "tr21_d00",
-                          GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
-
-map_nh <- readOGR(path %p% "neighborhood", layer = "neighborhood",
-                  GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
-
-suppressWarnings(
-map_zip <- readOGR(path %p% "zip", layer = "Jefferson_County_KY_ZIP_Codes",
-                   GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
-)
-
-map_market <- readOGR(path %p% "market area", layer = "market area",
-                      GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
-
-map_county <- readOGR(path %p% "county", layer = "cb_2017_us_county_5m",
-                      GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
-
-map_PUMA <- readOGR(path %p% "puma_2010", layer = "ipums_puma_2010",
-                    GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
-
-map_PUMA@data %<>%
-  transmute(
-    STATEFIP,
-    PUMA = as.numeric(PUMA))
-
-map_PUMA <- map_PUMA[map_PUMA@data$STATEFIP == "21" &
-                     map_PUMA@data$PUMA %in% 1701:1706,]
-
-map_PUMA %<>% spTransform(map_tract@proj4string@projargs)
-
-# 2010 tracts
-map_tract_all_10 <- readOGR(path %p% "tract_all_2010", layer = "US_tract_2018",
-                            GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
-
-map_tract_all_10@data %<>%
-  transmute(
-    FIPS = paste0(STATEFP, COUNTYFP),
-    tract = GEOID)
-
-map_tract_all_10 <- map_tract_all_10[map_tract_all_10@data$FIPS %in% FIPS_df_two_stl$FIPS,]
-
-map_tract_all_10 <- map_tract_all_10[order(map_tract_all_10@data$tract),]
-
-# 2000 tracts
-map_tract_all_00 <- readOGR(path %p% "tract_all_2000", layer = "US_tract10_2000",
-                            GDAL1_integer64_policy = TRUE, stringsAsFactors = FALSE, verbose = FALSE)
-
-map_tract_all_00@data %<>%
-  transmute(
-    FIPS = paste0(STATEFP00, COUNTYFP00),
-    tract = CTIDFP00)
-
-map_tract_all_00 <- map_tract_all_00[map_tract_all_00@data$FIPS %in% FIPS_df_two_stl$FIPS,]
-
-map_tract_all_00 <- map_tract_all_00[order(map_tract_all_00@data$tract),]
-
-# Check if ordered
-#mean(map_tract_all_00@data$tract[order(map_tract_all_00@data$tract)] == map_tract_all_00@data$tract)
-
-# Create MUW map
-map_block_group <- map_block_group[map_block_group@data$COUNTYFP == "111",]
-map_block_group@data %<>%
+map_block_group %<>%
+  st_transform(4326) %>%
+  filter(COUNTYFP == "111") %>%
   transmute(
     block_group = GEOID,
     tract = "21111" %p% TRACTCE,
     name = as.numeric(BLKGRPCE))
 
-map_tract@data %<>%
+map_tract %<>%
+  st_transform(4326) %>%
   transmute(
     tract = str_sub(GEO_ID, -11),
     name = as.numeric(NAME)) %>%
   left_join(nh_tract, by = "tract")
 
-
-map_muw <- map_tract
-
-map_muw@data %<>%
-  select(-neighborhood) %>%
-  left_join(muw_tract, by =  "tract")
-
-row.names(map_muw) <- row.names(map_muw@data)
-map_muw <- spChFIDs(map_muw, row.names(map_muw))
-
-map_muw <- rgeos::gUnaryUnion(map_muw, id = map_muw@data$neighborhood)
-
-nh_names <- row.names(map_muw)
-
-nh_names <- data.frame(neighborhood = nh_names, row.names = nh_names, stringsAsFactors = FALSE)
-
-map_muw <- SpatialPolygonsDataFrame(map_muw, nh_names)
-
-
-map_tract_2000 <- map_tract_2000[map_tract_2000@data$COUNTY == "111",]
-map_tract_2000@data %<>%
+map_tract_all_00 %<>%
+  st_transform(4326) %>%
   transmute(
-    tract = TRACT,
-    name = as.numeric(NAME))
+    FIPS = paste0(STATEFP00, COUNTYFP00),
+    tract = CTIDFP00) %>%
+  filter(FIPS %in% FIPS_df_two_stl$FIPS) %>%
+  arrange(tract)
 
-map_zip@data %<>%
+map_tract_all_10 %<>%
+  st_transform(4326) %>%
+  transmute(
+    FIPS = paste0(STATEFP, COUNTYFP),
+    tract = GEOID)  %>%
+  filter(FIPS %in% FIPS_df_two_stl$FIPS) %>%
+  arrange(tract)
+
+map_PUMA %<>%
+  st_transform(4326) %>%
+  transmute(
+    STATEFIP,
+    PUMA = as.numeric(PUMA)) %>%
+  filter(STATEFIP == "21", PUMA %in% 1701:1706)
+
+map_muw <- map_tract %>%
+  st_transform(4326) %>%
+  select(-neighborhood) %>%
+  left_join(muw_tract, by =  "tract") %>%
+  group_by(neighborhood) %>%
+  summarise(geometry = st_union(geometry), .groups = "drop")
+
+map_zip %<>%
+  st_transform(4326) %>%
   transmute(
     zip = ZIPCODE)
 
-map_nh@data %<>%
+map_nh %<>%
+  st_transform(4326) %>%
   transmute(
     neighborhood = Neighborho)
 
-map_market@data %<>%
+map_market %<>%
+  st_transform(4326) %>%
   transmute(
     market = Area)
 
-map_county@data %<>%
+map_county %<>%
+  st_transform(4326) %>%
   transmute(
     FIPS = FIPS,
     county = NAME)
+
+# Derive 2000 tracts for just Louisville
+map_tract_2000 <- map_tract_all_00 %>%
+  st_transform(4326) %>%
+  filter(FIPS == "21111") %>%
+  transmute(
+    tract,
+    name = as.numeric(str_sub(tract, 6, 11)) / 100)
+
+map_district %<>%
+  st_transform(4326) %>%
+  transmute(district = coundist)
 
 usethis::use_data(nh_tract, ma_tract, watterson_tract, west_lou_tract, muw_tract,
                   map_tract_all_00, map_tract_all_10,

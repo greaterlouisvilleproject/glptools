@@ -1,7 +1,8 @@
 library(readr)
 library(dplyr)
 library(magrittr)
-source("R/general.R")
+source("R/operators.R")
+source("R/general_utils.R")
 
 path <- "data-raw/basic_info/"
 

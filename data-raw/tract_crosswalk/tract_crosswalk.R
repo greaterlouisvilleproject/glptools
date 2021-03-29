@@ -27,7 +27,6 @@ tract_crosswalk %<>%
     str_sub(GEOID10, 1, 5) %in% FIPS_df_two_stl$FIPS)
 
 tract00_tract_10 <- tract_crosswalk %>%
-
   transmute(
     tract00 = GEOID00,
     tract10 = GEOID10,
@@ -43,5 +42,4 @@ tract10_tract_00 <- tract_crosswalk %>%
     percent = POPPCT10,
     housing_percent = HUPCT10)
 
-usethis::use_data(tract00_tract_10, overwrite = TRUE)
-usethis::use_data(tract10_tract_00, overwrite = TRUE)
+usethis::use_data(tract00_tract_10, tract10_tract_00, overwrite = TRUE)

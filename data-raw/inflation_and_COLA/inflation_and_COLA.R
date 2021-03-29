@@ -2,14 +2,17 @@ library(readr)
 library(dplyr)
 library(tidyr)
 library(magrittr)
-source("R/general.R")
+source("R/operators.R")
+source("R/general_utils.R")
+source("R/peer_utils.R")
+source("R/glp_utils.R")
 
 path <- "data-raw/inflation_and_COLA/"
 
 # Cost of Living
 #   Data from BEA interactive mapping tool at https://apps.bea.gov/itable/iTable.cfm?ReqID=70
 
-rpp <- read_csv(path %p%"rppmsa.csv", skip = 4, col_names = TRUE, na = c("", "(NA)"),
+rpp <- read_csv(path %p% "rppmsa.csv", skip = 4, col_names = TRUE, na = c("", "(NA)"),
                 col_types = "c_n_nnnnnnnnnnn", n_max = 1544)
 
 rpp %<>%
