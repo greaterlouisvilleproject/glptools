@@ -1,0 +1,211 @@
+---
+title: "analyze_dependencies"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(stringr)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+library(visNetwork)
+library(RColorBrewer)
+```
+
+Read in dependency data and format in terms of nodes and edges
+```{r}
+dependencies <- readxl::read_excel("glpverse.xlsx")
+
+dependencies %<>%
+  pivot_longer(Calls:`...23`, values_to = "dependencies") %>%
+  select(-name) 
+
+nodes <- dependencies %>%
+  select(-dependencies) %>%
+  unique() %>%
+  mutate(
+    id = row_number(),
+    label = Item,
+    color = if_else(Type == "function", "blue", "green"))
+
+nodes_minimal <- nodes %>% transmute(id, Item)
+
+dependencies %<>%
+  select(Item, dependencies) %>%
+  filter(!is.na(dependencies)) %>%
+  left_join(nodes, by = "Item") %>%
+  rename(from=id) %>%
+  right_join(nodes, by = c("dependencies" = "Item")) %>%
+  rename(to=id) %>%
+  filter(!is.na(from))
+
+```
+
+Create shiny document using vizNetwork
+```{r}
+ui <- fluidPage(
+  visNetworkOutput("network", height = "800px")
+)
+
+server <- function(input, output) {
+  output$network <- renderVisNetwork({
+    # minimal example
+    visNetwork(nodes, dependencies) %>%
+      visEdges(arrows = list(from = list(enabled = TRUE))) %>%
+      visNodes(font = list(size = 40)) %>%
+      visOptions(selectedBy = list(variable = "group", selected = "general_utils"),
+                 nodesIdSelection = TRUE) %>%
+      visOptions(#selectedBy = "selected",
+                 highlightNearest = list(enabled = TRUE,
+                                         algorithm = "hierarchical",
+                                         degree = list(from = 0, to = 1),
+                                         labelOnly = FALSE),
+                 nodesIdSelection = TRUE)
+  })
+}
+
+shinyApp(ui = ui, server = server)
+
+```
+
+Attempt to compile data programmatically...questionable
+```{r eval=FALSE}
+library(stringr)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+
+# Create list of all files
+all_files <- list.files("R")
+
+# Don't include functions that are not top-level
+dont_include <- c("fxn", # census_api
+                  "bind_fxn", "line_1_2_fxn", "label_fxn", #make_map
+                  "calc_output", "add_MOE") # microdata
+
+for(f in all_files) {
+
+  # read R file as string
+  text <- readChar("R/" %p% f, file.info("R/" %p% f)$size)
+
+  # Create list of function names and locations. If no functions, skip to next file.
+  fxn_names <- str_extract_all(text, ".{1,100}(?= <- function)")[[1]] %>%
+    as.character()
+
+  n_fxns = length(fxn_names)
+
+  if (n_fxns == 0) next
+
+  fxn_locations <- str_locate_all(text, ".{1,100}(?= <- function)")[[1]]
+
+  # Convert output to data frame
+  fxn_locations <- data.frame(
+    file = f,
+    function_name = fxn_names,
+    search_start = fxn_locations[,"end"],
+    search_end = c(fxn_locations[2:n_fxns,"start"], nchar(text)))
+
+  output <- assign_row_join(output, fxn_locations)
+}
+
+for(f in all_files) {
+
+  # read R file as string
+  text <- readChar("R/" %p% f, file.info("R/" %p% f)$size)
+
+  # Create list of function names and locations. If no functions, skip to next file.
+  fxn_names <- str_extract_all(text, ".{1,100}(?= <- function)")[[1]] %>%
+    as.character()
+
+  n_fxns = length(fxn_names)
+
+  if (n_fxns == 0) next
+
+  fxn_locations <- str_locate_all(text, ".{1,100}(?= <- function)")[[1]]
+
+  # Convert output to data frame
+  fxn_locations <- data.frame(
+    file = f,
+    function_name = fxn_names,
+    search_start = fxn_locations[,"end"],
+    search_end = c(fxn_locations[2:n_fxns,"start"], nchar(text)))
+
+  output <- assign_row_join(output, fxn_locations)
+}
+
+output %<>%
+  mutate(function_name = str_trim(function_name) %>%
+           str_remove("`")) %>%
+  filter(function_name %not_in% dont_include)
+
+for(f in all_files) {
+
+  # read R file as string
+  text <- readChar("R/" %p% f, file.info("R/" %p% f)$size)
+
+  lookup_vars <- output %>%
+    filter(file == f)
+
+  for (v in 1:nrow(lookup_vars)) {
+    this_var = lookup_vars[v,"function_name"]
+    this_text = str_sub(text, lookup_vars[v,"search_start"], lookup_vars[v,"search_end"])
+
+    matching_vars <- output$function_name[str_detect(this_text, output$function_name)]
+
+    if (length(matching_vars) == 0) next
+    if (is.na(this_var)) next
+
+
+    output_df <- data.frame(
+      ancestor = this_var,
+      descendents = matching_vars)
+
+    final_output = assign_row_join(final_output, output_df)
+
+  }
+
+}
+
+# Run it back to search for function text inside of other functions
+
+# Create list of all data frames
+all_folders <- list.files("data-raw")
+all_folders <- all_folders[!str_detect(all_folders, "\\.R")]
+
+for(f in all_folders) {
+  R_file <- list.files("data-raw/" %p% f)
+  R_file <- all_R_files[str_detect(all_R_files, "\\.R")]
+
+  r_file_name <- paste0("data-raw/", f, "/", R_file)
+
+  # read R file as string
+  text <- readChar(r_file_name, file.info(r_file_name)$size)
+
+  # Create list of function names and locations. If no functions, skip to next file.
+  fxn_names <- str_extract_all(text, ".{1,100}(?= <- function)")[[1]] %>%
+    as.character()
+
+  n_fxns = length(fxn_names)
+
+  if (n_fxns == 0) next
+
+  fxn_locations <- str_locate_all(text, ".{1,100}(?= <- function)")[[1]]
+
+  # Convert output to data frame
+  fxn_locations <- data.frame(
+    file = f,
+    function_name = fxn_names,
+    search_start = fxn_locations[,"end"],
+    search_end = c(fxn_locations[2:n_fxns,"start"], nchar(text)))
+
+  file_names <- data.frame(
+    file = f,
+    data_name =
+  )
+
+}
+
+
+
+```

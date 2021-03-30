@@ -150,8 +150,6 @@ survey_by_demog <- function(df, var,
 
   var <- as.character(substitute(var))
 
-  browser()
-
   # Remove missing values of variable or geography
   df %<>%
     filter(
@@ -300,6 +298,7 @@ svy_bootstrap <- function(df, var, weight_var, type, grouping_vars) {
         mutate(!!var := l)
 
       output <- assign_row_join(output, results)
+
     }
   } else if (type == "mean") {
 
