@@ -38,9 +38,9 @@ map_block_group  <- st_read(path %p% "block_group",    quiet = TRUE)
 map_tract        <- st_read(path %p% "tract_2010",     quiet = TRUE)
 map_tract_all_00 <- st_read(path %p% "tract_all_2000", quiet = TRUE)
 map_tract_all_10 <- st_read(path %p% "tract_all_2010", quiet = TRUE)
-map_nh           <- st_read(path %p% "neighborhood",   quiet = TRUE)
+#map_nh           <- st_read(path %p% "neighborhood",   quiet = TRUE)
 map_zip          <- st_read(path %p% "zip",            quiet = TRUE)
-map_market       <- st_read(path %p% "market area",    quiet = TRUE)
+#map_market       <- st_read(path %p% "market area",    quiet = TRUE)
 map_county       <- st_read(path %p% "county",         quiet = TRUE)
 map_PUMA         <- st_read(path %p% "puma_2010",      quiet = TRUE)
 map_district     <- st_read("data-raw/council_tract/Council_Districts", quiet = TRUE)
@@ -83,27 +83,25 @@ map_PUMA %<>%
     PUMA = as.numeric(PUMA)) %>%
   filter(STATEFIP == "21", PUMA %in% 1701:1706)
 
+map_nh <- map_tract %>%
+  group_by(neighborhood) %>%
+  summarise(.groups = "drop")
+
 map_muw <- map_tract %>%
-  st_transform(4326) %>%
   select(-neighborhood) %>%
   left_join(muw_tract, by =  "tract") %>%
   group_by(neighborhood) %>%
-  summarise(geometry = st_union(geometry), .groups = "drop")
+  summarise(.groups = "drop")
+
+map_market <- map_tract %>%
+  left_join(ma_tract, by =  "tract") %>%
+  group_by(market_area) %>%
+  summarise(.groups = "drop")
 
 map_zip %<>%
   st_transform(4326) %>%
   transmute(
     zip = ZIPCODE)
-
-map_nh %<>%
-  st_transform(4326) %>%
-  transmute(
-    neighborhood = Neighborho)
-
-map_market %<>%
-  st_transform(4326) %>%
-  transmute(
-    market = Area)
 
 map_county %<>%
   st_transform(4326) %>%
