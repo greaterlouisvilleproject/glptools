@@ -6,15 +6,23 @@
 #' @export
 sum_by_var_type <- function(df, ..., output_vartypes, drop_groups = TRUE) {
 
+  # Which var_types are in the data frame?
   var_types <- df %cols_in% c("estimate", "population", "MOE", "percent", "CI")
 
+  # If no var_types are specified, set output_vartypes to all potential combinations
+  #   based on what is available in the data
   if (missing(output_vartypes)) {
-    output_vartypes <- case_when(
-      all(var_types == "estimate") ~ "estimate",
-      all(var_types %in% c("estimate", "MOE")) ~ c("estimate", "MOE"),
-      all(var_types %in% c("estimate", "population")) ~ c("estimate", "population", "percent"),
-      all(c("estimate", "population", "MOE") %in% var_types) ~
-        c("estimate", "population", "percent", "MOE", "CI"))
+    pick_num <- case_when(
+      all(var_types == "estimate")                           ~ 1,
+      all(var_types %in% c("estimate", "MOE"))               ~ 2,
+      all(var_types %in% c("estimate", "population"))        ~ 3,
+      all(c("estimate", "population", "MOE") %in% var_types) ~ 4)
+
+    output_vartypes <- switch(pick_num,
+                              "estimate",
+                              c("estimate", "MOE"),
+                              c("estimate", "population", "percent"),
+                              c("estimate", "population", "percent", "MOE", "CI"))
   }
 
   if (all(output_vartypes == "est")) {
@@ -72,7 +80,7 @@ pivot_vartype_longer <- function(df,
 #' Convert census tract data to metro council district data
 #'
 #' @export
-pivot_vartype_wider <-function(df, variables) {
+pivot_vartype_wider <- function(df, variables) {
   df %>%
     pivot_longer(variables,
                  names_to = "variable",

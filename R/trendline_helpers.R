@@ -482,7 +482,7 @@ tl_break_settings <- function(df, xmin, xmax, rollmean){
 #'
 #' @param df A data frame
 #' @return A ggplot object
-tl_plot<- function(df, text_scale){
+tl_plot <- function(df, text_scale){
   p <- ggplot(data = df,
               aes(x = year, y = value,
                   group = line_group,
