@@ -4,6 +4,8 @@
 #'   Either \code{sf3}, \code{acs1}, or \code{acs5}.
 #' @param table The table to return variables from.
 #' @param age_groups Return variables broken down by age group?
+#' @param additional_filters A character vector of additional expressions that will
+#'   be searched for in the label
 #' @export
 build_census_var_df <- function(survey, table, age_groups,
                                 additional_filters = "") {
@@ -38,18 +40,18 @@ build_census_var_df <- function(survey, table, age_groups,
   if (str_detect(survey, "acs")) var_table %<>% filter(str_sub(variable, -1) == "E")
 
   # Add MOE
-  var_table_moe <- var_table %>%
+  var_table_MOE <- var_table %>%
     filter(str_detect(survey, "acs")) %>%
     mutate(
       variable = str_replace(variable, "(?<=_\\d{3})E", "M"),
-      est_moe = if_else(str_sub(variable, -1) == "M", "MOE", "estimate"))
+      var_type = if_else(str_sub(variable, -1) == "M", "MOE", "estimate"))
 
   var_table %<>%
-    mutate(est_moe = "estimate") %>%
-    bind_rows(var_table_moe)
+    mutate(var_type = "estimate") %>%
+    bind_rows(var_table_MOE)
 
-  var_table %<>% select(survey, year, variable, est_moe,
-                        race, sex, age_group, age_low, age_high, label, table)
+  var_table %<>% select(survey, year, variable, race, sex,
+                        var_type, age_group, age_low, age_high, label, table)
 
   # Check if there is one row per year, race, and sex
   unique_check(var_table)
@@ -62,9 +64,10 @@ build_census_var_df <- function(survey, table, age_groups,
 #' @param var_df A data frame of variables to send to the census API
 #'   produced by build_census_var_df
 #' @param geog The geography to return variables for
+#' @param var_name Optional: a name for the value column in the returned data frame
 #' @param parallel Use future and furrr?
 #' @export
-get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F) {
+get_census <- function(var_df, geog, var_name, parallel = T) {
 
   if (geog %in% c("MSA", "FIPS")) {
     fxn <- function(survey, year, geography, data, ...) {
@@ -91,7 +94,7 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
             age_high,
             value,
             label,
-            est_moe,
+            var_type,
             variable = name)
         },
         error = function(cond){
@@ -105,7 +108,7 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
             age_high = data$age_high,
             value = rep(NA_real_, nrow(data)),
             label = data$label,
-            est_moe = data$est_moe,
+            var_type = data$var_type,
             variable = data$variable)
         })
 
@@ -136,7 +139,7 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
             age_high,
             value,
             label,
-            est_moe,
+            var_type,
             variable = name)
       }
   } else if (geog == "tract") {
@@ -163,7 +166,7 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
           age_high,
           value,
           label,
-          est_moe,
+          var_type,
           variable = name)
     }
   } else if (geog == "zip") {
@@ -189,7 +192,7 @@ get_census <- function(var_df, geog, var_name, parallel = T, label = F, var = F)
           age_high,
           value,
           label,
-          est_moe,
+          var_type,
           variable = name)
     }
   }
@@ -272,14 +275,14 @@ process_census <- function(df, var_names = "value", cat_var, output_name, age_gr
       group_by(across(grouping_vars))
 
     temp_est <- temp %>%
-      filter(est_moe == "estimate") %>%
+      filter(var_type == "estimate") %>%
       summarise(across(var_names, ~ sum(.)), .groups = "drop") %>%
       mutate(
         age_group = a,
         var_type = "estimate")
 
     temp_moe <- temp %>%
-      filter(est_moe == "MOE") %>%
+      filter(var_type == "MOE") %>%
       summarise(across(var_names, ~ sqrt(sum(. * .))), .groups = "drop") %>%
       mutate(
         age_group = a,

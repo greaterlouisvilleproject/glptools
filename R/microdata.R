@@ -142,9 +142,9 @@ clean_cps_micro <- function(df, pull_peers = T){
 #' @export
 survey_by_demog <- function(df, var,
                             weight_var = "PERWT",
+                            type = "categorical",
                             geog = "FIPS",
                             method = "default",
-                            type = "categorical",
                             other_grouping_vars = c(),
                             breakdowns = c("total", "sex", "race", "sex_by_race")) {
 
