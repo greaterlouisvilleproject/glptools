@@ -8,9 +8,9 @@ survey_by_demog(
   df,
   var,
   weight_var = "PERWT",
+  type = "categorical",
   geog = "FIPS",
   method = "default",
-  type = "categorical",
   other_grouping_vars = c(),
   breakdowns = c("total", "sex", "race", "sex_by_race")
 )
@@ -20,9 +20,9 @@ survey_by_demog(
 
 \item{weight_var}{weight variable}
 
-\item{geog}{geographic column}
-
 \item{type}{Either mean or categorical}
+
+\item{geog}{geographic column}
 
 \item{other_grouping_vars}{other variables to group by}
 

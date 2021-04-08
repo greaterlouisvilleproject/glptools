@@ -4,13 +4,15 @@
 \alias{get_census}
 \title{Get data from the Census API}
 \usage{
-get_census(var_df, geog, var_name, parallel = T, label = F, var = F)
+get_census(var_df, geog, var_name, parallel = T)
 }
 \arguments{
 \item{var_df}{A data frame of variables to send to the census API
 produced by build_census_var_df}
 
 \item{geog}{The geography to return variables for}
+
+\item{var_name}{Optional: a name for the value column in the returned data frame}
 
 \item{parallel}{Use future and furrr?}
 }

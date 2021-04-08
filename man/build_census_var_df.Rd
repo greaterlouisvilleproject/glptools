@@ -13,6 +13,9 @@ Either \code{sf3}, \code{acs1}, or \code{acs5}.}
 \item{table}{The table to return variables from.}
 
 \item{age_groups}{Return variables broken down by age group?}
+
+\item{additional_filters}{A character vector of additional expressions that will
+be searched for in the label}
 }
 \description{
 Create a data frame to use for the Census API
