@@ -222,6 +222,10 @@ get_census <- function(var_df, geog, var_name, parallel = T) {
 
   if (!missing(var_name)) output %<>% rename(!!var_name := value)
 
+  # organize columns
+  output %<>%
+    select(all_of(c(geog, "year", "sex", "race", "var_type")), everything())
+
   output
 }
 
