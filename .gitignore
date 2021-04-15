@@ -7,3 +7,9 @@ data-raw/maps/puma_2010/
 data-raw/maps/tract_all_2000/
 
 data-raw/maps/tract_all_2010/
+
+data-raw/council_tract/nhgis0009_shape/
+
+data-raw/council_tract/block_processed.RData
+
+data-raw/council_tract/nhgis0009_csv.zip
