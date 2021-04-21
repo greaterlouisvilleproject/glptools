@@ -3,10 +3,10 @@
 \name{p}
 \alias{p}
 \alias{\%p\%}
-\title{Shorthand for paste0(a, b)}
+\title{Shorthand for \code{paste0(a, b)}}
 \usage{
 a \%p\% b
 }
 \description{
-Shorthand for paste0(a, b)
+Shorthand for \code{paste0(a, b)}
 }
