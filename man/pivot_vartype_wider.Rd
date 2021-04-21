@@ -4,7 +4,7 @@
 \alias{pivot_vartype_wider}
 \title{Convert census tract data to metro council district data}
 \usage{
-pivot_vartype_wider(df, variables)
+pivot_vartype_wider(df, ...)
 }
 \description{
 Convert census tract data to metro council district data

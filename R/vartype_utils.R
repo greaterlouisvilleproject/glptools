@@ -6,6 +6,10 @@
 #' @export
 sum_by_var_type <- function(df, ..., output_vartypes, drop_groups = TRUE) {
 
+  if("var_type" %in% names(df)) {
+    df %<>% pivot_vartype_wider(...)
+  }
+
   # Which var_types are in the data frame?
   var_types <- df %cols_in% c("estimate", "population", "MOE", "percent", "CI")
 
@@ -63,7 +67,6 @@ sum_by_var_type <- function(df, ..., output_vartypes, drop_groups = TRUE) {
   if (drop_groups) df %<>% ungroup()
 }
 
-
 #' Convert census tract data to metro council district data
 #'
 #' @export
@@ -80,12 +83,15 @@ pivot_vartype_longer <- function(df,
 #' Convert census tract data to metro council district data
 #'
 #' @export
-pivot_vartype_wider <- function(df, variables) {
+pivot_vartype_wider <- function(df, ...) {
+  variables <- dplyr:::tbl_at_vars(df, vars(...))
+
   df %>%
-    pivot_longer(variables,
+    pivot_longer(all_of(variables),
                  names_to = "variable",
                  values_to = "value") %>%
     pivot_wider(names_from = "var_type",
                 values_from = "value")
 }
+
 

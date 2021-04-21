@@ -11,7 +11,7 @@ process_map(
   pop_adjust = F,
   return_name = NULL,
   method = "mean",
-  maps = c("tract", "nh", "muw"),
+  maps = c("tract", "nh", "muw", "bg", "district"),
   keep_pop = FALSE
 )
 }

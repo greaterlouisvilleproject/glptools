@@ -37,6 +37,7 @@ df_type <- function(df){
     all(cols %in% c("year", "variable", "category", "value"))         ~ "graph",
     all(cols %in% c("year", "city", "variable", "category", "value")) ~ "graph_max_min",
     "block" %in% cols                                           ~ "block",
+    "block_group" %in% cols ~ "block_group",
     "tract" %in% cols                                           ~ "tract",
     "market" %in% cols                                          ~ "market",
     "county" %in% cols                                          ~ "county",
@@ -106,7 +107,7 @@ reshape_sex <- function(df) {
 total_demographics <- function(df, ..., total_sex = T, total_race = F, include_na = F, other_grouping_vars = "", moe = T) {
 
   variables <- dplyr:::tbl_at_vars(df, vars(...))
-  grouping_vars <- df %cols_in% c("MSA", "FIPS", "zip", "tract", "neighborhood",
+  grouping_vars <- df %cols_in% c("MSA", "FIPS", "zip", "tract", "neighborhood", "block_group",
                                   "year", "race", "sex", "var_type", other_grouping_vars)
 
   total_sex  <- total_sex & any(df$sex != "total")
@@ -215,8 +216,8 @@ total_demographics <- function(df, ..., total_sex = T, total_race = F, include_n
 #' @export
 organize <- function(df) {
 
-  if (df_type(df) %in% c("block", "tract", "neighborhood")) {
-    columns <- c("tract", "neighborhood", "block", "year", "sex", "race", "line1", "line2", "line3")
+  if (df_type(df) %in% c("block", "block_group", "tract", "neighborhood")) {
+    columns <- c("block_group", "tract", "neighborhood", "block", "year", "sex", "race", "line1", "line2", "line3")
     columns <- df %cols_in% columns
     df %<>%
       select(columns, everything()) %>%

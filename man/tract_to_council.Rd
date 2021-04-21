@@ -4,16 +4,12 @@
 \alias{tract_to_council}
 \title{Convert census tract data to metro council district data}
 \usage{
-tract_to_council(df, ..., method = "percent", weight_var = "total")
+tract_to_council(df, ...)
 }
 \arguments{
 \item{df}{A data frame from the census}
 
-\item{var_names}{Variable names}
-
-\item{cat_var}{Categorical vari}
-
-\item{output_name}{Output var name}
+\item{...}{a tidyselection of variables}
 }
 \description{
 Convert census tract data to metro council district data

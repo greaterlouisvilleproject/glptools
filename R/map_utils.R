@@ -109,10 +109,13 @@ process_map_og <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
 #'
 #' @export
 process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
-                        method = "mean", maps = c("tract", "nh", "muw"), keep_pop = FALSE) {
+                        method = "mean", maps = c("tract", "nh", "muw", "bg", "district"), keep_pop = FALSE) {
 
   variables <- dplyr:::tbl_at_vars(map_df, vars(...))
   grouping_vars <- map_df %cols_in% c("year","sex", "race")
+
+  # Remove block group from default if the map is tract-level
+  if (df_type(map_df) == "tract") maps = setdiff(maps, "bg")
 
   # create function based on method
   fxn <- switch(method,
@@ -128,12 +131,15 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
   #   bind to neighborhood labels (if applicable),
   #   and summarise values
   if ("tract" %in% maps) {
+
+    if(df_type(map_df) == "block_group") map_df %<>% mutate(tract = str_sub(block_group, 1, 11))
+
     df_tract <- map_df %>%
       pivot_longer(cols = variables, names_to = "variable") %>%
       pivot_wider(names_from = var_type, values_from = value) %>%
       group_by_at(c("tract", grouping_vars, "variable")) %>%
       summarise(estimate   = sum(estimate),
-                population = sum(population) / n() * length(unique(tract)), # Divide by the number of groups
+                population = sum(population), #/ n() * length(unique(tract)),  Divide by the number of groups
                 percent = estimate / population * 100,
                 MOE = sqrt(sum(MOE^2)),
                 CI = MOE / population * 100,
@@ -144,13 +150,14 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
   }
 
   if ("nh" %in% maps) {
+
     df_nh <- map_df %>%
       left_join(nh_tract, by = "tract") %>%
       pivot_longer(cols = variables, names_to = "variable") %>%
       pivot_wider(names_from = var_type, values_from = value) %>%
       group_by_at(c("neighborhood", grouping_vars, "variable")) %>%
       summarise(estimate   = sum(estimate),
-                population = sum(population) / n() * length(unique(tract)), # Divide by the number of groups
+                population = sum(population), #/ n() * length(unique(tract)),  Divide by the number of groups
                 percent = estimate / population * 100,
                 MOE = sqrt(sum(MOE^2)),
                 CI = MOE / population * 100,
@@ -167,7 +174,7 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
       pivot_wider(names_from = var_type, values_from = value) %>%
       group_by_at(c("neighborhood", grouping_vars, "variable")) %>%
       summarise(estimate   = sum(estimate),
-                population = sum(population) / n() * length(unique(tract)), # Divide by the number of groups
+                population = sum(population), #/ n() * length(unique(tract)),  Divide by the number of groups
                 percent = estimate / population * 100,
                 MOE = sqrt(sum(MOE^2)),
                 CI = MOE / population * 100,
@@ -176,6 +183,39 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
       pivot_wider(names_from = variable, values_from = value) %>%
       select_at(c("neighborhood", grouping_vars, "var_type", variables))
   }
+
+  if ("bg" %in% maps) {
+    df_bg <- map_df %>%
+      pivot_longer(cols = variables, names_to = "variable") %>%
+      pivot_wider(names_from = var_type, values_from = value) %>%
+      group_by_at(c("block_group", grouping_vars, "variable")) %>%
+      summarise(estimate   = sum(estimate),
+                population = sum(population), #/ n() * length(unique(tract)),  Divide by the number of groups
+                percent = estimate / population * 100,
+                MOE = sqrt(sum(MOE^2)),
+                CI = MOE / population * 100,
+                .groups = "drop") %>%
+      pivot_longer(cols = estimate:CI, names_to = "var_type") %>%
+      pivot_wider(names_from = "variable", values_from = "value") %>%
+      select_at(c("block_group", grouping_vars, "var_type", variables))
+  }
+
+  if ("district" %in% maps) {
+    if(df_type(map_df) == "block_group") {
+      df_district <- map_df %>%
+        block_group_to_council(variables)
+    } else if (df_type(map_df) == "tract") {
+      df_district <- map_df %>%
+        tract_to_council(variables)
+    }
+
+    df_district %<>%
+      group_by_at(c("district", grouping_vars)) %>%
+      sum_by_var_type(variables) %>%
+      mutate(variable = "homeownership") %>%
+      pivot_vartype_longer()
+  }
+
 
   # Replace Airport values with NAs. If median was selected, bind Airport rows.
   if (method %in% c("percent", "mean", "sum")) {
@@ -189,6 +229,9 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
     if ("muw" %in% maps)   df_muw   %<>% mutate_at(variables,
                                                    ~ replace(., var_type %in% c("estimate", "CI") &
                                                                neighborhood == "Airport", NA))
+    if ("bg" %in% maps)   df_bg   %<>% mutate_at(variables,
+                                                 ~ replace(., var_type %in% c("estimate", "CI") &
+                                                             block_group == "211119801001", NA))
   }
 
   # Create list to return based on map parameter
@@ -200,42 +243,69 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
   output
 }
 
-
 #' Convert census tract data to metro council district data
 #'
 #' @param df A data frame from the census
-#' @param var_names Variable names
-#' @param cat_var Categorical vari
-#' @param output_name Output var name
+#' @param ... a tidyselection of variables
 #'
 #' @export
-tract_to_council <- function(df, ...,
-                             method = "percent",
-                             weight_var = "total") {
+tract_to_council <- function(df, ...) {
 
   variables <- dplyr:::tbl_at_vars(df, vars(...))
 
-  if(method == "percent"){
-    crosswalk <- district_tract %>%
-      group_by(district) %>%
-      mutate(across(total:asian, ~ . / sum(.))) %>%
-      ungroup()
-  } else if(method == "count") {
-    crosswalk <- district_tract %>%
-      group_by(tract) %>%
-      mutate(across(total:asian, ~ . / sum(.))) %>%
-      ungroup()
-  }
+  crosswalk <- district_tract %>%
+    group_by(tract) %>%
+    mutate(pct_dist = population / sum(population)) %>%
+    select(-population) %>%
+    ungroup()
 
   df %<>%
+    filter(var_type %in% c("estimate", "population")) %>%
+    pivot_vartype_wider(variables) %>%
     left_join(crosswalk, by = "tract") %>%
-    mutate(across(variables, ~ . * .data[[weight_var]])) %>%
-    group_by(district) %>%
-    summarise(across(variables, ~ sum(.)), .groups = "drop") %>%
-    filter(across(variables, ~!is.na(.)))
+    group_by(variable) %>%
+    mutate(across(estimate:population, ~ . * pct_dist)) %>%
+    group_by(district, year, sex, race, variable) %>%
+    summarise(
+      estimate = sum(estimate),
+      population = sum(population), .groups = "drop") %>%
+    filter(across(estimate, ~!is.na(.))) %>%
+    pivot_vartype_longer()
 
   df
 
+}
+
+#' Convert census block group data to metro council district data
+#'
+#' @param df A data frame from the census
+#' @param ... a tidyselection of variables
+#'
+#' @export
+block_group_to_council <- function(df, ...) {
+
+  variables <- dplyr:::tbl_at_vars(df, vars(...))
+
+  crosswalk <- district_block_group %>%
+    group_by(block_group) %>%
+    mutate(pct_dist = population / sum(population)) %>%
+    select(-population) %>%
+    ungroup()
+
+  df %<>%
+    filter(var_type %in% c("estimate", "population")) %>%
+    pivot_vartype_wider(variables) %>%
+    left_join(crosswalk, by = "block_group") %>%
+    group_by(variable) %>%
+    mutate(across(estimate:population, ~ . * pct_dist)) %>%
+    group_by(district, year, sex, race, variable) %>%
+    summarise(
+      estimate = sum(estimate),
+      population = sum(population), .groups = "drop") %>%
+    filter(across(estimate, ~!is.na(.))) %>%
+    pivot_vartype_longer()
+
+  df
 }
 
 #' Transform data from 2000 census tracts to 2010 census tracts

@@ -169,8 +169,35 @@ get_census <- function(var_df, geog, var_name, parallel = T) {
           var_type,
           variable = name)
     }
-  } else if (geog == "zip") {
+  } else if (geog == "block_group") {
     fxn <- function(survey, year, data, ...) {
+
+      api <- censusapi::getCensus(
+        name = survey,
+        vintage = year,
+        vars = data$variable,
+        regionin = "state:21&county:111",
+        region = "block group:*",
+        key = Sys.getenv("CENSUS_API_KEY"))
+
+      api %<>%
+        pivot_longer(cols = data$variable) %>%
+        left_join(data, by = c("name" = "variable")) %>%
+        transmute(
+          block_group = paste0("21111", str_pad(tract, 6, "right", "0"), block_group),
+          year  = if_else(str_detect(survey, "acs5"), year - 2, year),
+          race,
+          sex,
+          age_group,
+          age_low,
+          age_high,
+          value,
+          label,
+          var_type,
+          variable = name)
+    }
+  } else if (geog == "zip") {
+      fxn <- function(survey, year, data, ...) {
 
       api <- censusapi::getCensus(
         name = survey,
