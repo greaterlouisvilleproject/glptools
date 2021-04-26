@@ -577,7 +577,7 @@ tl_limits <- function(p, df, xmin, xmax, ylimits,
         hjust = 0,
         alpha = 1,
         segment.alpha = 0,
-        family = "Museo Sans 300",
+        family = "Verdana",
         show.legend = FALSE)
   }
 
@@ -596,7 +596,7 @@ tl_style <- function(p, plot_title, y_title,
   #adjust theme
   p <- p + theme_bw(
     base_size = 11 * text_scale,
-                    base_family = "Museo Sans 300")
+                    base_family = "Verdana")
 
   p <- p + theme(
     legend.title     = element_blank(),

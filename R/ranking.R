@@ -163,7 +163,7 @@ ranking <- function(df, var, plot_title = "",
   # Add features
   title_scale <- min(1, 48 / nchar(plot_title))
 
-  p <- p + theme(text = element_text(family = "Museo Sans 300"),
+  p <- p + theme(text = element_text(family = "Verdana"),
                  plot.title = element_text(size = 74 * title_scale, hjust = 0.5, margin = margin(b = 20, unit = "pt")),
                  axis.text.y = element_text(hjust = 0,
                                             size = 60, color = rev(df$textcolor)),
@@ -181,7 +181,7 @@ ranking <- function(df, var, plot_title = "",
   if (y_title != "" & bar_label) {
     p <- p + geom_text(aes(label = label_text, hjust = text_alignment),
                        size = 20,
-                       family = "Museo Sans 300")
+                       family = "Verdana")
   }
 
   # Add vertical line to the left side of the bars based on the h_line parameter
