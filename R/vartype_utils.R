@@ -29,39 +29,79 @@ sum_by_var_type <- function(df, ..., output_vartypes, drop_groups = TRUE) {
                               c("estimate", "population", "percent", "MOE", "CI"))
   }
 
-  if (all(output_vartypes == "est")) {
-    df %<>%
-      summarise(
-        estimate   = sum(estimate),
-        .groups = "keep")
-  } else if (all(output_vartypes %in% c("estimate", "MOE"))) {
-    df %<>%
-      summarise(
-        estimate   = sum(estimate),
-        MOE        = sqrt(sum(MOE^2)),
-        .groups = "keep")
-  } else if (all(output_vartypes %in% c("estimate", "population"))) {
-    df %<>%
-      summarise(
-        estimate   = sum(estimate),
-        population = sum(population),
-        .groups = "keep")
-  } else if (all(output_vartypes %in% c("estimate", "population", "percent"))) {
-    df %<>%
-      summarise(
-        estimate   = sum(estimate),
-        population = sum(population),
-        percent    = estimate / population * 100,
-        .groups = "keep")
-  } else if (all(output_vartypes %in% c("estimate", "population", "percent", "MOE", "CI"))) {
-    df %<>%
-      summarise(
-        estimate   = sum(estimate),
-        population = sum(population),
-        percent    = estimate / population * 100,
-        MOE        = sqrt(sum(MOE^2)),
-        CI         = MOE / population * 100,
-        .groups = "keep")
+  # Use map functions if duplicate rows have created list columns, otherwise use regular functions
+
+  if (typeof(df[["estimate"]]) == "list") {
+
+    if (all(output_vartypes == "est")) {
+      df %<>%
+        summarise(
+          estimate   = map_dbl(estimate, sum),
+          .groups = "keep")
+    } else if (all(output_vartypes %in% c("estimate", "MOE"))) {
+      df %<>%
+        summarise(
+          estimate   = map_dbl(estimate, sum),
+          MOE        = map_dbl(MOE, ~sqrt(sum(.^2))),
+          .groups = "keep")
+    } else if (all(output_vartypes %in% c("estimate", "population"))) {
+      df %<>%
+        summarise(
+          estimate   = map_dbl(estimate, sum),
+          population = map_dbl(population, sum),
+          .groups = "keep")
+    } else if (all(output_vartypes %in% c("estimate", "population", "percent"))) {
+      df %<>%
+        summarise(
+          estimate   = map_dbl(estimate, sum),
+          population = map_dbl(population, sum),
+          percent    = estimate / population * 100,
+          .groups = "keep")
+    } else if (all(output_vartypes %in% c("estimate", "population", "percent", "MOE", "CI"))) {
+      df %<>%
+        summarise(
+          estimate   = map_dbl(estimate, sum),
+          population = map_dbl(population, sum),
+          percent    = estimate / population * 100,
+          MOE        = map_dbl(MOE, ~sqrt(sum(.^2))),
+          CI         = MOE / population * 100,
+          .groups = "keep")
+    }
+  } else {
+    if (all(output_vartypes == "est")) {
+      df %<>%
+        summarise(
+          estimate   = sum(estimate),
+          .groups = "keep")
+    } else if (all(output_vartypes %in% c("estimate", "MOE"))) {
+      df %<>%
+        summarise(
+          estimate   = sum(estimate),
+          MOE        = sqrt(sum(MOE^2)),
+          .groups = "keep")
+    } else if (all(output_vartypes %in% c("estimate", "population"))) {
+      df %<>%
+        summarise(
+          estimate   = sum(estimate),
+          population = sum(population),
+          .groups = "keep")
+    } else if (all(output_vartypes %in% c("estimate", "population", "percent"))) {
+      df %<>%
+        summarise(
+          estimate   = sum(estimate),
+          population = sum(population),
+          percent    = estimate / population * 100,
+          .groups = "keep")
+    } else if (all(output_vartypes %in% c("estimate", "population", "percent", "MOE", "CI"))) {
+      df %<>%
+        summarise(
+          estimate   = sum(estimate),
+          population = sum(population),
+          percent    = estimate / population * 100,
+          MOE        = sqrt(sum(MOE^2)),
+          CI         = MOE / population * 100,
+          .groups = "keep")
+    }
   }
 
   if (drop_groups) df %<>% ungroup()

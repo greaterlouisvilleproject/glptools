@@ -108,10 +108,10 @@ total_demographics <- function(df, ..., total_sex = T, total_race = F, include_n
 
   variables <- dplyr:::tbl_at_vars(df, vars(...))
   grouping_vars <- df %cols_in% c("MSA", "FIPS", "zip", "tract", "neighborhood", "block_group",
-                                  "year", "race", "sex", "var_type", other_grouping_vars)
+                                  "year", "race", "sex", other_grouping_vars)
 
   total_sex  <- total_sex & any(df$sex != "total")
-  total_race <-total_race & any(df$race != "total")
+  total_race <- total_race & any(df$race != "total")
 
   # Summarize data frame by race and sex.
   if (total_sex) {
@@ -120,12 +120,11 @@ total_demographics <- function(df, ..., total_sex = T, total_race = F, include_n
     else df_tot_sex <- df %>% filter(sex != "total")
 
     df_tot_sex %<>%
-      group_by(across(setdiff(grouping_vars, "sex"))) %>%
-      summarise(
-        across(variables, ~ case_when(cur_group()$var_type == "estimate" ~ sum(.),
-                                      cur_group()$var_type == "MOE" ~ sqrt(sum(. * .)))),
-        .groups = "drop") %>%
-      mutate(sex = "total")
+      pivot_vartype_wider(variables) %>%
+      group_by(across(c("variable", setdiff(grouping_vars, "sex")))) %>%
+      sum_by_var_type() %>%
+      mutate(sex = "total") %>%
+      pivot_vartype_longer()
   }
 
   if (total_race) {
@@ -137,12 +136,11 @@ total_demographics <- function(df, ..., total_sex = T, total_race = F, include_n
     }
 
     df_tot_race %<>%
-      group_by(across(setdiff(grouping_vars, "race"))) %>%
-      summarise(
-        across(variables, ~ case_when(cur_group()$var_type == "estimate" ~ sum(.),
-                                      cur_group()$var_type == "MOE" ~ sqrt(sum(. * .)))),
-        .groups = "drop") %>%
-      mutate(race = "total")
+      pivot_vartype_wider(variables) %>%
+      group_by(across(c("variable", setdiff(grouping_vars, "race")))) %>%
+      sum_by_var_type() %>%
+      mutate(race = "total") %>%
+      pivot_vartype_longer()
   }
 
   if (total_sex & total_race) {
@@ -152,52 +150,52 @@ total_demographics <- function(df, ..., total_sex = T, total_race = F, include_n
     else df_tot <- filter(df, sex != "total", race != "total")
 
     df_tot %<>%
-      group_by(across(setdiff(grouping_vars, c("race", "sex")))) %>%
-      summarise(
-        across(variables, ~ case_when(cur_group()$var_type == "estimate" ~ sum(.),
-                                      cur_group()$var_type == "MOE" ~ sqrt(sum(. * .)))),
-        .groups = "drop") %>%
-      mutate(sex = "total", race = "total")
+      pivot_vartype_wider(variables) %>%
+      group_by(across(c("variable", setdiff(grouping_vars, c("race", "sex"))))) %>%
+      sum_by_var_type() %>%
+      mutate(sex = "total", race = "total") %>%
+      pivot_vartype_longer()
   }
 
   # Fill in any total values that are not present in the data
   # or are NA with totals
   # Go by variable in case NA values differ across variables
   for (v in variables) {
+
     # Keep original data frame values where v is not NA
     df_not_na <- df %>%
-      filter(across(all_of(v), ~ !(is.na(.)))) %>%
-      select(all_of(c(grouping_vars, v)))
+      filter(!is.na(.data[[v]])) %>%
+      select(all_of(c(grouping_vars, "var_type", v)))
 
     # Filter total data frames to combinations not included in df_not_na and join to df_not_na
     if (total_sex) {
       this_df_tot_sex  <- df_tot_sex  %>%
-        filter(across(all_of(v), ~ !(is.na(.)))) %>%
+        filter(!is.na(.data[[v]])) %>%
         anti_join(df_not_na, by = grouping_vars) %>%
-        select(all_of(c(grouping_vars, v)))
+        select(all_of(c(grouping_vars, "var_type", v)))
 
       df_not_na %<>% bind_rows(this_df_tot_sex)
     }
 
     if (total_race) {
       this_df_tot_race  <- df_tot_race  %>%
-        filter(across(all_of(v), ~ !(is.na(.)))) %>%
+        filter(!is.na(.data[[v]])) %>%
         anti_join(df_not_na, by = grouping_vars) %>%
-        select(all_of(c(grouping_vars, v)))
+        select(all_of(c(grouping_vars, "var_type", v)))
 
       df_not_na %<>% bind_rows(this_df_tot_race)
     }
 
     if (total_sex & total_race) {
       this_df_tot  <- df_tot %>%
-        filter(across(all_of(v), ~ !(is.na(.)))) %>%
+        filter(!is.na(.data[[v]])) %>%
         anti_join(df_not_na, by = grouping_vars) %>%
-        select(all_of(c(grouping_vars, v)))
+        select(all_of(c(grouping_vars, "var_type", v)))
 
       df_not_na %<>% bind_rows(this_df_tot)
     }
 
-    output <- assign_col_join(output, df_not_na, by = grouping_vars)
+    output <- assign_col_join(output, df_not_na, by = c(grouping_vars, "var_type"))
   }
 
   output %<>%
@@ -206,7 +204,6 @@ total_demographics <- function(df, ..., total_sex = T, total_race = F, include_n
 
   output
 }
-
 #' Organizes common GLP data by columns and rows and replaces FIPS 1073 with 01073.
 #'
 #' Columns: MSA, FIPS, city, year, sex, race, baseline, current,
@@ -216,20 +213,23 @@ total_demographics <- function(df, ..., total_sex = T, total_race = F, include_n
 #' @export
 organize <- function(df) {
 
-  if (df_type(df) %in% c("block", "block_group", "tract", "neighborhood")) {
-    columns <- c("block_group", "tract", "neighborhood", "block", "year", "sex", "race", "line1", "line2", "line3")
-    columns <- df %cols_in% columns
-    df %<>%
-      select(columns, everything()) %>%
-      arrange_at(columns)
+  columns <- df %cols_in% c("MSA", "FIPS",
+                            "district", "zip", "tract", "block_group", "neighborhood", "block",
+                            "year", "sex", "race", "frl_status", "var_type",
+                            "city", "variable", "baseline", "current",
+                            "line1", "line2", "line3")
 
-    return(df)
+  rows <- df %cols_in% c("MSA", "FIPS",
+                         "district", "zip", "tract", "block_group", "neighborhood", "block",
+                         "variable", "year", "sex", "race", "frl_status", "var_type")
+
+
+  if("var_type" %in% names(df)) {
+    var_type_sort <- c("estimate", "MOE", "percent", "population", "CI")
+    var_type_sort <- var_type_sort[var_type_sort %in% unique(df$var_type)]
+
+    df$var_type <- factor(df$var_type, levels = var_type_sort, ordered = TRUE)
   }
-
-  columns <- df %cols_in% c("MSA", "FIPS", "zip", "city", "variable", "year", "sex", "race", "frl_status",
-                            "var_type","baseline", "current")
-
-  rows <- df %cols_in% c("MSA", "FIPS", "zip", "variable", "year", "sex", "race", "frl_status")
 
   df %<>%
     select(columns, everything()) %>%
@@ -242,6 +242,10 @@ organize <- function(df) {
   if ("MSA" %in% names(df)) {
     df %<>%
       mutate(MSA = as.character(MSA))
+  }
+
+  if("var_type" %in% names(df)) {
+    df$var_type <- as.character(df$var_type)
   }
 
   df
