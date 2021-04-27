@@ -69,7 +69,7 @@ build_census_var_df <- function(survey, table, age_groups,
 #' @export
 get_census <- function(var_df, geog, var_name, parallel = T) {
 
-  if (geog %in% c("MSA", "FIPS")) {
+  if (geog %in% c("MSA", "FIPS", "Louisville")) {
     fxn <- function(survey, year, geography, data, ...) {
 
       output <- tryCatch({
@@ -96,52 +96,52 @@ get_census <- function(var_df, geog, var_name, parallel = T) {
             label,
             var_type,
             variable = name)
-        },
-        error = function(cond){
-          data.frame(
-            FIPS = geography,
-            year = if_else(str_detect(survey, "acs5"), year - 2, year),
-            race = data$race,
-            sex  = data$sex,
-            age_group = data$age_group,
-            age_low = data$age_low,
-            age_high = data$age_high,
-            value = rep(NA_real_, nrow(data)),
-            label = data$label,
-            var_type = data$var_type,
-            variable = data$variable)
-        })
+      },
+      error = function(cond){
+        data.frame(
+          FIPS = geography,
+          year = if_else(str_detect(survey, "acs5"), year - 2, year),
+          race = data$race,
+          sex  = data$sex,
+          age_group = data$age_group,
+          age_low = data$age_low,
+          age_high = data$age_high,
+          value = rep(NA_real_, nrow(data)),
+          label = data$label,
+          var_type = data$var_type,
+          variable = data$variable)
+      })
 
-        output
-      }
-    } else if (geog == "tract_all") {
-      fxn <- function(survey, year, geography, data, ...) {
+      output
+    }
+  } else if (geog == "tract_all") {
+    fxn <- function(survey, year, geography, data, ...) {
 
-        api <- censusapi::getCensus(
-          name = survey,
-          vintage = year,
-          vars = data$variable,
-          regionin = paste0("state:", str_sub(geography, 1, 2),
-                            "&county:", str_sub(geography, 3, 5)),
-          region = "tract:*",
-          key = Sys.getenv("CENSUS_API_KEY"))
+      api <- censusapi::getCensus(
+        name = survey,
+        vintage = year,
+        vars = data$variable,
+        regionin = paste0("state:", str_sub(geography, 1, 2),
+                          "&county:", str_sub(geography, 3, 5)),
+        region = "tract:*",
+        key = Sys.getenv("CENSUS_API_KEY"))
 
-        api %<>%
-          pivot_longer(cols = data$variable) %>%
-          left_join(data, by = c("name" = "variable")) %>%
-          transmute(
-            tract = paste0(geography, str_pad(tract, 6, "right", "0")),
-            year  = if_else(str_detect(survey, "acs5"), year - 2, year),
-            race,
-            sex,
-            age_group,
-            age_low,
-            age_high,
-            value,
-            label,
-            var_type,
-            variable = name)
-      }
+      api %<>%
+        pivot_longer(cols = data$variable) %>%
+        left_join(data, by = c("name" = "variable")) %>%
+        transmute(
+          tract = paste0(geography, str_pad(tract, 6, "right", "0")),
+          year  = if_else(str_detect(survey, "acs5"), year - 2, year),
+          race,
+          sex,
+          age_group,
+          age_low,
+          age_high,
+          value,
+          label,
+          var_type,
+          variable = name)
+    }
   } else if (geog == "tract") {
     fxn <- function(survey, year, data, ...) {
 
@@ -197,7 +197,7 @@ get_census <- function(var_df, geog, var_name, parallel = T) {
           variable = name)
     }
   } else if (geog == "zip") {
-      fxn <- function(survey, year, data, ...) {
+    fxn <- function(survey, year, data, ...) {
 
       api <- censusapi::getCensus(
         name = survey,
@@ -224,7 +224,12 @@ get_census <- function(var_df, geog, var_name, parallel = T) {
     }
   }
 
-  if (geog %in% c("MSA", "FIPS", "tract_all")) {
+  if (geog %in% c("MSA", "FIPS", "tract_all", "Louisville")) {
+
+    if (geog == "Louisville") {
+      geography <- "21111"
+      geog <- "FIPS"
+    }
     if (geog %in% c("FIPS", "tract_all")) geography <- FIPS_df_two_stl$FIPS
     if (geog == "MSA")  geography <- MSA_FIPS %>% filter(FIPS != "MERGED") %>% pull(FIPS)
 
