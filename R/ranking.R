@@ -164,23 +164,23 @@ ranking <- function(df, var, plot_title = "",
   title_scale <- min(1, 48 / nchar(plot_title))
 
   p <- p + theme(text = element_text(family = "Verdana"),
-                 plot.title = element_text(size = 74 * title_scale, hjust = 0.5, margin = margin(b = 20, unit = "pt")),
+                 plot.title = element_text(size = 50 * title_scale, hjust = 0.5, margin = margin(b = 20, unit = "pt")),
                  axis.text.y = element_text(hjust = 0,
-                                            size = 60, color = rev(df$textcolor)),
-                 axis.title.x = element_text(size = 60),
+                                            size = 40, color = rev(df$textcolor)),
+                 axis.title.x = element_text(size = 40),
                  axis.ticks = element_blank(),
                  axis.text.x = element_blank(),
-                 plot.caption = element_text(size = 36, lineheight = 0.5))
+                 plot.caption = element_text(size = 10, lineheight = 0.5))
 
   if(subtitle_text != ""){
-    p <- p + theme(plot.subtitle = element_text(hjust = 0.5, size = 48)) +
+    p <- p + theme(plot.subtitle = element_text(hjust = 0.5, size = 30)) +
       labs(subtitle = subtitle_text)
   }
 
   # Add numeric labels to bars based on bar_label parameter
   if (y_title != "" & bar_label) {
     p <- p + geom_text(aes(label = label_text, hjust = text_alignment),
-                       size = 20,
+                       size = 15,
                        family = "Verdana")
   }
 
