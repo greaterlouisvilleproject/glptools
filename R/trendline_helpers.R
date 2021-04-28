@@ -573,7 +573,7 @@ tl_limits <- function(p, df, xmin, xmax, ylimits,
         data = df_label,
         aes(label = label_text),
         xlim = c(xmax + (xmax - xmin) * .01, xmax + (xmax - xmin) * xmax_adjustment),
-        size = 18,
+        size = 9,
         hjust = 0,
         alpha = 1,
         segment.alpha = 0,
@@ -591,7 +591,7 @@ tl_style <- function(p, plot_title, y_title,
                      caption_text, subtitle_text,
                      cat_names, text_scale, x_title = "Year"){
 
-  title_scale <- min(1, 48 / nchar(plot_title))
+  title_scale <- min(1, 25 / nchar(plot_title))
 
   #adjust theme
   p <- p + theme_bw(
@@ -603,20 +603,20 @@ tl_style <- function(p, plot_title, y_title,
     legend.position  = "top",
     legend.margin    = margin(t = 0.4 * text_scale, unit = "cm"),
     legend.spacing.x = unit(0.4 * text_scale, "cm"),
-    legend.text      = element_text(size = 20 * text_scale,
+    legend.text      = element_text(size = 13 * text_scale,
                                     margin = margin(b = 0.2 * text_scale, t = 0.2 * text_scale, unit = "cm")),
 
-    axis.text    = element_text(size = 24 * text_scale),
-    axis.title   = element_text(size = 30 * text_scale),
+    axis.text    = element_text(size = 15 * text_scale),
+    axis.title   = element_text(size = 25 * text_scale),
     axis.title.x = element_text(margin = margin(t = 0.3 * text_scale, unit = "cm")),
     axis.title.y = element_text(margin = margin(r = 0.3 * text_scale, unit = "cm")),
 
-    plot.title = element_text(size = 42 * text_scale * title_scale,
+    plot.title = element_text(size = 35 * text_scale * title_scale,
                               hjust = .5,
                               margin = margin(b = 0.4 * text_scale, unit = "cm")),
 
-    plot.caption = element_text(size = 18 * text_scale,
-                                lineheight = 0.5))
+    plot.caption = element_text(size = 12 * text_scale,
+                                lineheight = 0.8))
 
 
   #add labels
@@ -629,7 +629,7 @@ tl_style <- function(p, plot_title, y_title,
   #add subtitle if included
   if(subtitle_text != ""){
     p <- p +
-      theme(plot.subtitle = element_text(hjust = 0.5, size = 24 * text_scale)) +
+      theme(plot.subtitle = element_text(hjust = 0.5, size = 20 * text_scale)) +
       labs(subtitle = subtitle_text)
   }
 

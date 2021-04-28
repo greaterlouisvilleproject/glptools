@@ -152,7 +152,7 @@ ranking <- function(df, var, plot_title = "",
   # Add bars
   p <- p +
     geom_bar(aes(color = factor(lou, levels = 0:1)),
-             size = 2,
+             size = 1.8,
              stat = "identity") +
     coord_flip() +
     ggthemes::theme_tufte()
@@ -161,16 +161,16 @@ ranking <- function(df, var, plot_title = "",
   p <- p + scale_color_manual(values = c(NA_character_, "#00a9b7"))
 
   # Add features
-  title_scale <- min(1, 48 / nchar(plot_title))
+  title_scale <- min(1, 32 / nchar(plot_title))
 
   p <- p + theme(text = element_text(family = "Verdana"),
-                 plot.title = element_text(size = 50 * title_scale, hjust = 0.5, margin = margin(b = 20, unit = "pt")),
+                 plot.title = element_text(size = 40 * title_scale, hjust = 0.5, margin = margin(b = 15, unit = "pt")),
                  axis.text.y = element_text(hjust = 0,
-                                            size = 40, color = rev(df$textcolor)),
+                                            size = 35, color = rev(df$textcolor)),
                  axis.title.x = element_text(size = 40),
                  axis.ticks = element_blank(),
                  axis.text.x = element_blank(),
-                 plot.caption = element_text(size = 10, lineheight = 0.5))
+                 plot.caption = element_text(size = 15, lineheight = 0.8))
 
   if(subtitle_text != ""){
     p <- p + theme(plot.subtitle = element_text(hjust = 0.5, size = 30)) +
