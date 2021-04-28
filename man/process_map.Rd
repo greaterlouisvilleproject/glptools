@@ -7,30 +7,21 @@
 process_map(
   map_df,
   ...,
-  pop,
-  pop_adjust = F,
   return_name = NULL,
-  method = "mean",
   maps = c("tract", "nh", "muw", "bg", "district"),
-  keep_pop = FALSE
+  council_MOE = TRUE
 )
 }
 \arguments{
 \item{map_df}{A data frame of census tracts with a 20-digit ID colum}
 
-\item{pop}{The population variable}
+\item{...}{Variables to calculate}
 
 \item{return_name}{The name of the maps to return. Suffixes will be appended.}
 
-\item{method}{The method used to aggregate tracts.
-\code{percent} adds counts and populations to create a percentage
-\code{mean} takes values and weights to create a weighted mean
-\code{sum} adds counts and ignores the populations
-\code{median} creates a weighted median}
-
 \item{maps}{The type of maps to return. Defaults to tract, nh, and muw.}
 
-\item{variables}{A character vector of variables}
+\item{council_MOE}{Simulate Metro Council Districts? Takes a while.}
 }
 \description{
 Create tract, nh, and muw map files from a map data frame

@@ -97,19 +97,17 @@ process_map_og <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
 #' Create tract, nh, and muw map files from a map data frame
 #'
 #' @param map_df A data frame of census tracts with a 20-digit ID colum
-#' @param variables A character vector of variables
-#' @param pop The population variable
-#' @param method The method used to aggregate tracts.
-#' \code{percent} adds counts and populations to create a percentage
-#' \code{mean} takes values and weights to create a weighted mean
-#' \code{sum} adds counts and ignores the populations
-#' \code{median} creates a weighted median
+#' @param ... Variables to calculate
 #' @param return_name The name of the maps to return. Suffixes will be appended.
 #' @param maps The type of maps to return. Defaults to tract, nh, and muw.
+#' @param council_MOE Simulate Metro Council Districts? Takes a while.
 #'
 #' @export
-process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
-                        method = "mean", maps = c("tract", "nh", "muw", "bg", "district"), keep_pop = FALSE) {
+process_map <- function(map_df,
+                        ...,
+                        return_name = NULL,
+                        maps = c("tract", "nh", "muw", "bg", "district"),
+                        council_MOE = TRUE) {
 
   variables <- dplyr:::tbl_at_vars(map_df, vars(...))
   grouping_vars <- map_df %cols_in% c("year","sex", "race")
@@ -117,15 +115,15 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
   # Remove block group from default if the map is tract-level
   if (df_type(map_df) == "tract") maps = setdiff(maps, "bg")
 
-  # create function based on method
-  fxn <- switch(method,
-                "percent" = function(x, y) sum(x) / sum(y) * 100,
-                "mean"    = function(x, y) weighted.mean(x, y),
-                "sum"     = function(x, y) sum(x),
-                "median"  = function(x, y) Hmisc::wtd.quantile(x, y, na.rm = T, probs = .5))
-
-  # If median is selected, remove Airport to prevent errors
-  if (method == "median") map_df %<>% filter(tract != "21111980100")
+  # # create function based on method
+  # fxn <- switch(method,
+  #               "percent" = function(x, y) sum(x) / sum(y) * 100,
+  #               "mean"    = function(x, y) weighted.mean(x, y),
+  #               "sum"     = function(x, y) sum(x),
+  #               "median"  = function(x, y) Hmisc::wtd.quantile(x, y, na.rm = T, probs = .5))
+  #
+  # # If median is selected, remove Airport to prevent errors
+  # if (method == "median") map_df %<>% filter(tract != "21111980100")
 
   # Group by geography and year,
   #   bind to neighborhood labels (if applicable),
@@ -201,38 +199,33 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
   }
 
   if ("district" %in% maps) {
-    if(df_type(map_df) == "block_group") {
-      df_district <- map_df %>%
-        block_group_to_council(variables)
-    } else if (df_type(map_df) == "tract") {
-      df_district <- map_df %>%
-        tract_to_council(variables)
-    }
 
-    df_district %<>%
-      group_by_at(c("district", grouping_vars)) %>%
-      sum_by_var_type(variables) %>%
-      mutate(variable = "homeownership") %>%
-      pivot_vartype_longer()
+    if (council_MOE) {
+      df_district <- map_df %>%
+        census_to_council(variables)
+    } else {
+      df_district <- map_df %>%
+        census_to_council_direct(variables)
+    }
   }
 
 
   # Replace Airport values with NAs. If median was selected, bind Airport rows.
-  if (method %in% c("percent", "mean", "sum")) {
-    if ("tract" %in% maps) df_tract %<>% mutate_at(variables,
-                                                   ~ replace(.,
-                                                             var_type %in% c("estimate", "CI") &
-                                                               tract == "21111980100", NA))
-    if ("nh" %in% maps)    df_nh    %<>% mutate_at(variables,
-                                                   ~ replace(., var_type %in% c("estimate", "CI") &
-                                                               neighborhood == "Airport", NA))
-    if ("muw" %in% maps)   df_muw   %<>% mutate_at(variables,
-                                                   ~ replace(., var_type %in% c("estimate", "CI") &
-                                                               neighborhood == "Airport", NA))
-    if ("bg" %in% maps)   df_bg   %<>% mutate_at(variables,
+  #if (method %in% c("percent", "mean", "sum")) {
+  if ("tract" %in% maps) df_tract %<>% mutate_at(variables,
+                                                 ~ replace(.,
+                                                           var_type %in% c("estimate", "CI") &
+                                                             tract == "21111980100", NA))
+  if ("nh" %in% maps)    df_nh    %<>% mutate_at(variables,
                                                  ~ replace(., var_type %in% c("estimate", "CI") &
-                                                             block_group == "211119801001", NA))
-  }
+                                                             neighborhood == "Airport", NA))
+  if ("muw" %in% maps)   df_muw   %<>% mutate_at(variables,
+                                                 ~ replace(., var_type %in% c("estimate", "CI") &
+                                                             neighborhood == "Airport", NA))
+  if ("bg" %in% maps)   df_bg   %<>% mutate_at(variables,
+                                               ~ replace(., var_type %in% c("estimate", "CI") &
+                                                           block_group == "211119801001", NA))
+  #}
 
   # Create list to return based on map parameter
   output <-
@@ -243,18 +236,26 @@ process_map <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
   output
 }
 
-#' Convert census tract data to metro council district data
+#' Convert census tract or block group data to metro council district data the simple way
 #'
 #' @param df A data frame from the census
 #' @param ... a tidyselection of variables
 #'
 #' @export
-tract_to_council <- function(df, ...) {
+census_to_council_direct <- function(df, ..., geog) {
 
   variables <- dplyr:::tbl_at_vars(df, vars(...))
 
-  crosswalk <- district_tract %>%
-    group_by(tract) %>%
+  if(missing(geog)) geog <- df_type(df)
+
+  if (geog == "tract") {
+    crosswalk <- district_tract
+  } else {
+    crosswalk <- district_block_group
+  }
+
+  crosswalk %<>%
+    group_by(across(all_of(geog))) %>%
     mutate(pct_dist = population / sum(population)) %>%
     select(-population) %>%
     ungroup()
@@ -262,7 +263,7 @@ tract_to_council <- function(df, ...) {
   df %<>%
     filter(var_type %in% c("estimate", "population")) %>%
     pivot_vartype_wider(variables) %>%
-    left_join(crosswalk, by = "tract") %>%
+    left_join(crosswalk, by = geog) %>%
     group_by(variable) %>%
     mutate(across(estimate:population, ~ . * pct_dist)) %>%
     group_by(district, year, sex, race, variable) %>%
@@ -276,36 +277,104 @@ tract_to_council <- function(df, ...) {
 
 }
 
-#' Convert census block group data to metro council district data
+#' Convert census block group data to metro council district data using simulations
 #'
 #' @param df A data frame from the census
 #' @param ... a tidyselection of variables
 #'
 #' @export
-block_group_to_council <- function(df, ...) {
+census_to_council <- function(df, ..., geog) {
 
   variables <- dplyr:::tbl_at_vars(df, vars(...))
+  grouping_vars <- df %cols_in% c("year", "sex", "race")
 
-  crosswalk <- district_block_group %>%
-    group_by(block_group) %>%
-    mutate(pct_dist = population / sum(population)) %>%
-    select(-population) %>%
+  if(missing(geog)) geog <- df_type(df)
+
+  if (geog == "tract") {
+    crosswalk <- district_tract
+
+    df %<>% filter(tract != "21111980100")
+  } else {
+    crosswalk <- district_block_group %>%
+      select(-tract)
+
+    df %<>% filter(block_group != "211119801001")
+  }
+
+  # Summarize block group/tract to district allocations
+  crosswalk %<>%
+    group_by(across(all_of(geog))) %>%
+    mutate(across(population, ~ . / sum(.)))
+
+  # Create data frame of simulated populations for each characteristic in each block group/tract
+  simulate_population <- function(df, grouping_vars) {
+
+    # Draw 1000 populations for each variable
+    model_population <- function(var, var_type) {
+      rnorm(1000, var[var_type == "estimate"], var[var_type == "MOE"] / 1.645)
+    }
+
+    output <- map_dfc(df[,df %cols_not_in% grouping_vars], ~model_population(., df$var_type))
+
+    # Replace values under 0 and remove rows with all 0 estimates
+    output %<>%
+      mutate(across(everything(),
+                    ~case_when(. < 0 ~ 0,
+                               TRUE ~ .))) %>%
+      filter(rowSums(.) != 0) %>%
+      mutate(simulation = row_number())
+
+    output
+  }
+
+  block_sims <- df %>%
+    group_by(across(all_of(c(geog, grouping_vars)))) %>%
+    nest() %>%
+    mutate(simulations = purrr::map(data, ~simulate_population(., c(grouping_vars, "var_type")))) %>%
+    select(-data) %>%
+    unnest(cols = c(simulations)) %>%
     ungroup()
 
-  df %<>%
-    filter(var_type %in% c("estimate", "population")) %>%
+  # Join crosswalk to data frame and summarize data by district for each siulation
+  district_sims <- block_sims %>%
+    left_join(crosswalk, by = geog) %>%
+    mutate(across(all_of(variables), ~ . * population)) %>%
+    group_by(district, year, sex, race, simulation) %>%
+    summarise(across(all_of(variables), ~ sum(.)), .groups = "drop")
+
+  # Summarize data into estimates and margins of error
+  council_summary_fxn <- function(df, variables) {
+    estimate <- df %>%
+      summarise(across(all_of(variables), mean))
+
+    MOE <- df %>%
+      summarise(across(all_of(variables), ~sd(.) * 1.645))
+
+    temp <- bind_rows(estimate, MOE)
+
+    bind_cols("var_type" = c("estimate", "MOE"), temp)
+  }
+
+  district_summaries <- district_sims %>%
+    group_by(across(all_of(c("district", grouping_vars)))) %>%
+    nest() %>%
+    mutate(results = map(data, ~council_summary_fxn(., variables))) %>%
+    select(-data) %>%
+    unnest(cols = c(results)) %>%
+    ungroup()
+
+  # Get populations back
+  district_summaries %<>%
     pivot_vartype_wider(variables) %>%
-    left_join(crosswalk, by = "block_group") %>%
-    group_by(variable) %>%
-    mutate(across(estimate:population, ~ . * pct_dist)) %>%
+    group_by(district, year, sex, race) %>%
+    mutate(population = sum(estimate)) %>%
     group_by(district, year, sex, race, variable) %>%
-    summarise(
-      estimate = sum(estimate),
-      population = sum(population), .groups = "drop") %>%
-    filter(across(estimate, ~!is.na(.))) %>%
+    sum_by_var_type()
+
+  district_summaries %<>%
     pivot_vartype_longer()
 
-  df
+  district_summaries
 }
 
 #' Transform data from 2000 census tracts to 2010 census tracts

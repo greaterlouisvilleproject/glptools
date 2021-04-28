@@ -36,9 +36,6 @@
 #'
 #' @param bold_nh If map of tracts, bold GLP neighborhood boundariess? Defaults to \code{TRUE}.
 #'
-#' @param save_file  Provide file destination to save leaflet file.
-#' @param save_image Provide file destination (wihout file type) to save leaflet image as PDF.
-
 #' @export
 make_map <- function(maps, var,
                      hover_name, legend_title,
@@ -47,8 +44,7 @@ make_map <- function(maps, var,
                      color_style = "sequential", palette = "", reverse_pal = F,
                      continuous = T, var_bins,
                      tiles = T,
-                     bold_nh = T,
-                     save_file = "", save_image = ""){
+                     bold_nh = T){
 
 
   if (is.data.frame(maps)) {maps <- list(maps)}
@@ -269,15 +265,6 @@ make_map <- function(maps, var,
   css_fix <- "div.info.legend.leaflet-control br {clear: both;}"
   html_fix <- htmltools::tags$style(type = "text/css", css_fix)
   m %<>% htmlwidgets::prependContent(html_fix)
-
-  if (save_file != "") {
-    rgdal::writeOGR(obj = map, dsn = save_file,
-                    layer = map_obj, driver = "ESRI Shapefile",
-                    overwrite_layer = TRUE)
-  }
-  if (save_image != "") {
-    mapview::mapshot(m, file = save_image %p% ".pdf", zoom = 0.4)
-  }
 
   m
 }

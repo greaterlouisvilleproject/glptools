@@ -19,9 +19,7 @@ make_map(
   continuous = T,
   var_bins,
   tiles = T,
-  bold_nh = T,
-  save_file = "",
-  save_image = ""
+  bold_nh = T
 )
 }
 \arguments{
@@ -52,10 +50,6 @@ Can also provide \code{FALSE} to use a grey background.
 Future: provide tile URL}
 
 \item{bold_nh}{If map of tracts, bold GLP neighborhood boundariess? Defaults to \code{TRUE}.}
-
-\item{save_file}{Provide file destination to save leaflet file.}
-
-\item{save_image}{Provide file destination (wihout file type) to save leaflet image as PDF.}
 }
 \description{
 Creates a map of Louisville

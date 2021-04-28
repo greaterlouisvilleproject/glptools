@@ -10,8 +10,7 @@ process_census(
   cat_var,
   output_name,
   age_groups = "all",
-  output_percent = TRUE,
-  output_population = FALSE,
+  age_group_wide = FALSE,
   sum_to_100 = TRUE
 )
 }

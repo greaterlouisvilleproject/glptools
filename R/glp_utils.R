@@ -12,6 +12,7 @@ glp_load_packages <- function(graphs = F) {
   library(rsample)
 
   if (graphs) {
+    library(ggplot2)
     library(showtext)
     library(scales)
     library(ggrepel)
