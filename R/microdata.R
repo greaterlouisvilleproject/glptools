@@ -148,8 +148,6 @@ survey_by_demog <- function(df, var,
                             other_grouping_vars = c(),
                             breakdowns = c("total", "sex", "race", "sex_by_race")) {
 
-  var <- as.character(substitute(var))
-
   # Remove missing values of variable or geography
   df %<>%
     filter(
