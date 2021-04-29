@@ -134,7 +134,7 @@ clean_cps_micro <- function(df, pull_peers = T){
 #' Survey microdata by race and sex
 #'
 #' @param survey A survey object containing FIPS, year, and optional race and sex columns.
-#' @param var A column name to perform svymean on.
+#' @param var A column name to perform svymean on. Make sure the column names is in "".
 #' @param type Either mean or categorical
 #' @param weight_var weight variable
 #' @param geog geographic column
