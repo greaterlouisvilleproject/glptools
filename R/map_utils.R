@@ -286,7 +286,7 @@ census_to_council_direct <- function(df, ..., geog) {
 census_to_council <- function(df, ..., geog) {
 
   variables <- dplyr:::tbl_at_vars(df, vars(...))
-  grouping_vars <- df %cols_in% c("year", "sex", "race")
+  grouping_vars <- df %cols_in% c("year", "sex", "race", "age_group")
 
   if(missing(geog)) geog <- df_type(df)
 
@@ -327,6 +327,8 @@ census_to_council <- function(df, ..., geog) {
     output
   }
 
+  set.seed(42) # set the seed so the data is the same each time the code is run with the same input data
+
   block_sims <- df %>%
     group_by(across(all_of(c(geog, grouping_vars)))) %>%
     nest() %>%
@@ -339,7 +341,7 @@ census_to_council <- function(df, ..., geog) {
   district_sims <- block_sims %>%
     left_join(crosswalk, by = geog) %>%
     mutate(across(all_of(variables), ~ . * population)) %>%
-    group_by(district, year, sex, race, simulation) %>%
+    group_by(across(all_of(c("district", grouping_vars, "simulation")))) %>%
     summarise(across(all_of(variables), ~ sum(.)), .groups = "drop")
 
   # Summarize data into estimates and margins of error
@@ -366,9 +368,9 @@ census_to_council <- function(df, ..., geog) {
   # Get populations back
   district_summaries %<>%
     pivot_vartype_wider(variables) %>%
-    group_by(district, year, sex, race) %>%
+    group_by(across(all_of(c("district", grouping_vars)))) %>%
     mutate(population = sum(estimate)) %>%
-    group_by(district, year, sex, race, variable) %>%
+    group_by(across(all_of(c("district", grouping_vars, "variable")))) %>%
     sum_by_var_type()
 
   district_summaries %<>%

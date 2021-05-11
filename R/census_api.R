@@ -327,7 +327,7 @@ process_census <- function(df,
       temp %<>%
         filter(.data[[cat_var]] != "total")
     } else {
-      temp_pop <- df
+      temp_pop <- temp
     }
 
     temp_pop %<>%
