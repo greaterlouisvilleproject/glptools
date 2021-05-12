@@ -385,8 +385,9 @@ process_census <- function(df,
                   values_from = var_cols)
 
     # Drop "_all" from group names because it's implied
-    df %<>% rename_with(~str_remove(., "_all$"), str_detect(names(df), "_all$"))
-
+    if(any(str_detect(names(df), "_all$"))) {
+      df %<>% rename_with(~str_remove(., "_all$"), str_detect(names(df), "_all$"))
+    }
   } else if (length(age_groups) == 1) {
     df %<>%
       select(-age_group)
