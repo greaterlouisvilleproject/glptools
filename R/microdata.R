@@ -134,7 +134,7 @@ clean_cps_micro <- function(df, pull_peers = T){
 #' Survey microdata by race and sex
 #'
 #' @param survey A survey object containing FIPS, year, and optional race and sex columns.
-#' @param var A column name to perform svymean on.
+#' @param var A column name to perform svymean on. Make sure the column name is in "".
 #' @param type Either mean or categorical
 #' @param weight_var weight variable
 #' @param geog geographic column
@@ -147,8 +147,6 @@ survey_by_demog <- function(df, var,
                             method = "default",
                             other_grouping_vars = c(),
                             breakdowns = c("total", "sex", "race", "sex_by_race")) {
-
-  var <- as.character(substitute(var))
 
   # Remove missing values of variable or geography
   df %<>%
