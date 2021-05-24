@@ -595,7 +595,7 @@ tl_style <- function(p, plot_title, y_title,
 
   #adjust theme
   p <- p + theme_bw(
-    base_size = 11 * text_scale,
+    base_size = 10 * text_scale,
                     base_family = "Verdana")
 
   p <- p + theme(
@@ -603,15 +603,15 @@ tl_style <- function(p, plot_title, y_title,
     legend.position  = "top",
     legend.margin    = margin(t = 0.4 * text_scale, unit = "cm"),
     legend.spacing.x = unit(0.4 * text_scale, "cm"),
-    legend.text      = element_text(size = 13 * text_scale,
+    legend.text      = element_text(size = 8 * text_scale,
                                     margin = margin(b = 0.2 * text_scale, t = 0.2 * text_scale, unit = "cm")),
 
-    axis.text    = element_text(size = 15 * text_scale),
-    axis.title   = element_text(size = 25 * text_scale),
-    axis.title.x = element_text(margin = margin(t = 0.3 * text_scale, unit = "cm")),
-    axis.title.y = element_text(margin = margin(r = 0.3 * text_scale, unit = "cm")),
+    axis.text    = element_text(size = 12 * text_scale),
+    axis.title   = element_text(size = 20 * text_scale),
+    axis.title.x = element_text(margin = margin(t = 0.25 * text_scale, unit = "cm")),
+    axis.title.y = element_text(margin = margin(r = 0.25 * text_scale, unit = "cm")),
 
-    plot.title = element_text(size = 35 * text_scale * title_scale,
+    plot.title = element_text(size = 33 * text_scale * title_scale,
                               hjust = .5,
                               margin = margin(b = 0.4 * text_scale, unit = "cm")),
 
