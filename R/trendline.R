@@ -52,9 +52,9 @@ trend <- function(df, var,
                   rollmean = 1, xmin = "", xmax = "", peers = "current",
                   cat = "", include_hispanic = F, include_asian = T,
                   plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
-                  ylimits = "", pctiles = T, shading = F,
+                  ylimits = "", pctiles = T, use_var_type = F, shading = F,
                   label_function = NULL, axis_function = NULL, year_breaks = NULL,
-                  text_scale = 2, endpoint_labels = TRUE){
+                  endpoint_labels = TRUE){
 
   var <- dplyr:::tbl_at_vars(df, vars(!!enquo(var)))
 
@@ -64,9 +64,9 @@ trend <- function(df, var,
      rollmean, xmin, xmax, peers, order = "descending",
      cat, include_hispanic, include_asian,
      plot_title, y_title, caption_text, subtitle_text,
-     zero_start = F, ylimits, pctiles, shading,
+     zero_start = F, ylimits, pctiles, use_var_type, shading,
      label_function, axis_function, year_breaks,
-     text_scale, endpoint_labels)
+     endpoint_labels)
 
 }
 
@@ -75,9 +75,9 @@ trend <- function(df, var,
 trend_maxmin <- function(df, var,
                          rollmean = 1, xmin = "", xmax = "", peers = "current", order = "descending",
                          plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
-                         zero_start = F, ylimits = "",
+                         zero_start = F, ylimits = "",  use_var_type = F,
                          label_function = NULL, axis_function = NULL, year_breaks = NULL,
-                         text_scale = 2, endpoint_labels = TRUE){
+                         endpoint_labels = TRUE){
 
   var <- dplyr:::tbl_at_vars(df, vars(!!enquo(var)))
 
@@ -85,9 +85,9 @@ trend_maxmin <- function(df, var,
      rollmean, xmin, xmax, peers, order,
      cat = "", include_hispanic = F, include_asian = T,
      plot_title, y_title, caption_text, subtitle_text,
-     zero_start, ylimits, pctiles = F, shading = F,
+     zero_start, ylimits, pctiles = F, use_var_type, shading = F,
      label_function, axis_function, year_breaks,
-     text_scale, endpoint_labels)
+     endpoint_labels)
 }
 
 
@@ -96,7 +96,7 @@ trend_maxmin <- function(df, var,
 trend_data <- function(df, var = "var",
                        rollmean = 1, xmin = "", xmax = "", peers = "current",
                        cat = "", include_hispanic = F, include_asian = T,
-                       pctiles = T) {
+                       pctiles = T, use_var_type = F) {
 
   var <- dplyr:::tbl_at_vars(df, vars(!!enquo(var)))
 
@@ -104,7 +104,7 @@ trend_data <- function(df, var = "var",
            rollmean, xmin, xmax, peers, order = "descending",
            cat, include_hispanic, include_asian,
            plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
-           zero_start = F, ylimits = "", pctiles, shading = F,
+           zero_start = F, ylimits = "", pctiles, use_var_type, shading = F,
            label_function = NULL, axis_function = NULL)
 
   if(cat == ""){
@@ -122,7 +122,7 @@ trend_data <- function(df, var = "var",
 #' @export
 trend_data_maxmin <- function(df, var = "var",
                               rollmean = 1, xmin = "", xmax = "", peers = "current", order = "descending",
-                              zero_start = F){
+                              zero_start = F, use_var_type = F){
 
   var <- dplyr:::tbl_at_vars(df, vars(!!enquo(var)))
 
@@ -130,7 +130,7 @@ trend_data_maxmin <- function(df, var = "var",
            rollmean, xmin, xmax, peers, order,
            cat = "", include_hispanic = F, include_asian = T,
            plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
-           zero_start, ylimits = "", pctiles = T, shading = F,
+           zero_start, ylimits = "", pctiles = T, use_var_type, shading = F,
            label_function = NULL, axis_function = NULL)
 
   df %<>% rename(!!var := value)

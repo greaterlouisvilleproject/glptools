@@ -23,11 +23,11 @@ tl(
   zero_start = F,
   ylimits = "",
   pctiles = T,
+  use_var_type = F,
   shading = F,
   label_function = NULL,
   axis_function = NULL,
   year_breaks = NULL,
-  text_scale = 2,
   endpoint_labels = TRUE
 )
 }

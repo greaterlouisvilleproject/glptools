@@ -158,30 +158,30 @@ ranking <- function(df, var, plot_title = "",
     ggthemes::theme_tufte()
 
   p <- p + scale_fill_manual(values = color_values)
-  p <- p + scale_color_manual(values = c(NA_character_, "#00a9b7"))
+  p <- p + scale_color_manual(values = c("#00000000", "#00a9b7FF"))
 
   # Add features
-  title_scale <- min(1, 32 / nchar(plot_title))
+  title_scale <- min(1, 48 / nchar(plot_title))
 
-  p <- p + theme(text = element_text(family = "Verdana"),
-                 plot.title = element_text(size = 40 * title_scale, hjust = 0.5, margin = margin(b = 15, unit = "pt")),
+  p <- p + theme(text = element_text(family = "Museo Sans"),
+                 plot.title = element_text(size = 90 * title_scale, hjust = 0.5, margin = margin(b = 15, unit = "pt")),
                  axis.text.y = element_text(hjust = 0,
-                                            size = 35, color = rev(df$textcolor)),
-                 axis.title.x = element_text(size = 40),
+                                            size = 60, color = rev(df$textcolor)),
+                 axis.title.x = element_text(size = 60),
                  axis.ticks = element_blank(),
                  axis.text.x = element_blank(),
-                 plot.caption = element_text(size = 15, lineheight = 0.8))
+                 plot.caption = element_text(size = 40, lineheight = 0.5))
 
   if(subtitle_text != ""){
-    p <- p + theme(plot.subtitle = element_text(hjust = 0.5, size = 30)) +
+    p <- p + theme(plot.subtitle = element_text(hjust = 0.5, size = 50)) +
       labs(subtitle = subtitle_text)
   }
 
   # Add numeric labels to bars based on bar_label parameter
   if (y_title != "" & bar_label) {
     p <- p + geom_text(aes(label = label_text, hjust = text_alignment),
-                       size = 15,
-                       family = "Verdana")
+                       size = 20,
+                       family = "Museo Sans")
   }
 
   # Add vertical line to the left side of the bars based on the h_line parameter

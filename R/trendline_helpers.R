@@ -4,9 +4,9 @@ tl <- function(type, df, var,
                rollmean = 1, xmin = "", xmax = "", peers = "current", order = "descending",
                cat = "", include_hispanic = F, include_asian = T,
                plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
-               zero_start = F, ylimits = "", pctiles = T, shading = F,
+               zero_start = F, ylimits = "", pctiles = T, use_var_type = F, shading = F,
                label_function = NULL, axis_function = NULL, year_breaks = NULL,
-               text_scale = 2, endpoint_labels = TRUE){
+               endpoint_labels = TRUE){
 
   if (length(var) == 1) df$var <- df[[var]]
 
@@ -15,7 +15,7 @@ tl <- function(type, df, var,
 
   # Filter data to peer set, race, sex, or other categories.
   # Create category names.
-  tl_filter(df, var, peers, cat, include_hispanic, include_asian) %>%
+  tl_filter(df, var, peers, cat, include_hispanic, include_asian, use_var_type) %>%
     list2env(envir = parent.env(environment()))
 
   if (xmin == "" | is.na(xmin)) xmin <- min(years_in_df(df, var))
@@ -29,7 +29,7 @@ tl <- function(type, df, var,
   }
 
   # Calculate rolling mean
-  tl_rolling_mean(df, xmin, xmax, rollmean, subtitle_text) %>%
+  tl_rolling_mean(df, xmin, xmax, rollmean, subtitle_text, type, zero_start) %>%
     list2env(envir = parent.env(environment()))
 
   # add any year breaks
@@ -50,14 +50,14 @@ tl <- function(type, df, var,
     list2env(envir = parent.env(environment()))
 
   # Initial plot
-  g <- tl_plot(df, text_scale)
+  g <- tl_plot(df)
 
   # Axis limits
   g %<>% tl_limits(df, xmin, xmax, ylimits, major_break_settings, minor_break_settings,
                    y_title, label_function, axis_function, endpoint_labels)
 
   # Add style
-  g %<>% tl_style(plot_title, y_title, caption_text, subtitle_text, cat_names, text_scale)
+  g %<>% tl_style(plot_title, y_title, caption_text, subtitle_text, cat_names)
 
   #add color and line types
   if(type %in% c("standard", "kentucky")){
@@ -263,6 +263,8 @@ tl_rolling_mean <- function(df,
                             xmax,
                             rollmean,
                             subtitle_text,
+                            type,
+                            zero_start,
                             return_only_df = F){
 
   # census = TRUE if 2000 is in the data frame but 2001:2004 are not.
@@ -288,9 +290,28 @@ tl_rolling_mean <- function(df,
     df <- bind_rows(df_2000, df)
   }
 
+  browser()
+
   # If no 2000 census, increase xmin
   if(!census){
-    xmin <- xmin + floor(rollmean / 2)
+      xmin <- xmin + floor(rollmean / 2)
+
+
+      # If the graph is a minmax graph starting at 0,
+      # add a year where all values equal zero before the data begins.
+      if (type == "maxmin" & rollmean > 1 & zero_start) {
+        xmin <- xmin - 1
+
+        df_zero <- df %>%
+          filter(year == first(year)) %>%
+          mutate(
+            year = xmin,
+            value = 0)
+
+        print(df_zero)
+
+        df <- df %>% bind_rows(df_zero)
+      }
   }
 
   # Decrease xmax (regardless of 2000 census)
@@ -303,7 +324,7 @@ tl_rolling_mean <- function(df,
     filter(!is.na(value))
 
   # Adjust subtitle or create a new subtitle to
-  #   refernce the rolling mean.
+  #   reference the rolling mean.
   if(rollmean > 1){
     if(subtitle_text == ""){
       subtitle_text <- paste0(rollmean,"-year rolling average")
@@ -482,7 +503,7 @@ tl_break_settings <- function(df, xmin, xmax, rollmean){
 #'
 #' @param df A data frame
 #' @return A ggplot object
-tl_plot <- function(df, text_scale){
+tl_plot <- function(df){
   p <- ggplot(data = df,
               aes(x = year, y = value,
                   group = line_group,
@@ -491,8 +512,8 @@ tl_plot <- function(df, text_scale){
                   alpha = style_group,
                   label = value))
   p <- p +
-    geom_point(size = 2 * text_scale) +
-    geom_line(size = 1  * text_scale)
+    geom_point(size = 4) +
+    geom_line(size = 2)
 
   if (min(df$value, na.rm = T) < 0) p <- p + geom_hline(yintercept = 0, linetype = "longdash", size = 0.75)
 
@@ -573,11 +594,11 @@ tl_limits <- function(p, df, xmin, xmax, ylimits,
         data = df_label,
         aes(label = label_text),
         xlim = c(xmax + (xmax - xmin) * .01, xmax + (xmax - xmin) * xmax_adjustment),
-        size = 9,
+        size = 20,
         hjust = 0,
         alpha = 1,
         segment.alpha = 0,
-        family = "Verdana",
+        family = "Museo Sans",
         show.legend = FALSE)
   }
 
@@ -589,34 +610,34 @@ tl_limits <- function(p, df, xmin, xmax, ylimits,
 #' @return A ggplot object
 tl_style <- function(p, plot_title, y_title,
                      caption_text, subtitle_text,
-                     cat_names, text_scale, x_title = "Year"){
+                     cat_names, x_title = "Year"){
 
   title_scale <- min(1, 25 / nchar(plot_title))
 
   #adjust theme
   p <- p + theme_bw(
-    base_size = 11 * text_scale,
-                    base_family = "Verdana")
+    base_size = 11,
+    base_family = "Museo Sans")
 
   p <- p + theme(
     legend.title     = element_blank(),
     legend.position  = "top",
-    legend.margin    = margin(t = 0.4 * text_scale, unit = "cm"),
-    legend.spacing.x = unit(0.4 * text_scale, "cm"),
-    legend.text      = element_text(size = 13 * text_scale,
-                                    margin = margin(b = 0.2 * text_scale, t = 0.2 * text_scale, unit = "cm")),
+    legend.margin    = margin(t = 10, unit = "pt"),
+    legend.spacing.x = unit(30, "pt"),
+    legend.text      = element_text(size = 40,
+                                    margin = margin(b = 15, t = 15, unit = "pt")),
 
-    axis.text    = element_text(size = 15 * text_scale),
-    axis.title   = element_text(size = 25 * text_scale),
-    axis.title.x = element_text(margin = margin(t = 0.3 * text_scale, unit = "cm")),
-    axis.title.y = element_text(margin = margin(r = 0.3 * text_scale, unit = "cm")),
+    axis.text    = element_text(size = 50),
+    axis.title   = element_text(size = 60),
+    axis.title.x = element_text(margin = margin(t = 15, unit = "pt")),
+    axis.title.y = element_text(margin = margin(r = 15, unit = "pt")),
 
-    plot.title = element_text(size = 35 * text_scale * title_scale,
+    plot.title = element_text(size = 90 * title_scale,
                               hjust = .5,
-                              margin = margin(b = 0.4 * text_scale, unit = "cm")),
+                              margin = margin(b = 25, unit = "pt")),
 
-    plot.caption = element_text(size = 12 * text_scale,
-                                lineheight = 0.8))
+    plot.caption = element_text(size = 40,
+                                lineheight = 0.5))
 
 
   #add labels
@@ -629,14 +650,14 @@ tl_style <- function(p, plot_title, y_title,
   #add subtitle if included
   if(subtitle_text != ""){
     p <- p +
-      theme(plot.subtitle = element_text(hjust = 0.5, size = 20 * text_scale)) +
+      theme(plot.subtitle = element_text(hjust = 0.5, size = 50)) +
       labs(subtitle = subtitle_text)
   }
 
   # If two rows of legend entries will be displayed, align the categories vertically.
   if(length(cat_names) >= 4){
     p <- p + guides(colour = guide_legend(label.position = "top",
-                                          keywidth = unit(6 * text_scale, "lines")))
+                                          keywidth = unit(12, "lines")))
   } else {
     p <- p + guides(colour = guide_legend(label.position = "top"))
   }
@@ -698,7 +719,7 @@ tl_lines <- function(p, df, shading, cat_names, pctiles){
       labels = line_types)
 
   if(shading){
-    df$line_group <- unfactor(df$line_group)
+    df$line_group <- as.character(df$line_group)
 
     positions <- data.frame(
       variable = df$style_group,

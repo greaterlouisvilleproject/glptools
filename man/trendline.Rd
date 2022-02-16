@@ -24,11 +24,11 @@ trend(
   subtitle_text = "",
   ylimits = "",
   pctiles = T,
+  use_var_type = F,
   shading = F,
   label_function = NULL,
   axis_function = NULL,
   year_breaks = NULL,
-  text_scale = 2,
   endpoint_labels = TRUE
 )
 
@@ -46,10 +46,10 @@ trend_maxmin(
   subtitle_text = "",
   zero_start = F,
   ylimits = "",
+  use_var_type = F,
   label_function = NULL,
   axis_function = NULL,
   year_breaks = NULL,
-  text_scale = 2,
   endpoint_labels = TRUE
 )
 
@@ -63,7 +63,8 @@ trend_data(
   cat = "",
   include_hispanic = F,
   include_asian = T,
-  pctiles = T
+  pctiles = T,
+  use_var_type = F
 )
 
 trend_data_maxmin(
@@ -74,7 +75,8 @@ trend_data_maxmin(
   xmax = "",
   peers = "current",
   order = "descending",
-  zero_start = F
+  zero_start = F,
+  use_var_type = F
 )
 }
 \arguments{

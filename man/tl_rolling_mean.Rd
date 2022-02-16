@@ -4,7 +4,16 @@
 \alias{tl_rolling_mean}
 \title{Calculate the rolling mean of a data frame}
 \usage{
-tl_rolling_mean(df, xmin, xmax, rollmean, subtitle_text, return_only_df = F)
+tl_rolling_mean(
+  df,
+  xmin,
+  xmax,
+  rollmean,
+  subtitle_text,
+  type,
+  zero_start,
+  return_only_df = F
+)
 }
 \value{
 A list containing df, xmin, xmax ,and subtitle_text

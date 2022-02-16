@@ -4,7 +4,7 @@
 \alias{tl_plot}
 \title{Initial plot}
 \usage{
-tl_plot(df, text_scale)
+tl_plot(df)
 }
 \arguments{
 \item{df}{A data frame}
