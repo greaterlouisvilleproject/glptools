@@ -290,8 +290,6 @@ tl_rolling_mean <- function(df,
     df <- bind_rows(df_2000, df)
   }
 
-  browser()
-
   # If no 2000 census, increase xmin
   if(!census){
       xmin <- xmin + floor(rollmean / 2)
