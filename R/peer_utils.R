@@ -61,7 +61,7 @@ pull_peers <- function(df, add_info = F, subset_to_peers = T, geog = "", additio
 #' @param weight_var A variable to use when weighting the counties. Defaults to \code{population}.
 #' @param method "mean" or "sum". Defaults to mean.
 #' @export
-stl_merge <- function(df, ..., weight_var = "", method = "",
+stl_merge <- function(df, ..., weight_var = "", method = "mean", simple = F,
                       other_grouping_vars = "", just_replace_FIPS = F, keep_counties = F){
 
   weight_var <- as.character(substitute(weight_var))
@@ -71,12 +71,26 @@ stl_merge <- function(df, ..., weight_var = "", method = "",
 
   if (just_replace_FIPS) return(df %>% mutate(FIPS = replace(FIPS, FIPS %in% c("29189", "29510"), "MERGED")))
 
+  # If simple is true, assign overall populations from 2018 as weights
+  if (simple) {
+
+    weight_var <- "weights"
+
+    df %<>%
+      mutate(
+        weights = case_when(
+          FIPS == "29189" ~ 996726,
+          FIPS == "29510" ~ 308626,
+          TRUE ~ 1))
+  }
+
   # If no weight variable supplied and one is needed, read in total population and join to df
   if(weight_var == "" & method == "mean" & !just_replace_FIPS){
 
     weight_var <- "population"
 
     if("population" %not_in% names(df)){
+
       df %<>% add_population()
     }
   }
@@ -87,25 +101,36 @@ stl_merge <- function(df, ..., weight_var = "", method = "",
       filter(FIPS %in% c("29189", "29510"))
   }
 
-  # For each variable to be weighted, create a new df of the applicable variables
-  # for(v in variables){
-  #
-  #   else if (method == "mean") df %<>% summarise(!!v := weighted.mean(.data[[v]], .data[[weight_var]]), .groups = "drop")
-  #   else if (method == "max")  df %<>% summarise(!!v := max(.data[[v]], na.rm = TRUE), .groups = "drop")
-  #   else if (method == "min")  df %<>% summarise(!!v := min(.data[[v]], na.rm = TRUE), .groups = "drop")
-  #   else if (method == "sum")  df %<>% summarise_at(v, sum, .groups = "drop")
-  #
-  # }
+  if("var_type" %in% names(df)) {
+    df %<>%
+      pivot_longer(cols = variables, names_to = "variable") %>%
+      pivot_wider(names_from = var_type, values_from = value) %>%
+      mutate(FIPS = replace(FIPS, FIPS %in% c("29189", "29510"), "MERGED")) %>%
+      group_by(across(c(df %cols_in% grouping_vars, "variable"))) %>%
+      sum_by_var_type() %>%
+      pivot_longer(cols = . %cols_in% c("estimate", "population", "MOE", "percent", "CI"),
+                   names_to = "var_type") %>%
+      pivot_wider(names_from = "variable", values_from = "value")
+  } else {
 
-  df %<>%
-    pivot_longer(cols = variables, names_to = "variable") %>%
-    pivot_wider(names_from = var_type, values_from = value) %>%
-    mutate(FIPS = replace(FIPS, FIPS %in% c("29189", "29510"), "MERGED")) %>%
-    group_by(across(c(df %cols_in% grouping_vars, "variable"))) %>%
-    sum_by_var_type() %>%
-    pivot_longer(cols = . %cols_in% c("estimate", "population", "MOE", "percent", "CI"),
-                 names_to = "var_type") %>%
-    pivot_wider(names_from = "variable", values_from = "value")
+    #For each variable to be weighted, create a new df of the applicable variables
+    for(v in variables){
+
+      temp <- df %>%
+        mutate(FIPS = replace(FIPS, FIPS %in% c("29189", "29510"), "MERGED")) %>%
+        group_by(across(c(df %cols_in% grouping_vars)))
+
+      if (method == "mean") temp %<>% summarise(!!v := weighted.mean(.data[[v]], .data[[weight_var]]), .groups = "drop")
+      else if (method == "max")  temp %<>% summarise(!!v := max(.data[[v]], na.rm = TRUE), .groups = "drop")
+      else if (method == "min")  temp %<>% summarise(!!v := min(.data[[v]], na.rm = TRUE), .groups = "drop")
+      else if (method == "sum")  temp %<>% summarise_at(v, sum, .groups = "drop")
+
+      output <- assign_col_join(output, temp, by = grouping_vars)
+
+    }
+
+    df <- output
+  }
 
   if (keep_counties) df %<>% bind_rows(df_stl)
 

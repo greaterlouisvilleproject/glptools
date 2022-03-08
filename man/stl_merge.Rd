@@ -8,7 +8,8 @@ stl_merge(
   df,
   ...,
   weight_var = "",
-  method = "",
+  method = "mean",
+  simple = F,
   other_grouping_vars = "",
   just_replace_FIPS = F,
   keep_counties = F
