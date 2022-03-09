@@ -8,7 +8,6 @@
 #' \itemize{
 #'   \item{\strong{Required}: \code{df}, \code{var}}
 #'   \item{\strong{Filter and Adjust Data}:  \code{rollmean}, \code{xmin}, \code{xmax}, \code{peers}, \code{order}}
-#'   \item{\strong{Demographics}:  \code{cat}, \code{include_hispanic}, \code{include_asian}}
 #'   \item{\strong{Add Text to Graph}: \code{plot_title}, \code{y_title}, \code{caption_text}, \code{subtitle_text}}
 #'   \item{\strong{Graph Elements}: \code{zero_start}, \code{ylimits}, \code{pctiles}, \code{shading}}
 #'   \item{\strong{Manipulate Labels}: \code{label_function}, \code{axis_function}}
@@ -20,13 +19,11 @@
 #' @param rollmean A rolling mean. Defaults to 1.
 #' @param xmin First year
 #' @param xmax Last year
-#' @param peers \code{Current} or \code{Baseline}.
+#' @param peers \code{current}, \code{baseline}, or \code{none}.
 #' @param order \code{Descending} or \code{Ascending}. (For max_min functions)
 #'
 #' @param cat A character vector that specifies a demographic category. Can be \code{race} or \code{sex}
 #' to display a set of lines for each category, or can be a specific group like \code{white} or \code{female}.
-#' @param include_hispanic Include lines for Hispanics, if applicable? Defaults to \code{FALSE}.
-#' @param include_asian Include lines for Asians, if applicable? Defaults to \code{TRUE}. Mostly used for KY education data.
 #'
 #' @param plot_title Plot title
 #' @param y_title Y-axis title. Defailts to \code{Percent}.
@@ -50,8 +47,7 @@ NULL
 #' @export
 trend <- function(df, var,
                   rollmean = 1, xmin = "", xmax = "", peers = "current",
-                  cat = "", include_hispanic = F, include_asian = T,
-                  plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
+                  cat = "", plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
                   ylimits = "", pctiles = T, use_var_type = F, shading = F,
                   label_function = NULL, axis_function = NULL, year_breaks = NULL,
                   endpoint_labels = TRUE){
@@ -62,8 +58,7 @@ trend <- function(df, var,
 
   tl(type, df, var,
      rollmean, xmin, xmax, peers, order = "descending",
-     cat, include_hispanic, include_asian,
-     plot_title, y_title, caption_text, subtitle_text,
+     cat, plot_title, y_title, caption_text, subtitle_text,
      zero_start = F, ylimits, pctiles, use_var_type, shading,
      label_function, axis_function, year_breaks,
      endpoint_labels)
@@ -77,17 +72,17 @@ trend_maxmin <- function(df, var,
                          plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
                          zero_start = F, ylimits = "",  use_var_type = F,
                          label_function = NULL, axis_function = NULL, year_breaks = NULL,
-                         endpoint_labels = TRUE){
+                         endpoint_labels = TRUE, max_city = "", min_city = ""){
+
 
   var <- dplyr:::tbl_at_vars(df, vars(!!enquo(var)))
 
   tl("maxmin", df, var,
      rollmean, xmin, xmax, peers, order,
-     cat = "", include_hispanic = F, include_asian = T,
-     plot_title, y_title, caption_text, subtitle_text,
+     cat = "", plot_title, y_title, caption_text, subtitle_text,
      zero_start, ylimits, pctiles = F, use_var_type, shading = F,
      label_function, axis_function, year_breaks,
-     endpoint_labels)
+     endpoint_labels, max_city, min_city)
 }
 
 
@@ -95,15 +90,13 @@ trend_maxmin <- function(df, var,
 #' @export
 trend_data <- function(df, var = "var",
                        rollmean = 1, xmin = "", xmax = "", peers = "current",
-                       cat = "", include_hispanic = F, include_asian = T,
-                       pctiles = T, use_var_type = F) {
+                       cat = "", pctiles = T, use_var_type = F) {
 
   var <- dplyr:::tbl_at_vars(df, vars(!!enquo(var)))
 
   df <- tl("data", df, var,
            rollmean, xmin, xmax, peers, order = "descending",
-           cat, include_hispanic, include_asian,
-           plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
+           cat, plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
            zero_start = F, ylimits = "", pctiles, use_var_type, shading = F,
            label_function = NULL, axis_function = NULL)
 
@@ -122,19 +115,19 @@ trend_data <- function(df, var = "var",
 #' @export
 trend_data_maxmin <- function(df, var = "var",
                               rollmean = 1, xmin = "", xmax = "", peers = "current", order = "descending",
-                              zero_start = F, use_var_type = F){
+                              zero_start = F, use_var_type = F, max_city = "", min_city = ""){
 
   var <- dplyr:::tbl_at_vars(df, vars(!!enquo(var)))
 
   df <- tl("data_maxmin", df, var,
            rollmean, xmin, xmax, peers, order,
-           cat = "", include_hispanic = F, include_asian = T,
-           plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
+           cat = "", plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
            zero_start, ylimits = "", pctiles = T, use_var_type, shading = F,
-           label_function = NULL, axis_function = NULL)
+           label_function = NULL, axis_function = NULL, max_city = max_city, min_city = min_city)
 
   df %<>% rename(!!var := value)
 
   df
 }
+
 

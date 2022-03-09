@@ -2,11 +2,10 @@
 #'
 tl <- function(type, df, var,
                rollmean = 1, xmin = "", xmax = "", peers = "current", order = "descending",
-               cat = "", include_hispanic = F, include_asian = T,
-               plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
+               cat = "", plot_title = "", y_title = "", caption_text = "", subtitle_text = "",
                zero_start = F, ylimits = "", pctiles = T, use_var_type = F, shading = F,
                label_function = NULL, axis_function = NULL, year_breaks = NULL,
-               endpoint_labels = TRUE){
+               endpoint_labels = TRUE, max_city = "", min_city = ""){
 
   if (length(var) == 1) df$var <- df[[var]]
 
@@ -15,7 +14,7 @@ tl <- function(type, df, var,
 
   # Filter data to peer set, race, sex, or other categories.
   # Create category names.
-  tl_filter(df, var, peers, cat, include_hispanic, include_asian, use_var_type) %>%
+  tl_filter(df, var, peers, cat, use_var_type) %>%
     list2env(envir = parent.env(environment()))
 
   if (xmin == "" | is.na(xmin)) xmin <- min(years_in_df(df, var))
@@ -23,9 +22,9 @@ tl <- function(type, df, var,
 
   # Calculate mean, percentiles, and Louisville values
   if(type %in% c("standard", "kentucky", "data")){
-    df %<>% tl_reshape_data(pctiles)
+    df %<>% tl_reshape_data(pctiles, peers)
   } else if(type %in% c("maxmin", "data_maxmin")) {
-    df %<>% tl_reshape_data_maxmin(xmin, xmax, order, zero_start)
+    df %<>% tl_reshape_data_maxmin(xmin, xmax, order, zero_start, max_city, min_city)
   }
 
   # Calculate rolling mean
@@ -40,7 +39,7 @@ tl <- function(type, df, var,
 
   # Create line settings for the graph
   if(type %in% c("standard", "kentucky")){
-    df %<>% tl_add_line_data(type, cat_names, pctiles)
+    df %<>% tl_add_line_data(type, cat_names, pctiles, peers)
   } else if(type == "maxmin") {
     df %<>% tl_add_line_data_maxmin()
   }
@@ -61,7 +60,7 @@ tl <- function(type, df, var,
 
   #add color and line types
   if(type %in% c("standard", "kentucky")){
-    g %<>% tl_lines(df, shading, cat_names, pctiles)
+    g %<>% tl_lines(df, shading, cat_names, pctiles, peers)
   } else if(type == "maxmin") {
     g %<>% tl_lines_maxmin(df)
   }
@@ -87,8 +86,6 @@ tl_filter <- function(df,
                       var,
                       peers,
                       cat,
-                      include_hispanic,
-                      include_asian,
                       return_only_df = F) {
   #Filter to specified sex, race, and FRL status.
   #If sex or race are not ID variables, or if no sex or race was specified, do not subset.
@@ -97,24 +94,17 @@ tl_filter <- function(df,
   if (df_type(df) %in% c("FIPS", "MSA") & peers %in% c("current", "Current"))   df %<>% filter(current == 1)
   if (df_type(df) %in% c("FIPS", "MSA") & peers %in% c("baseline", "Baseline")) df %<>% filter(baseline == 1)
 
-  default_categories <- c("Male" = "male", "Female" = "female",
-                          "White" = "white", "Black" = "black", "Hispanic" = "hispanic", "Asian" = "asian",
-                          "FRL" = "frl", "non-FRL" = "nonfrl")
-
   # Determine category names
   sexes <- c("Male" = "male", "Female" = "female")
   frls <- c("FRL" = "frl", "non-FRL" = "nonfrl")
-  races <- c("White" = "white", "Black" = "black", "Hispanic" = "hispanic", "Asian" = "asian")
-
-  if      (df_type(df) == "ky" & include_asian)                     races = races
-  else if (df_type(df) == "ky" & !include_asian)                    races = races[1:3]
-  else if (df_type(df) %in% c("FIPS", "MSA") & include_hispanic)    races = races[1:3]
-  else if (df_type(df) %in% c("FIPS", "MSA") & !include_hispanic)   races = races[1:2]
+  races <- c("White" = "white", "Black" = "black", "Hispanic" = "hispanic", "Asian" = "asian",
+             "Asian/Pacific Islander" = "API", "American Indian/Alaska Native" = "AIAN",
+             "Two or more races" = "two_or_more", "Race not listed" = "other")
 
   if      (length(cat) > 1)     cat_names <- cat
   else if (cat == "")           cat_names <- ""
   else if (cat == "sex")        cat_names <- sexes
-  else if (cat == "race")       cat_names <- races
+  else if (cat == "race")       cat_names <- races[races %in% unique(df$race)]
   else if (cat == "frl_status") cat_names <- frls
   else                          cat_names <- cat
 
@@ -141,7 +131,7 @@ tl_filter <- function(df,
 #' Reshape data to long format
 #'
 #' @return A data frame containing the columns year, --category--, variable, and value.
-tl_reshape_data <- function(df, pctiles){
+tl_reshape_data <- function(df, pctiles, peers){
 
   # If data frame is already formatted to graph (determined by variable column), return df asap.
   if("variable" %in% names(df)){
@@ -185,6 +175,7 @@ tl_reshape_data <- function(df, pctiles){
 
   # If pctiles == FALSE, remove percentile data
   if (!pctiles) df %<>% filter(variable %not_in% c("q1", "q3"))
+  if (peers == "none") df %<>% filter(variable == "lou")
 
   df
 }
@@ -196,7 +187,9 @@ tl_reshape_data_maxmin <- function(df,
                                    xmin,
                                    xmax,
                                    order,
-                                   zero_start){
+                                   zero_start,
+                                   max_city,
+                                   min_city){
 
   if (df_type(df) == "FIPS") {
     df %<>%
@@ -215,8 +208,6 @@ tl_reshape_data_maxmin <- function(df,
     ungroup() %>%
     select(year, city, var, change)
 
-  if (zero_start) df$var <- df$change
-
   # Is the "best" city the one with the largest positive
   #   growth or largest negative growth?
   if(order %in% c("descending", "Descending")){
@@ -227,16 +218,42 @@ tl_reshape_data_maxmin <- function(df,
     min_change <- "best"
   }
 
+  if (zero_start) df$var <- df$change
+
+  # Determine if multiple cities are tied for best and worst. If so, we need to pick only one for either category.
+  if (max_city == "") {
+    max_cities <- df[df$change == max(df$change, na.rm = TRUE),]$city
+    if (length(unique(max_cities)) > 1) {
+      message("Cities are tied for max: " %p% paste(max_cities, collapse = ", ") %p% ". Specify one with max_city.")
+    }
+  }
+  if (min_city == "") {
+    min_cities <- df[df$change == min(df$change, na.rm = TRUE),]$city
+
+    if (length(unique(min_cities)) > 1) {
+      message("Cities are tied for min: " %p% paste(min_cities, collapse = ", ") %p% ". Specify one with max_city.")
+    }
+  }
+
   # Calculate which peers had the best and worst change.
   city_list <- df %>%
     filter(year == xmax) %>%
-    filter(change == max(change, na.rm = TRUE) | change == min(change, na.rm = TRUE) | city == "Louisville") %>%
+    #filter(change == max(change, na.rm = TRUE) | change == min(change, na.rm = TRUE) | city == "Louisville") %>%
     mutate(variable = case_when(
-      change == max(change, na.rm = TRUE) ~ max_change,
-      change == min(change, na.rm = TRUE) ~ min_change,
+
+      # If a max city of min city is specified, use that first
+      city == max_city ~ max_change,
+      city == min_city ~ min_change,
+
+      # Then find cities with max and min change
+      (max_city == "") & change == max(change, na.rm = TRUE)  ~ max_change,
+      (min_city == "") & change == min(change, na.rm = TRUE)  ~ min_change,
+
+      # Then classify Louisville if it is not in the groups above
       city == "Louisville" ~ "Louisville",
-      TRUE ~ ""))  %>%
-    select(city, variable)
+      TRUE ~ NA_character_))  %>%
+    select(city, variable) %>%
+    filter(!is.na(variable))
 
   #calculate peer city mean
   peer_mean <- df %>%
@@ -360,7 +377,7 @@ tl_year_breaks <- function(df, year_breaks) {
 #'
 #' @return A data frame
 tl_add_line_data <- function(df, type, cat_names,
-                             pctiles){
+                             pctiles, peers){
 
   # line_group groups data based on which points should be connected by a line. (Each line is unique.)
   # style_group groups data based on aesthetic. (Percentile lines are identical in style.)
@@ -403,10 +420,16 @@ tl_add_line_data <- function(df, type, cat_names,
   var_labels <- c(paste0(cat_labels, peer_group),
                   rep("25th and 75th Percentiles", length(cat_labels)))
 
-  #If pctiles == FALSE, remove percentile portions of vectors
+  # If pctiles == FALSE, remove percentile portions of vectors
   if(!pctiles){
     var_levels <- var_levels[1:length(cat_labels)]
     var_labels <- var_labels[1:length(cat_labels)]
+  }
+  # If peers == FALSE, remove peer portions of vectors
+  if(peers == "none"){
+    var_levels <- var_levels[str_detect(var_levels, "lou")]
+    var_labels <- var_labels[str_detect(var_labels, "Louisville")]
+    var_labels <- str_remove(var_labels, " Louisville")
   }
 
   df$style_group <- factor(df$style_group,
@@ -675,7 +698,7 @@ tl_style <- function(p, plot_title, y_title,
 #' Add lines
 #'
 #' @return A ggplot object
-tl_lines <- function(p, df, shading, cat_names, pctiles){
+tl_lines <- function(p, df, shading, cat_names, pctiles, peers){
 
   #Extract stlyle labels to match setting with legend
   line_types <- levels(df$style_group)
@@ -688,18 +711,22 @@ tl_lines <- function(p, df, shading, cat_names, pctiles){
     line_col   <- c("#00a9b7", "black", "grey50")
   } else {
     pal <- c("#0e4a99", "#f58021", "#00a9b7", "#800055", "#356E39", "#CFB94C", "#7E9C80")[1:v]
-    line_col   <- c(rep(pal, each = 2))
+    if (peers != "none") line_col   <- c(rep(pal, each = 2))
     if (pctiles) line_col = c(line_col, "grey50")
   }
 
   #set line type
-  line_type  <- rep(c("solid", "dashed"), v)
-  if (pctiles) line_type = c(line_type, "dashed")
+  if (peers != "none") {
+    line_type  <- rep(c("solid", "dashed"), v)
+    line_alpha  <- rep(c(1, 0.7), v)
+  } else {
+    line_type <- rep("solid", v)
+    line_alpha  <- rep(1, v)
+  }
 
   #set line alphas. If shading is used, remove percentile lines
-  line_alpha  <- rep(c(1, 0.7), v)
-
-  if (pctiles){
+  if (pctiles) {
+    line_type = c(line_type, "dashed")
     line_alpha = c(line_alpha, 0.7)
   } else if (shading){
     line_alpha = c(line_alpha, 0)
