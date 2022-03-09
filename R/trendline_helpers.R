@@ -452,8 +452,8 @@ tl_add_line_data_maxmin <- function(df){
   var_levels <- c("Louisville", "best", "worst", "mean")
 
   var_labels <- c("Louisville",
-                  paste0("Most improved: ", unique(df$category[df$variable == "best"])),
-                  paste0("Least improved: ", unique(df$category[df$variable == "worst"])),
+                  paste0("Best Performer: ", unique(df$category[df$variable == "best"])),
+                  paste0("Worst Performer: ", unique(df$category[df$variable == "worst"])),
                   "Peer Mean")
 
   if(length(unique(df$variable)) == 3){
