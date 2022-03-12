@@ -99,7 +99,7 @@ tl_filter <- function(df,
   frls <- c("FRL" = "frl", "non-FRL" = "nonfrl")
   races <- c("White" = "white", "Black" = "black", "Hispanic" = "hispanic", "Asian" = "asian",
              "Asian/Pacific Islander" = "API", "American Indian/Alaska Native" = "AIAN",
-             "Two or more races" = "two_or_more", "Race not listed" = "other")
+             "Two or more races" = "two_or_more", "Race Not Listed" = "other")
 
   if      (length(cat) > 1)     cat_names <- cat
   else if (cat == "")           cat_names <- ""
