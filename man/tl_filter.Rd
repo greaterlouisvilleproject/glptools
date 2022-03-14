@@ -4,15 +4,7 @@
 \alias{tl_filter}
 \title{Filter data to sex, race, and peer set.}
 \usage{
-tl_filter(
-  df,
-  var,
-  peers,
-  cat,
-  include_hispanic,
-  include_asian,
-  return_only_df = F
-)
+tl_filter(df, var, peers, cat, return_only_df = F)
 }
 \value{
 A data frame

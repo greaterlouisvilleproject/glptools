@@ -4,7 +4,7 @@
 \alias{tl_reshape_data}
 \title{Reshape data to long format}
 \usage{
-tl_reshape_data(df, pctiles)
+tl_reshape_data(df, pctiles, peers)
 }
 \value{
 A data frame containing the columns year, --category--, variable, and value.

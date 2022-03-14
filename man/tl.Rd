@@ -14,8 +14,6 @@ tl(
   peers = "current",
   order = "descending",
   cat = "",
-  include_hispanic = F,
-  include_asian = T,
   plot_title = "",
   y_title = "",
   caption_text = "",
@@ -28,7 +26,9 @@ tl(
   label_function = NULL,
   axis_function = NULL,
   year_breaks = NULL,
-  endpoint_labels = TRUE
+  endpoint_labels = TRUE,
+  max_city = "",
+  min_city = ""
 )
 }
 \description{

@@ -16,8 +16,6 @@ trend(
   xmax = "",
   peers = "current",
   cat = "",
-  include_hispanic = F,
-  include_asian = T,
   plot_title = "",
   y_title = "",
   caption_text = "",
@@ -50,7 +48,9 @@ trend_maxmin(
   label_function = NULL,
   axis_function = NULL,
   year_breaks = NULL,
-  endpoint_labels = TRUE
+  endpoint_labels = TRUE,
+  max_city = "",
+  min_city = ""
 )
 
 trend_data(
@@ -61,8 +61,6 @@ trend_data(
   xmax = "",
   peers = "current",
   cat = "",
-  include_hispanic = F,
-  include_asian = T,
   pctiles = T,
   use_var_type = F
 )
@@ -76,7 +74,9 @@ trend_data_maxmin(
   peers = "current",
   order = "descending",
   zero_start = F,
-  use_var_type = F
+  use_var_type = F,
+  max_city = "",
+  min_city = ""
 )
 }
 \arguments{
@@ -90,14 +90,10 @@ trend_data_maxmin(
 
 \item{xmax}{Last year}
 
-\item{peers}{\code{Current} or \code{Baseline}.}
+\item{peers}{\code{current}, \code{baseline}, or \code{none}.}
 
 \item{cat}{A character vector that specifies a demographic category. Can be \code{race} or \code{sex}
 to display a set of lines for each category, or can be a specific group like \code{white} or \code{female}.}
-
-\item{include_hispanic}{Include lines for Hispanics, if applicable? Defaults to \code{FALSE}.}
-
-\item{include_asian}{Include lines for Asians, if applicable? Defaults to \code{TRUE}. Mostly used for KY education data.}
 
 \item{plot_title}{Plot title}
 
@@ -132,7 +128,6 @@ The parameters are organized into six sections:
 \itemize{
   \item{\strong{Required}: \code{df}, \code{var}}
   \item{\strong{Filter and Adjust Data}:  \code{rollmean}, \code{xmin}, \code{xmax}, \code{peers}, \code{order}}
-  \item{\strong{Demographics}:  \code{cat}, \code{include_hispanic}, \code{include_asian}}
   \item{\strong{Add Text to Graph}: \code{plot_title}, \code{y_title}, \code{caption_text}, \code{subtitle_text}}
   \item{\strong{Graph Elements}: \code{zero_start}, \code{ylimits}, \code{pctiles}, \code{shading}}
   \item{\strong{Manipulate Labels}: \code{label_function}, \code{axis_function}}

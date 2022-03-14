@@ -4,7 +4,7 @@
 \alias{tl_add_line_data}
 \title{Add factor columns for ggplot to reference when assigning line groupings and styles}
 \usage{
-tl_add_line_data(df, type, cat_names, pctiles)
+tl_add_line_data(df, type, cat_names, pctiles, peers)
 }
 \value{
 A data frame
