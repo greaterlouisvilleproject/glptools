@@ -6,8 +6,8 @@ library(ipumsr)
 path <- "data-raw/council_tract/"
 
 ### CREATE BLOCK GROUP TO DISTRICT CROSSWALK
-map_block <- st_read(path %p% "nhgis0009_shape", quiet = TRUE)
-block_population <- read_nhgis(path %p% "nhgis0009_csv.zip")
+map_block <- st_read(path %p% "nhgis0021_shapefile_tl2020_210_block_2020", quiet = TRUE)
+block_population <- read_nhgis(path %p% "nhgis0021_csv.zip")
 
 # Project using meters
 dist_proj <- st_transform(map_district, 3857)
@@ -17,21 +17,21 @@ block_proj <- st_transform(map_block, 3857)
 
 # Create block population
 block_proj %<>%
-  filter(COUNTYFP10 == "111") %>%
+  filter(COUNTYFP20 == "111") %>%
   st_make_valid() %>%
   left_join(block_population, by = "GISJOIN") %>%
   transmute(
-    tract = paste0(STATEFP10, COUNTYFP10, TRACTCE10),
-    block_group = paste0(tract, str_sub(BLOCKCE10, 1, 1)),
-    block = paste0(tract, BLOCKCE10),
-    population = H7V001)
+    tract = paste0(STATEFP20, COUNTYFP20, TRACTCE20),
+    block_group = paste0(tract, str_sub(BLOCKCE20, 1, 1)),
+    block = paste0(tract, BLOCKCE20),
+    population = U7H001)
 
 block_population %<>%
   transmute(
     tract = paste0(STATEA, COUNTYA, TRACTA),
     block_group = paste0(tract, str_sub(BLKGRPA, 1, 1)),
     block = paste0(tract, BLOCKA),
-    population = H7V001)
+    population = U7H001)
 
 #INTERSECT WITH METRO COUNCIL DISTRICTS
 if("block_processed.RData" %in% list.files(path)) {

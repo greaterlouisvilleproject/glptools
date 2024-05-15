@@ -13,9 +13,9 @@ source("R/general_utils.R")
 # the MSA name changed from Dayton to Dayton-Kettering
 MSA_df_2012 <- MSA_df %>% mutate(MSA = replace(MSA, MSA == "19430", "19380"))
 
-MSA_FIPS_2012 <- read_csv("data-raw/MSA_FIPS/MSA_definitions.csv", col_types = "cccccc")
+MSA_FIPS2012 <- read_csv("data-raw/MSA_FIPS/MSA_definitions.csv", col_types = "cccccc")
 
-MSA_FIPS_2012 %<>%
+MSA_FIPS2012 %<>%
   transmute(
     FIPS = stringr::str_pad(`FIPS State county code`, 5, "left", "0"),
     MSA = `CBSA (Blanks are Rural)`) %>%
@@ -43,5 +43,5 @@ MSA_FIPS %<>%
 MSA_FIPS_core_county <- MSA_FIPS %>%
   filter(FIPS %in% FIPS_df_one_stl$FIPS)
 
-usethis::use_data(MSA_FIPS, MSA_FIPS_2012, MSA_FIPS_core_county, MSA_FIPS_info, overwrite = TRUE)
+usethis::use_data(MSA_FIPS, MSA_FIPS2012, MSA_FIPS_core_county, MSA_FIPS_info, overwrite = TRUE)
 

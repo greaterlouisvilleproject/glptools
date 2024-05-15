@@ -19,5 +19,8 @@ source("data-raw/inflation_and_COLA/inflation_and_COLA.R")
 # Maps
 source("data-raw/maps/maps.R")
 
+# Map Accessories
+source("data-raw/maps/map_accessories.R")
+
 # Metro Council Map and crosswalk (long code gets its own file)
 #source("data-raw/council_tract/council_tract.R")

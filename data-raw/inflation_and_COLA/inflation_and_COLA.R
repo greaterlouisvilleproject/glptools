@@ -12,8 +12,12 @@ path <- "data-raw/inflation_and_COLA/"
 # Cost of Living
 #   Data from BEA interactive mapping tool at https://apps.bea.gov/itable/iTable.cfm?ReqID=70
 
-rpp <- read_csv(path %p% "rppmsa.csv", skip = 4, col_names = TRUE, na = c("", "(NA)"),
-                col_types = "c_n_nnnnnnnnnnn", n_max = 1544)
+rpp <- read_csv(path %p% "rppmsa.csv",
+                skip = 3,
+                col_names = TRUE,
+                na = c("", "(NA)"),
+                col_types = "c_n_nnnnnnnnnnn",
+                n_max = 1930)
 
 rpp %<>%
   filter(LineCode == 1) %>%
@@ -25,7 +29,7 @@ rpp %<>%
   left_join(MSA_FIPS, by = "MSA") %>%
   pull_peers(geog = "FIPS") %>%
   select(FIPS, year, rpp) %>%
-  complete(FIPS, year = 2000:2020) %>%
+  complete(FIPS, year = 2000:2024) %>%
   group_by(FIPS) %>%
   fill(rpp, .direction = "updown")
 
@@ -40,7 +44,9 @@ COLA_df <- rpp %>%
 #   Data from C-CPI-U "Top Picks" https://www.bls.gov/cpi/data.htm
 
 # read_csv removes data notes from numbers and reports problems
-cpi <- read_csv(path %p% "c-cpi-u.csv", skip = 11, col_types = "nnnnnnnnnnnnn")
+cpi <- read_csv(path %p% "c-cpi-u.csv",
+                skip = 11,
+                col_types = "nnnnnnnnnnnnn")
 
 cpi %<>%
   rename(year = Year) %>%

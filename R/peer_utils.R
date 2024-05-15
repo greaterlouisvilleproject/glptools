@@ -43,9 +43,9 @@ pull_peers <- function(df, add_info = F, subset_to_peers = T, geog = "", additio
     }
     if (geog == "MSA_2012") {
       if ("MSA" %in% names(df)) {
-        df %<>% filter(MSA %in% c(MSA_FIPS_2012$MSA, additional_geogs))
+        df %<>% filter(MSA %in% c(MSA_FIPS2012$MSA, additional_geogs))
       } else {
-        df %<>% filter(FIPS %in% c(MSA_FIPS_2012$FIPS, additional_geogs))
+        df %<>% filter(FIPS %in% c(MSA_FIPS2012$FIPS, additional_geogs))
       }
     }
   }

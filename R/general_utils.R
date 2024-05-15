@@ -79,7 +79,7 @@ get_sysdata <- function(df) {
 #' @export
 update_sysdata <- function(...) {
 
-  dfs_to_save <- dplyr:::dots(...) %>% unlist() %>% as.character()
+  dfs_to_save <- list(...) %>% unlist() %>% as.character()
   temp_env <- new.env()
   load("R/sysdata.rda", envir = temp_env)
 

@@ -10,7 +10,7 @@ source("R/glp_utils.R")
 
 path <- "data-raw/PUMA_crosswalk/"
 
-MSA_FIPS_12 <- MSA_FIPS_2012 %>% rename(MSA_12 = MSA)
+MSA_FIPS_12 <- MSA_FIPS2012 %>% rename(MSA_12 = MSA)
 
 # 2000 to 2011
 # Data from the Michigan State University Population Studies Center
@@ -57,7 +57,7 @@ FIPS_PUMA00 <- PUMA00 %>%
   transmute(FIPS, STATEFIP, PUMA) %>%
   expand(nesting(FIPS, STATEFIP, PUMA), year = c(2000, 2005:2011))
 
-# 2012 to present
+# 2012 to 2022
 # Data from the Census Bureau's FTP website: https://www2.census.gov/geo/docs/reference/puma/
 
 puma_2010_files <- list.files(path %p% "PUMA_FIPS_10")
@@ -98,32 +98,78 @@ PUMA10 %<>%
 MSA_PUMA10 <- PUMA10 %>%
   filter(PctPUMAinMSA > 0.5) %>%
   transmute(MSA, STATEFIP, PUMA) %>%
-  expand(nesting(MSA, STATEFIP, PUMA), year = 2012:2019)
+  expand(nesting(MSA, STATEFIP, PUMA), year = 2012:2021)
 
 MSA_PUMA10_12 <- PUMA10 %>%
   filter(PctPUMAinMSA_12 > 0.5) %>%
   transmute(MSA = MSA_12, STATEFIP, PUMA) %>%
-  expand(nesting(MSA, STATEFIP, PUMA), year = 2012:2019)
+  expand(nesting(MSA, STATEFIP, PUMA), year = 2012:2021)
 
 FIPS_PUMA10 <- PUMA10 %>%
   filter(PctPUMAinFIPS > 0.5) %>%
   transmute(FIPS, STATEFIP, PUMA) %>%
-  expand(nesting(FIPS, STATEFIP, PUMA), year = 2012:2019)
+  expand(nesting(FIPS, STATEFIP, PUMA), year = 2012:2021)
 
-MSA_PUMA     <- bind_rows(MSA_PUMA00, MSA_PUMA10)
-MSA2012_PUMA <- bind_rows(MSA_PUMA00_12, MSA_PUMA10_12)
-FIPS_PUMA    <- bind_rows(FIPS_PUMA00, FIPS_PUMA10)
+# 2022 to present
+# Data from the Missouri Census Data Center: https://mcdc.missouri.edu/applications/geocorr2022.html
+
+PUMA20 <- read_csv(paste0(path, "/puma_2020.csv"),
+                   skip = 2,
+                   col_names = c("state", "puma22", "county", "stab", "CountyName", "PUMA22name", "pop20", "afact"),
+                   col_types = "cnccccnn")
+
+PUMA20 %<>%
+  transmute(
+    STATEFIP = state,
+    PUMA = puma22,
+    FIPS = county,
+    pop = pop20) %>%
+  group_by(FIPS) %>%
+  mutate(PctPUMAinFIPS = pop / sum(pop)) %>%
+  select(STATEFIP, PUMA, FIPS, PctPUMAinFIPS) %>%
+  ungroup()
+
+PUMA20 %<>%
+  left_join(MSA_FIPS, by = "FIPS") %>%
+  group_by(MSA, STATEFIP, PUMA) %>%
+  mutate(PctPUMAinMSA = sum(PctPUMAinFIPS)) %>%
+  ungroup() %>%
+  left_join(MSA_FIPS_12, by = "FIPS") %>%
+  group_by(MSA_12, STATEFIP, PUMA) %>%
+  mutate(PctPUMAinMSA_12 = sum(PctPUMAinFIPS)) %>%
+  ungroup()
+
+MSA_PUMA_20 <- PUMA20 %>%
+  filter(PctPUMAinMSA > 0.5) %>%
+  transmute(MSA, STATEFIP, PUMA) %>%
+  expand(nesting(MSA, STATEFIP, PUMA), year = 2022:2024)
+
+MSA2012_PUMA20 <- PUMA20 %>%
+  filter(PctPUMAinMSA_12 > 0.5) %>%
+  transmute(MSA = MSA_12, STATEFIP, PUMA) %>%
+  expand(nesting(MSA, STATEFIP, PUMA), year = 2022:2024)
+
+FIPS_PUMA20 <- PUMA20 %>%
+  filter(PctPUMAinFIPS > 0.5) %>%
+  transmute(FIPS, STATEFIP, PUMA) %>%
+  expand(nesting(FIPS, STATEFIP, PUMA), year = 2022:2024)
+
+# Combine files
+
+MSA_PUMA     <- bind_rows(MSA_PUMA00, MSA_PUMA10, MSA_PUMA_20)
+MSA2012_PUMA <- bind_rows(MSA_PUMA00_12, MSA_PUMA10_12, MSA2012_PUMA20)
+FIPS_PUMA    <- bind_rows(FIPS_PUMA00, FIPS_PUMA10, FIPS_PUMA20)
 
 MSA_PUMA %<>%
   pull_peers(add_info = F) %>%
-  select(MSA, year, STATEFIP, PUMA)
+  select(all_of(c("MSA", "year", "STATEFIP", "PUMA")))
 
 MSA2012_PUMA %<>%
   pull_peers(add_info = F, geog = "MSA_2012") %>%
-  select(MSA, year, STATEFIP, PUMA)
+  select(all_of(c("MSA", "year", "STATEFIP", "PUMA")))
 
 FIPS_PUMA %<>%
   pull_peers(add_info = F) %>%
-  select(FIPS, year, STATEFIP, PUMA)
+  select(all_of(c("FIPS", "year", "STATEFIP", "PUMA")))
 
 usethis::use_data(FIPS_PUMA, MSA_PUMA, MSA2012_PUMA, overwrite = TRUE)
