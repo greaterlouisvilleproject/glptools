@@ -4,12 +4,16 @@
 \alias{census_to_council}
 \title{Convert census block group data to metro council district data using simulations}
 \usage{
-census_to_council(df, ..., geog)
+census_to_council(df, ..., geog, est_sum_to_pop = TRUE)
 }
 \arguments{
 \item{df}{A data frame from the census}
 
 \item{...}{a tidyselection of variables}
+
+\item{geog}{tract or block_group}
+
+\item{est_sum_to_pop}{create population from adding up estimates (TRUE) or by allocating original population (FALSE)?}
 }
 \description{
 Convert census block group data to metro council district data using simulations

@@ -281,9 +281,11 @@ census_to_council_direct <- function(df, ..., geog) {
 #'
 #' @param df A data frame from the census
 #' @param ... a tidyselection of variables
+#' @param geog tract or block_group
+#' @param est_sum_to_pop create population from adding up estimates (TRUE) or by allocating original population (FALSE)?
 #'
 #' @export
-census_to_council <- function(df, ..., geog) {
+census_to_council <- function(df, ..., geog, est_sum_to_pop = TRUE) {
 
   variables <- dplyr:::tbl_at_vars(df, vars(...))
   grouping_vars <- df %cols_in% c("year", "sex", "race", "age_group")
@@ -304,7 +306,8 @@ census_to_council <- function(df, ..., geog) {
   # Summarize block group/tract to district allocations
   crosswalk %<>%
     group_by(across(all_of(geog))) %>%
-    mutate(across(population, ~ . / sum(.)))
+    mutate(pct_dist = population / sum(population)) %>%
+    select(-population)
 
   # Create data frame of simulated populations for each characteristic in each block group/tract
   simulate_population <- function(df, grouping_vars) {
@@ -340,7 +343,7 @@ census_to_council <- function(df, ..., geog) {
   # Join crosswalk to data frame and summarize data by district for each siulation
   district_sims <- block_sims %>%
     left_join(crosswalk, by = geog) %>%
-    mutate(across(all_of(variables), ~ . * population)) %>%
+    mutate(across(all_of(variables), ~ . * pct_dist)) %>%
     group_by(across(all_of(c("district", grouping_vars, "simulation")))) %>%
     summarise(across(all_of(variables), ~ sum(.)), .groups = "drop")
 
@@ -366,15 +369,39 @@ census_to_council <- function(df, ..., geog) {
     ungroup()
 
   # Get populations back
-  district_summaries %<>%
-    pivot_vartype_wider(variables) %>%
-    group_by(across(all_of(c("district", grouping_vars)))) %>%
-    mutate(population = sum(estimate)) %>%
-    group_by(across(all_of(c("district", grouping_vars, "variable")))) %>%
-    sum_by_var_type()
+
+  # If numbers sum to pop, add up estimates
+  if (est_sum_to_pop) {
+
+    district_summaries %<>%
+      pivot_vartype_wider(variables) %>%
+      group_by(across(all_of(c("district", grouping_vars)))) %>%
+      mutate(population = sum(estimate)) %>%
+      group_by(across(all_of(c("district", grouping_vars, "variable")))) %>%
+      sum_by_var_type() %>%
+      pivot_vartype_longer()
+
+    # If they don't, use population from original data
+  } else {
+
+    df %<>%
+      filter(var_type == "population") %>%
+      pivot_vartype_wider(variables) %>%
+      left_join(crosswalk, by = geog) %>%
+      group_by(variable) %>%
+      mutate(across(population, ~ . * pct_dist)) %>%
+      group_by(district, year, sex, race, variable) %>%
+      summarise(
+        population = sum(population), .groups = "drop") %>%
+      pivot_vartype_longer()
+
+    district_summaries %<>%
+      bind_rows(df)
+
+  }
 
   district_summaries %<>%
-    pivot_vartype_longer()
+    organize()
 
   district_summaries
 }
@@ -382,13 +409,13 @@ census_to_council <- function(df, ..., geog) {
 #' Transform data from 2000 census tracts to 2010 census tracts
 #'
 #' @export
-tract_00_to_10 <- function(df, years, ..., other_grouping_vars = "") {
+tract00_to10 <- function(df, years, ..., other_grouping_vars = "") {
 
   id_cols <- df %cols_in% c("FIPS", "year", "sex", "race", other_grouping_vars)
 
   df00 <- df %>%
     filter(year %in% years) %>%
-    left_join(tract00_tract_10, by = c("tract" = "tract00")) %>%
+    left_join(tract00_tract10, by = c("tract" = "tract00")) %>%
     group_by(across(c("tract10", id_cols))) %>%
     summarise(across(..., ~ sum(. * percent / 100)), .groups = "drop") %>%
     rename(tract = tract10)
@@ -402,13 +429,13 @@ tract_00_to_10 <- function(df, years, ..., other_grouping_vars = "") {
 #' Transform data from 2010 census tracts to 2000 census tracts
 #'
 #' @export
-tract_10_to_00 <- function(df, years, ..., other_grouping_vars = "") {
+tract10_to_00 <- function(df, years, ..., other_grouping_vars = "") {
 
   id_cols <- df %cols_in% c("FIPS", "year", "sex", "race", other_grouping_vars)
 
   df10 <- df %>%
     filter(year %in% years) %>%
-    left_join(tract00_tract_10, by = c("tract" = "tract10")) %>%
+    left_join(tract00_tract10, by = c("tract" = "tract10")) %>%
     group_by(across(c("tract00", id_cols))) %>%
     summarise(across(..., ~ sum(. * percent / 100)), .groups = "drop") %>%
     rename(tract = tract00)

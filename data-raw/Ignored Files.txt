@@ -1,0 +1,5 @@
+Ignored files:
+
+data-raw/council_tract/data
+data-raw/maps/shapefiles
+data-raw/maps/crosswalks

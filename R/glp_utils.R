@@ -44,6 +44,7 @@ df_type <- function(df){
     "county" %in% cols                                          ~ "county",
     "neighborhood" %in% cols & "Phoenix Hill-Smoketown-Shelby Park" %in% df[["neighborhood"]] ~ "nh",
     "neighborhood" %in% cols                                    ~ "muw",
+    "district" %in% cols ~ "district",
     TRUE ~ NA_character_)
 }
 
@@ -436,9 +437,14 @@ per_capita_adj <- function(df, ..., pop_var = "population", geog,
 
 
 
-#' Load GLP-related packages
+
+
+#' Expand a data frame to make missing combinations expicit
 #'
-#' @param graphs Will graphs or maps be made?
+#' @param df description
+#' @param columns description
+#' @param years description
+#' @param keep_empty_groups description
 #' @export
 complete_vector_arg <- function(df, columns, years, keep_empty_groups = FALSE) {
 
@@ -448,9 +454,21 @@ complete_vector_arg <- function(df, columns, years, keep_empty_groups = FALSE) {
   # If data frame is tract-level, use proper set of tracts and years
   if ("tract" %in% columns) {
 
-    # Filter tract df to counties in data
-    tract_df <- glptools::tract00_tract_10 %>%
-      filter(str_sub(tract00, 1, 5) %in% str_sub(df$tract, 1, 5))
+    # Create lists of unique tracts
+    tracts00 <- tract00_tract10 %>%
+      filter(str_sub(tract00, 1, 5) == "21111") %>%
+      pull(tract00) %>%
+      unique()
+
+    tracts10 <- tract10_tract20 %>%
+      filter(str_sub(tract10, 1, 5) == "21111") %>%
+      pull(tract10) %>%
+      unique()
+
+    tracts20 <- tract10_tract20 %>%
+      filter(str_sub(tract20, 1, 5) == "21111") %>%
+      pull(tract20) %>%
+      unique()
 
     # Calculate number of observations by year and years by number of observations
     obs_by_year <- df %>%
@@ -462,47 +480,79 @@ complete_vector_arg <- function(df, columns, years, keep_empty_groups = FALSE) {
       pull(n) %>%
       unique()
 
-    # If there is only one group of tracts and years are not provided, add to function calls and assign to years_10
-    if (length(n_values) == 1 & missing(years)) {
-      years_10 <- obs_by_year$year
+    n_groups <- length(n_values)
 
-      tracts_10 <- unique(tract_df$tract10)
+    # Determine number of groups
+    if (!missing(years)) {
 
-      function_calls %<>% str_replace("tract,", "tract = tracts_10,")
-      # Else if years are provided or there are more than
-    } else {
+      if (length(years) != n_groups) {
+        warning("Years given don't align with possible groups. Check that years given are correct.")
+      }
+      n_groups <- length(years)
+    }
 
-      # If years are provided,, add to function calls and assign to years_00 and years_10
-      if (!missing(years)) {
-        #function_calls %<>% paste0(", year = ", years)
+    # If there is only one group of tracts and years are not provided, add to function calls and use 2020 tracts
+    if (n_groups == 1) {
 
-        years_00 <- eval(parse(text = years[1]))
-        years_10 <- eval(parse(text = years[2]))
+      function_calls %<>% str_replace("tract", "tract = tracts20")
 
-        # Else if there are two groups of tracts, add to function calls and assign to years_00 and years_10
-      } else if (length(n_values) == 2) {
-        years_00 <- with(obs_by_year, min(year[n == n_values[1]]):max(year[n == n_values[1]]))
-        years_10 <- with(obs_by_year, min(year[n == n_values[2]]):max(year[n == n_values[2]]))
+      # If there are two groups, use 2010 and 2020 tracts
+    } else if (n_groups == 2) {
 
-        # Otherwise, stop
-      } else if (length(n_values) > 2) {
-        stop("More than two groups of Census Tracts in data and no years provided.")
+      # Create lists of years
+      if (missing(years)) {
+        years_10 <- with(obs_by_year, min(year[n == n_values[1]]):max(year[n == n_values[1]]))
+        years_20 <- with(obs_by_year, min(year[n == n_values[2]]):max(year[n == n_values[2]]))
+      } else {
+        years_10 <- eval(parse(text = years[1]))
+        years_20 <- eval(parse(text = years[2]))
       }
 
-      # create output data frames and tract data frames to reflect combinations of years in the data
-      df_00 <- df %>% filter(year <= tail(years_00, 1))
-      df_10 <- df %>% filter(year >= years_10[1])
+      # Filter data frames
+      df_10 <- df %>% filter(year < years_20[1])
+      df_20 <- df %>% filter(year >= years_20[1])
 
-      tracts_00 <- unique(tract_df$tract00)
-      tracts_10 <- unique(tract_df$tract10)
+      # Create two function calls
+      function_calls <-
+        c(function_calls %>%
+            str_replace("df,", "df_10,") %>%
+            str_replace("tract", "tract = tracts10"),
+          function_calls %>%
+            str_replace("df,", "df_20,") %>%
+            str_replace("tract", "tract = tracts20"))
 
+    } else if (n_groups == 3) {
+
+      # Create lists of years
+      if (missing(years)) {
+        years_00 <- with(obs_by_year, min(year[n == n_values[1]]):max(year[n == n_values[1]]))
+        years_10 <- with(obs_by_year, min(year[n == n_values[2]]):max(year[n == n_values[2]]))
+        years_20 <- with(obs_by_year, min(year[n == n_values[3]]):max(year[n == n_values[3]]))
+      } else {
+        years_00 <- eval(parse(text = years[1]))
+        years_10 <- eval(parse(text = years[2]))
+        years_20 <- eval(parse(text = years[3]))
+      }
+
+      # Filter data frames
+      df_00 <- df %>% filter(year < years_10[1])
+      df_10 <- df %>% filter(year >= years_10[1] & year < years_20[1])
+      df_20 <- df %>% filter(year >= years_20[1])
+
+      # Create two function calls
       function_calls <-
         c(function_calls %>%
             str_replace("df,", "df_00,") %>%
-            str_replace("tract,", "tract = tracts_00,"),
+            str_replace("tract", "tract = tracts00"),
           function_calls %>%
             str_replace("df,", "df_10,") %>%
-            str_replace("tract,", "tract = tracts_10,"))
+            str_replace("tract", "tract = tracts10"),
+          function_calls %>%
+            str_replace("df,", "df_20,") %>%
+            str_replace("tract", "tract = tracts20"))
+
+    } else if (n_groups > 3) {
+      warning("Too many sets of years for complete_vector_arg")
     }
   }
 
@@ -528,4 +578,24 @@ complete_vector_arg <- function(df, columns, years, keep_empty_groups = FALSE) {
   }
   output
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

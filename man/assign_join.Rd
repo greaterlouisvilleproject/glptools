@@ -25,8 +25,8 @@ If so, it binds the two data frames together as usual. If not, it catches the er
 }
 \section{Functions}{
 \itemize{
-\item \code{assign_col_join}: Joins two data frames column-wise when one might not exist
+\item \code{assign_col_join()}: Joins two data frames column-wise when one might not exist
 
-\item \code{assign_row_join}: Joins two data frames row-wise when one might not exist
+\item \code{assign_row_join()}: Joins two data frames row-wise when one might not exist
+
 }}
-

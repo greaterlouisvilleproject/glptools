@@ -2,13 +2,19 @@
 % Please edit documentation in R/glp_utils.R
 \name{complete_vector_arg}
 \alias{complete_vector_arg}
-\title{Load GLP-related packages}
+\title{Expand a data frame to make missing combinations expicit}
 \usage{
 complete_vector_arg(df, columns, years, keep_empty_groups = FALSE)
 }
 \arguments{
-\item{graphs}{Will graphs or maps be made?}
+\item{df}{description}
+
+\item{columns}{description}
+
+\item{years}{description}
+
+\item{keep_empty_groups}{description}
 }
 \description{
-Load GLP-related packages
+Expand a data frame to make missing combinations expicit
 }

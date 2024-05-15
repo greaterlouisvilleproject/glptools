@@ -3,7 +3,7 @@ glp_load_packages(T)
 library(sf)
 library(ipumsr)
 
-path <- "data-raw/council_tract/"
+path <- "data-raw/council_tract/data/"
 
 ### CREATE BLOCK GROUP TO DISTRICT CROSSWALK
 map_block <- st_read(path %p% "nhgis0021_shapefile_tl2020_210_block_2020", quiet = TRUE)

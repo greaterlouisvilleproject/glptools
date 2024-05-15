@@ -16,7 +16,7 @@ survey_by_demog(
 )
 }
 \arguments{
-\item{var}{A column name to perform svymean on.}
+\item{var}{A column name to perform svymean on. Make sure the column name is in "".}
 
 \item{weight_var}{weight variable}
 

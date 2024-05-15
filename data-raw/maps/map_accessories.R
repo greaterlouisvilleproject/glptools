@@ -5,7 +5,7 @@ library(magrittr)
 library(sf)
 source("R/operators.R")
 
-path <- "data-raw/maps/"
+path <- "data-raw/maps/shapefiles/"
 
 # Expressways
 

@@ -1,0 +1,41 @@
+---
+title: "Untitled"
+output: html_document
+date: '2022-05-05'
+---
+
+```{r}
+test <- tract_crosswalk_20 %>%
+  filter(str_sub(GEOID_TRACT_20, 1, 5) == "21111") %>%
+  rename(tract = GEOID_TRACT_20) %>%
+  group_by(GEOID_TRACT_10) %>%
+  summarize(n = length(unique(tract)))
+
+glp_load_packages(T)
+
+pal <- leaflet::colorNumeric(
+  palette = viridis::viridis(3),
+  domain = 1:5)
+
+
+leaflet() %>%
+  addPolygons(
+    data = left_join(map_tract, test, by = c("tract" = "GEOID_TRACT_10")),
+    fillColor = ~pal(n),
+    fillOpacity = 0.5,
+    group = "2010",
+    color = "red") %>%
+  addPolygons(
+      data = map_tract_20,
+      fillOpacity = 0,
+      color = "blue",
+      
+      group = "2020") %>%
+  addLegend(title = "Num", labels = 1:5, colors = viridis::viridis(5)) %>%
+  addTiles() %>%
+  addLayersControl(overlayGroups  = c("2010", "2020"),
+                     options = layersControlOptions(collapsed = F))
+
+
+
+```

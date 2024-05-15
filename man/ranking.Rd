@@ -89,9 +89,9 @@ The parameters are organized into four sections:
 }
 \section{Functions}{
 \itemize{
-\item \code{ranking_data}: Outputs ranking data from inside the ranking function
-}}
+\item \code{ranking_data()}: Outputs ranking data from inside the ranking function
 
+}}
 \examples{
 ranking(education_county, bach_plus, plot_title = "Bachelor's or Higher", caption_text = "GLP")
 

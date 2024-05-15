@@ -49,22 +49,22 @@ Read a folder of files to a data frame
 }
 \section{Functions}{
 \itemize{
-\item \code{any_time}: Reads in a folder of data
+\item \code{any_time()}: Reads in a folder of data
 
-\item \code{acs_time}: Reads in a folder of ACS data
+\item \code{acs_time()}: Reads in a folder of ACS data
 
-\item \code{brfss_time}: Reads in a folder of BRFSS data
+\item \code{brfss_time()}: Reads in a folder of BRFSS data
 
-\item \code{business_time}: Reads in a folder of County Business Pattern data
+\item \code{business_time()}: Reads in a folder of County Business Pattern data
 
-\item \code{insurance_time}: Reads in a folder of SAIHI data
+\item \code{insurance_time()}: Reads in a folder of SAIHI data
 
-\item \code{unemployment_time}: Reads in a folder of CPS unemployment data
+\item \code{unemployment_time()}: Reads in a folder of CPS unemployment data
 
-\item \code{wonder_time}: Read in CDC Wonder data
+\item \code{wonder_time()}: Read in CDC Wonder data
 Each file in the folder should be named according to the FIPS code of the data.
-}}
 
+}}
 \examples{
 acs_time("bach_plus", additional_geogs = "21067")
 

@@ -13,3 +13,7 @@ data-raw/council_tract/nhgis0009_shape/
 data-raw/council_tract/block_processed.RData
 
 data-raw/council_tract/nhgis0009_csv.zip
+
+data-raw/maps/shapefiles/
+
+data-raw/council_tract/data/

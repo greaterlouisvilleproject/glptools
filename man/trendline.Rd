@@ -135,15 +135,15 @@ The parameters are organized into six sections:
 }
 \section{Functions}{
 \itemize{
-\item \code{trend}: Creates a peer city trendline graph using a GLP-style data frame.
+\item \code{trend()}: Creates a peer city trendline graph using a GLP-style data frame.
 
-\item \code{trend_maxmin}: Creates a peer city max-min graph using a GLP-style data frame.
+\item \code{trend_maxmin()}: Creates a peer city max-min graph using a GLP-style data frame.
 
-\item \code{trend_data}: Returns the data frame used in the trendline graph
+\item \code{trend_data()}: Returns the data frame used in the trendline graph
 
-\item \code{trend_data_maxmin}: Returns the data frame used in the max-min graph
+\item \code{trend_data_maxmin()}: Returns the data frame used in the max-min graph
+
 }}
-
 \examples{
 trend(education_county, "bach_plus")
 }
