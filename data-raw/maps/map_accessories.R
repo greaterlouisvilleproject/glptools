@@ -30,7 +30,7 @@ expressways_buffer <- expressways_line %>%
 
 # Ohio River
 
-ohio <- st_read("data-raw/maps/county", quiet = TRUE)
+ohio <- st_read("data-raw/maps/shapefiles/county", quiet = TRUE)
 
 # Keep just counties around Louisville
 ohio %<>%
@@ -105,7 +105,7 @@ sf_use_s2(FALSE)
 
 buffers <- c()
 
-for(d in 12) {
+for(d in 1:26) {
   this_buffer = 0
   this_step = -0.005
   current_area = 10001
