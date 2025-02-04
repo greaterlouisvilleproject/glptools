@@ -38,4 +38,31 @@ state_df %<>% mutate(FIPS = stringr::str_pad(FIPS, 2, "left", "0"))
 
 attr(state_df, 'spec') <- NULL
 
-usethis::use_data(FIPS_info, FIPS_df, FIPS_df_one_stl, FIPS_df_two_stl, MSA_df, state_df, overwrite = TRUE)
+# state FIPS
+
+all_states   <- read_delim(path %p% "state_fips.txt", delim = "|", col_types = "cc_c")
+all_counties <- read_delim(path %p% "county_fips.txt", delim = "|", col_types = "_cc_c__")
+
+all_states %<>%
+  transmute(
+    state_FIPS = STATEFP,
+    state = STATE_NAME,
+    state_abbr = STATE)
+
+all_counties %<>%
+  transmute(
+    FIPS = STATEFP %p% COUNTYFP,
+    state_FIPS = STATEFP,
+    county = COUNTYNAME)
+
+all_counties %<>%
+  left_join(all_states, by = "state_FIPS")
+
+all_counties %<>%
+  transmute(
+    FIPS,
+    county,
+    state,
+    state_abbr)
+
+usethis::use_data(FIPS_info, FIPS_df, FIPS_df_one_stl, FIPS_df_two_stl, MSA_df, state_df, all_states, all_counties, overwrite = TRUE)
