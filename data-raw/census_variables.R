@@ -5,6 +5,8 @@ library(furrr)
 library(future)
 library(glptools)
 
+glp_load_packages()
+
 # Decennial Census 2000 population
 df <- listCensusMetadata("dec/sf1", vintage = 2000, type = "variables")
 
@@ -64,7 +66,7 @@ census_api_vars <- assign_row_join(census_api_vars, df)
 
 # ACS 1-year data
 
-for (y in c(2005:2019, 2021:2022)) {
+for (y in c(2005:2019, 2021:2023)) {
 
   print(y)
 
@@ -84,7 +86,7 @@ for (y in c(2005:2019, 2021:2022)) {
 
 # ACS 5-year data
 
-for (y in 2009:2022) {
+for (y in 2009:2023) {
 
   print(y)
 
@@ -207,4 +209,13 @@ census_api_vars %<>%
 census_api_vars %<>%
   select(table, topic, year, survey, variable, label, race, sex, age_text, age_group, age_low, age_high)
 
-update_sysdata(census_api_vars)
+# Updating sysdata
+temp_env <- new.env()
+load("R/sysdata.rda", envir = temp_env)
+
+temp_env[["census_api_vars"]] <- census_api_vars
+
+save(list = ls(envir = temp_env), file = "R/sysdata.rda", envir = temp_env)
+
+
+
