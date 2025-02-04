@@ -62,7 +62,7 @@ clean_acs_micro <- function(df, gq = T, pull_peers = T, remove_vars = T){
 
   # Remove some variables that are no longer needed
 
-  if (remove_vars) df %<>% select(df %cols_not_in% c("GQ", "STATEFIP", "DATANUM", "CBSERIAL" ))
+  if (remove_vars) df %<>% select(df %cols_not_in% c("STATEFIP", "DATANUM", "CBSERIAL" ))
 
   df
 }
