@@ -124,7 +124,7 @@ PUMA20 %<>%
     PUMA = puma22,
     FIPS = county,
     pop = pop20) %>%
-  group_by(FIPS) %>%
+  group_by(STATEFIP, PUMA) %>%
   mutate(PctPUMAinFIPS = pop / sum(pop)) %>%
   select(STATEFIP, PUMA, FIPS, PctPUMAinFIPS) %>%
   ungroup()
