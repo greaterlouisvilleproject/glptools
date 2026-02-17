@@ -66,7 +66,7 @@ census_api_vars <- assign_row_join(census_api_vars, df)
 
 # ACS 1-year data
 
-for (y in c(2005:2019, 2021:2023)) {
+for (y in c(2005:2019, 2021:2024)) {
 
   print(y)
 
@@ -86,7 +86,7 @@ for (y in c(2005:2019, 2021:2023)) {
 
 # ACS 5-year data
 
-for (y in 2009:2023) {
+for (y in 2009:2024) {
 
   print(y)
 

@@ -101,65 +101,65 @@ ohio_buffer <- ohio_line %>%
 
 # Council District Points
 
-sf_use_s2(FALSE)
-
-buffers <- c()
-
-for(d in 1:26) {
-  this_buffer = 0
-  this_step = -0.005
-  current_area = 10001
-  step = 1
-
-  #g <- ggplot()
-
-  while(current_area > 10000){
-
-    #browser()
-    # Buffer inside the polygon using this_buffer
-    temp_sf <- st_buffer(map_district[d,], dist = this_buffer, singleSide = T)
-
-    # Calculate area of polygon
-    this_area = st_area(temp_sf) %>% as.numeric()
-
-    # If remaining area > 0, enlarge buffer by subtracting and going away from zero.
-    #   Also record most recent correct buffer and area produced by buffer.
-    # If remaining area is 0, reduce buffer by going toward 0.
-    if (this_area > 0) {
-      current_result = this_buffer
-      current_area = this_area
-
-      this_buffer = this_buffer + this_step
-
-      #g <- g + geom_sf(data = temp_sf, fill = viridis::viridis(10)[step])
-
-    } else {
-      this_buffer = this_buffer - this_step
-
-      # Cut search step in half
-      this_step = this_step / 2
-    }
-
-    step = step + 1
-
-    print(paste0(d, ": ", this_buffer))
-    print(this_area)
-
-  }
-
-  #print(g)
-
-  buffers <- c(buffers, current_result)
-
-}
-
-buffered_map <- st_buffer(map_district, dist = buffers, singleSide = T)
-
-district_label_points <- st_point_on_surface(buffered_map)
+# sf_use_s2(FALSE)
+#
+# buffers <- c()
+#
+# for(d in 1:26) {
+#   this_buffer = 0
+#   this_step = -0.0005
+#   current_area = 10001
+#   step = 1
+#
+#   #g <- ggplot()
+#
+#   while(current_area > 10000){
+#
+#     #browser()
+#     # Buffer inside the polygon using this_buffer
+#     temp_sf <- st_buffer(map_district[d,], dist = this_buffer, singleSide = F)
+#
+#     # Calculate area of polygon
+#     this_area = st_area(temp_sf) %>% as.numeric()
+#
+#     # If remaining area > 0, enlarge buffer by subtracting and going away from zero.
+#     #   Also record most recent correct buffer and area produced by buffer.
+#     # If remaining area is 0, reduce buffer by going toward 0.
+#     if (this_area > 0) {
+#       current_result = this_buffer
+#       current_area = this_area
+#
+#       this_buffer = this_buffer + this_step
+#
+#       #g <- g + geom_sf(data = temp_sf, fill = viridis::viridis(10)[step])
+#
+#     } else {
+#       this_buffer = this_buffer - this_step
+#
+#       # Cut search step in half
+#       this_step = this_step / 2
+#     }
+#
+#     step = step + 1
+#
+#     print(paste0(d, ": ", this_buffer))
+#     print(this_area)
+#
+#   }
+#
+#   #print(g)
+#
+#   buffers <- c(buffers, current_result)
+#
+# }
+#
+# buffered_map <- st_buffer(map_district, dist = buffers, singleSide = F)
+#
+# district_label_points <- st_point_on_surface(buffered_map)
 
 usethis::use_data(expressways_line, expressways_buffer,
                   ohio_line_msa, ohio_buffer_msa,
                   ohio_line, ohio_buffer,
-                  district_label_points,
+                  #district_label_points,
                   overwrite = TRUE)
 

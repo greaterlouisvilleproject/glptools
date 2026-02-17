@@ -16,20 +16,18 @@ rpp <- read_csv(path %p% "rppmsa.csv",
                 skip = 3,
                 col_names = TRUE,
                 na = c("", "(NA)"),
-                col_types = "c_n_nnnnnnnnnnn",
-                n_max = 1930)
+                col_types = "c_nnnnnnnnnnnnnnnn",
+                n_max = 386)
 
 rpp %<>%
-  filter(LineCode == 1) %>%
-  select(-LineCode) %>%
-  pivot_longer(-GeoFips,
+  pivot_longer(-GeoFIPS,
                names_to = "year", names_transform = list(year = as.numeric),
                values_to = "rpp") %>%
-  rename(MSA = GeoFips) %>%
+  rename(MSA = GeoFIPS) %>%
   left_join(MSA_FIPS, by = "MSA") %>%
   pull_peers(geog = "FIPS") %>%
   select(FIPS, year, rpp) %>%
-  complete(FIPS, year = 2000:2024) %>%
+  complete(FIPS, year = 2000:2026) %>%
   group_by(FIPS) %>%
   fill(rpp, .direction = "updown")
 
