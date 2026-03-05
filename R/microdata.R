@@ -263,7 +263,7 @@ svy_bootstrap <- function(df, var, weight_var, type, grouping_vars) {
   var_levels <- unique(df[[var]])
 
   df %<>%
-    filter(!is.na(.data[[grouping_vars]])) %>%
+    filter_out(if_any(matches(grouping_vars), ~is.na(.))) %>%
     group_by(across(all_of(grouping_vars))) %>%
     nest()
 
@@ -353,7 +353,7 @@ svy_repwts <- function(df, var, weight_var, type, grouping_vars) {
 
   # Filter out rows with missing groups and group by
   results_estimate <- df %>%
-    filter(!is.na(.data[[grouping_vars]]))
+    filter_out(if_any(matches(grouping_vars), ~is.na(.)))
 
   # Estimate
   if (type == "categorical") {
