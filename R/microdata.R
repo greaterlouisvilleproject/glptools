@@ -214,7 +214,7 @@ survey_by_demog <- function(df, var,
       pivot_wider(names_from = var, values_from = value)
   } else if (type == "categorical" & typeof(df[[var]]) == "logical"){
     output %<>%
-      filter(across(all_of(var), ~ .))
+      filter(.data[[var]])
 
     output %<>%
       select(-var) %>%
@@ -263,7 +263,7 @@ svy_bootstrap <- function(df, var, weight_var, type, grouping_vars) {
   var_levels <- unique(df[[var]])
 
   df %<>%
-    filter(across(all_of(grouping_vars), ~!is.na(.))) %>%
+    filter(!is.na(.data[[grouping_vars]])) %>%
     group_by(across(all_of(grouping_vars))) %>%
     nest()
 
@@ -353,7 +353,7 @@ svy_repwts <- function(df, var, weight_var, type, grouping_vars) {
 
   # Filter out rows with missing groups and group by
   results_estimate <- df %>%
-    filter(across(all_of(grouping_vars), ~!is.na(.)))
+    filter(!is.na(.data[[grouping_vars]]))
 
   # Estimate
   if (type == "categorical") {
