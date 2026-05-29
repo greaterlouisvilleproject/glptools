@@ -10,7 +10,7 @@ map_block <- st_read(path %p% "nhgis0021_shapefile_tl2020_210_block_2020", quiet
 block_population <- read_nhgis(path %p% "nhgis0021_csv.zip")
 
 # Project using meters
-dist_proj <- st_transform(map_district, 3857)
+council_proj <- st_transform(map_council, 3857)
 tract_proj <- st_transform(map_tract, 3857)
 bg_proj   <- st_transform(map_block_group, 3857)
 block_proj <- st_transform(map_block, 3857)
@@ -37,57 +37,57 @@ block_population %<>%
 if("block_processed.RData" %in% list.files(path)) {
   load(path %p% "block_processed.RData")
 } else {
-  block_snap <- st_snap(block_proj, dist_proj, tolerance = 3.3) %>%
+  block_snap <- st_snap(block_proj, council_proj, tolerance = 3.3) %>%
     st_make_valid()
 
-  dist_block <- st_intersection(dist_proj, block_snap)
+  council_block <- st_intersection(council_proj, block_snap)
 
-  save(dist_block, block_snap, file = path %p% "block_processed.RData")
+  save(council_block, block_snap, file = path %p% "block_processed.RData")
 }
 
 # dist_bg1 <- dist_block %>%
 #   st_collection_extract("POLYGON") %>%
 #   rmapshaper::ms_simplify(keep = .25)
 
-district_block1 <- dist_block %>%
+council_block1 <- council_block %>%
   mutate(area    = st_area(.)) %>%
   st_drop_geometry() %>%
   group_by(block) %>%
   transmute(
-    district,
+    council_district,
     tract,
     block_group,
     area,
-    block_in_district = as.numeric(area / sum(area) * 100)) %>%
+    block_in_council = as.numeric(area / sum(area) * 100)) %>%
   ungroup()
 
-district_block2 <- district_block1 %>%
+council_block2 <- council_block1 %>%
   left_join(block_population, by = c("tract", "block_group", "block")) %>%
-  mutate(across(population, ~ . * block_in_district / 100)) %>%
+  mutate(across(population, ~ . * block_in_council / 100)) %>%
   mutate(population = round(population, 1)) %>%
   filter(population >= 1)
 
 # Recalculate percent and reallocate population
-district_block2 %<>%
+council_block2 %<>%
   group_by(block) %>%
   transmute(
-    district, tract, block_group, block,
-    block_in_district = as.numeric(area / sum(area) * 100)) %>%
+    council_district, tract, block_group, block,
+    block_in_council = as.numeric(area / sum(area) * 100)) %>%
   ungroup() %>%
   left_join(block_population, by = c("tract", "block_group", "block")) %>%
-  mutate(across(population, ~ . * block_in_district / 100)) %>%
+  mutate(across(population, ~ . * block_in_council / 100)) %>%
   mutate(population = round(population, 1))
 
 # Summarize at the tract level
-district_block_group <- district_block2 %>%
-  group_by(district, tract, block_group) %>%
+council_block_group <- council_block2 %>%
+  group_by(council_district, tract, block_group) %>%
   summarise(across(population, ~sum(.)), .groups = "drop")
 
-district_tract <- district_block2 %>%
-  group_by(district, tract) %>%
+council_tract <- council_block2 %>%
+  group_by(council_district, tract) %>%
   summarise(across(population, ~sum(.)), .groups = "drop")
 
-usethis::use_data(district_block_group, district_tract, overwrite = TRUE)
+usethis::use_data(council_block_group, council_tract, overwrite = TRUE)
 
 if (FALSE) {
   # COMBINE WITH POPULATION DATA
@@ -117,27 +117,27 @@ if (FALSE) {
 
   # Add area-based crosswalk and project population in each district.
   # Remove less than 1 resident is calculated to exist.
-  district_block_group %<>%
+  council_block_group %<>%
     left_join(block_group_population, by = c("tract", "block_group")) %>%
     mutate(across(total:asian, ~ . * block_group_in_district / 100)) %>%
     filter(total >= 1)
 
   # Recalculate percent and reallocate population
-  district_block_group %<>%
+  council_block_group %<>%
     group_by(block_group) %>%
     transmute(
-      district, tract, block_group,
+      council_district, tract, block_group,
       block_group_in_district = as.numeric(area / sum(area) * 100)) %>%
     ungroup() %>%
     left_join(block_group_population, by = c("tract", "block_group")) %>%
     mutate(across(total:asian, ~ . * block_group_in_district / 100))
 
   # Summarise at the tract level
-  district_tract <- district_block_group %>%
+  council_tract <- council_block_group %>%
     group_by(district, tract) %>%
     summarise(across(total:asian, ~sum(.)), .groups = "drop")
 
-  usethis::use_data(district_block_group, district_tract, overwrite = TRUE)
+  usethis::use_data(council_block_group, council_tract, overwrite = TRUE)
 }
 
 if(FALSE){
@@ -152,7 +152,7 @@ if(FALSE){
     st_collection_extract("POLYGON") %>%
     rmapshaper::ms_simplify(keep = .25)
 
-  district_tract <- dist_tract %>%
+  council_tract <- dist_tract %>%
     mutate(area    = st_area(.)) %>%
     st_drop_geometry() %>%
     group_by(tract) %>%

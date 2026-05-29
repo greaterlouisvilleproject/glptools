@@ -8,7 +8,7 @@ process_map(
   map_df,
   ...,
   return_name = NULL,
-  maps = c("tract", "nh", "muw", "bg", "district"),
+  maps = c("tract", "nh", "muw", "bg", "council"),
   council_MOE = TRUE
 )
 }

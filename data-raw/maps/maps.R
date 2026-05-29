@@ -72,12 +72,14 @@ map_county          <- st_read(path_sf %p% "county",         quiet = TRUE)
 
 map_zip             <- st_read(path_sf %p% "zip",            quiet = TRUE)
 
-map_district10      <- st_read(path_sf %p% "Council_Districts_2010", quiet = TRUE)
-map_district        <- st_read(path_sf %p% "Council_Districts_2020", quiet = TRUE)
+map_council        <- st_read(path_sf %p% "Council_Districts_2020", quiet = TRUE)
+map_council10      <- st_read(path_sf %p% "Council_Districts_2010", quiet = TRUE)
 
-map_house           <- st_read(path_sf %p% "house",      quiet = TRUE)
+map_house           <- st_read(path_sf %p% "house_2020",      quiet = TRUE)
+map_house10         <- st_read(path_sf %p% "house_2010",      quiet = TRUE)
 
-map_senate          <- st_read(path_sf %p% "senate",      quiet = TRUE)
+map_senate          <- st_read(path_sf %p% "senate_2020",      quiet = TRUE)
+map_senate10        <- st_read(path_sf %p% "senate_2010",      quiet = TRUE)
 
 map_block_group10 %<>%
   filter(
@@ -202,6 +204,13 @@ map_house %<>%
     house_district = as.numeric(SLDLST)) %>%
   st_transform(4326)
 
+map_house10 %<>%
+  filter(STATEFP == "21") %>%
+  transmute(
+    STATEFIP = STATEFP,
+    house_district = as.numeric(SLDLST)) %>%
+  st_transform(4326)
+
 map_senate %<>%
   filter(STATEFP == "21") %>%
   transmute(
@@ -209,13 +218,22 @@ map_senate %<>%
     senate_district = as.numeric(SLDUST)) %>%
   st_transform(4326)
 
-map_district10 %<>%
-  st_transform(4326) %>%
-  transmute(district = coundist)
+map_senate10 %<>%
+  filter(STATEFP == "21") %>%
+  transmute(
+    STATEFIP = STATEFP,
+    senate_district = as.numeric(SLDUST)) %>%
+  st_transform(4326)
 
-map_district %<>%
+map_council %<>%
   st_transform(4326) %>%
-  transmute(district = COUNDIST)
+  transmute(council_district = COUNDIST)
+
+map_council10 %<>%
+  st_transform(4326) %>%
+  transmute(council_district = coundist)
+
+
 
 # Previous data
 
@@ -226,7 +244,7 @@ update_sysdata(
   "map_block_group10",
   "map_PUMA10",
   "map_market",
-  "map_district10")
+  "map_house10", "map_senate10", "map_council10")
 
 usethis::use_data(
   nh_tract, west_lou_tract, muw_tract, map_tract_all, map_tract, map_block_group,
@@ -234,7 +252,7 @@ usethis::use_data(
   map_PUMA,
   map_zip,
   map_county_peers, map_msa_lou,
-  map_house, map_senate, map_district,
+  map_house, map_senate, map_council,
   overwrite = TRUE)
 
 
