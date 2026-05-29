@@ -222,6 +222,62 @@ get_census <- function(var_df, geog, var_name, parallel = T) {
           var_type,
           variable = name)
     }
+  } else if (geog == "house_district") {
+
+    fxn <- function(survey, year, data, ...) {
+
+      api <- censusapi::getCensus(
+        name = survey,
+        vintage = year,
+        vars = data$variable,
+        region = "state legislative district (lower chamber):*",
+        regionin = "state:21",
+        key = Sys.getenv("CENSUS_API_KEY"))
+
+      api %<>%
+        pivot_longer(cols = data$variable) %>%
+        left_join(data, by = c("name" = "variable")) %>%
+        transmute(
+          house_district = state_legislative_district_lower_chamber,
+          year = if_else(str_detect(survey, "acs5"), year - 2, year),
+          race,
+          sex,
+          age_group,
+          age_low,
+          age_high,
+          value,
+          label,
+          var_type,
+          variable = name)
+    }
+  } else if (geog == "senate_district") {
+
+    fxn <- function(survey, year, data, ...) {
+
+      api <- censusapi::getCensus(
+        name = survey,
+        vintage = year,
+        vars = data$variable,
+        region = "state legislative district (upper chamber):*",
+        regionin = "state:21",
+        key = Sys.getenv("CENSUS_API_KEY"))
+
+      api %<>%
+        pivot_longer(cols = data$variable) %>%
+        left_join(data, by = c("name" = "variable")) %>%
+        transmute(
+          senate_district = state_legislative_district_upper_chamber,
+          year = if_else(str_detect(survey, "acs5"), year - 2, year),
+          race,
+          sex,
+          age_group,
+          age_low,
+          age_high,
+          value,
+          label,
+          var_type,
+          variable = name)
+    }
   }
 
   if (geog %in% c("MSA", "FIPS", "tract_all", "Louisville")) {

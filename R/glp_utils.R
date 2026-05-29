@@ -34,6 +34,8 @@ df_type <- function(df){
     "zip" %in% cols        ~ "zip",
     "FIPS" %in% cols       ~ "FIPS",
     "MSA"  %in% cols       ~ "MSA",
+    "house_district" %in% cols      ~ "house_district",
+    "senate_district" %in% cols     ~ "senate_district",
     "frl_status" %in% cols ~ "ky",
     all(cols %in% c("year", "variable", "category", "value"))         ~ "graph",
     all(cols %in% c("year", "city", "variable", "category", "value")) ~ "graph_max_min",
@@ -44,7 +46,7 @@ df_type <- function(df){
     "county" %in% cols                                          ~ "county",
     "neighborhood" %in% cols & "Phoenix Hill-Smoketown-Shelby Park" %in% df[["neighborhood"]] ~ "nh",
     "neighborhood" %in% cols                                    ~ "muw",
-    "district" %in% cols ~ "district",
+    "council_district" %in% cols ~ "council_district",
     TRUE ~ NA_character_)
 }
 
@@ -56,8 +58,9 @@ df_type <- function(df){
 bind_df <- function(..., by = NULL){
   data_frames <- list(...)
 
-  grouping_vars <- c("FIPS", "MSA", "zip", "tract", "neighborhood", "disctrict", "year",
-                     "race", "sex", "frl_status", "demographic", "var_type", "variable")
+  grouping_vars <- c("FIPS", "MSA", "zip", "tract", "neighborhood",
+                     "council_district", "house_district", "senate_district",
+                     "year", "race", "sex", "frl_status", "demographic", "var_type", "variable")
 
   if (is.null(by)) {
     grouping_vars <- grouping_vars[grouping_vars %in% names(data_frames[[1]])]
@@ -110,6 +113,7 @@ total_demographics <- function(df, ..., total_sex = T, total_race = F, include_n
 
   variables <- dplyr:::tbl_at_vars(df, vars(...))
   grouping_vars <- df %cols_in% c("MSA", "FIPS", "zip", "tract", "neighborhood", "block_group",
+                                  "council_district", "house_district", "senate_district",
                                   "year", "race", "sex", other_grouping_vars)
 
   total_sex  <- total_sex & any(df$sex != "total")
@@ -215,14 +219,14 @@ total_demographics <- function(df, ..., total_sex = T, total_race = F, include_n
 #' @export
 organize <- function(df) {
 
-  columns <- df %cols_in% c("MSA", "FIPS",
-                            "district", "zip", "tract", "block_group", "neighborhood", "block",
+  columns <- df %cols_in% c("MSA", "FIPS", "council_district", "house_district", "senate_district",
+                            "zip", "tract", "block_group", "neighborhood", "block",
                             "year", "sex", "race", "frl_status", "var_type",
                             "city", "variable", "baseline", "current",
                             "line1", "line2", "line3")
 
-  rows <- df %cols_in% c("MSA", "FIPS",
-                         "district", "zip", "tract", "block_group", "neighborhood", "block",
+  rows <- df %cols_in% c("MSA", "FIPS", "council_district", "house_district", "senate_district",
+                         "zip", "tract", "block_group", "neighborhood", "block",
                          "variable", "year", "sex", "race", "frl_status", "var_type")
 
 
@@ -261,6 +265,7 @@ organize <- function(df) {
 #' @export
 unique_check <- function(df, other_grouping_vars = "") {
   grouping_vars <- c("MSA", "FIPS", "tract", "neighborhood",
+                     "council_district", "house_district", "senate_district",
                      "year", "sex", "race", other_grouping_vars)
 
   grouping_vars <- df %cols_in% grouping_vars
@@ -283,6 +288,7 @@ unique_check <- function(df, other_grouping_vars = "") {
 #' @export
 complete_check <- function(df, other_grouping_vars = "") {
   grouping_vars <- c("MSA", "FIPS", "tract", "neighborhood",
+                     "council_district", "house_district", "senate_district",
                      "year", "sex", "race", other_grouping_vars)
 
   grouping_vars <- df %cols_in% grouping_vars

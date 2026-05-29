@@ -106,7 +106,7 @@ process_map_og <- function(map_df, ..., pop, pop_adjust = F, return_name = NULL,
 process_map <- function(map_df,
                         ...,
                         return_name = NULL,
-                        maps = c("tract", "nh", "muw", "bg", "district"),
+                        maps = c("tract", "nh", "muw", "bg", "council"),
                         council_MOE = TRUE) {
 
   variables <- dplyr:::tbl_at_vars(map_df, vars(...))
@@ -198,17 +198,16 @@ process_map <- function(map_df,
       select_at(c("block_group", grouping_vars, "var_type", variables))
   }
 
-  if ("district" %in% maps) {
+  if ("council" %in% maps) {
 
     if (council_MOE) {
-      df_district <- map_df %>%
+      df_council <- map_df %>%
         census_to_council(variables)
     } else {
-      df_district <- map_df %>%
+      df_council <- map_df %>%
         census_to_council_direct(variables)
     }
   }
-
 
   # Replace Airport values with NAs. If median was selected, bind Airport rows.
   #if (method %in% c("percent", "mean", "sum")) {
@@ -249,9 +248,9 @@ census_to_council_direct <- function(df, ..., geog) {
   if(missing(geog)) geog <- df_type(df)
 
   if (geog == "tract") {
-    crosswalk <- district_tract
+    crosswalk <- council_tract
   } else {
-    crosswalk <- district_block_group
+    crosswalk <- council_block_group
   }
 
   crosswalk %<>%
@@ -263,10 +262,10 @@ census_to_council_direct <- function(df, ..., geog) {
   df %<>%
     filter(var_type %in% c("estimate", "population")) %>%
     pivot_vartype_wider(variables) %>%
-    left_join(crosswalk, by = geog) %>%
+    left_join(crosswalk, by = geog, relationship = "many-to-many") %>%
     group_by(variable) %>%
     mutate(across(estimate:population, ~ . * pct_dist)) %>%
-    group_by(district, year, sex, race, variable) %>%
+    group_by(council_district, year, sex, race, variable) %>%
     summarise(
       estimate = sum(estimate),
       population = sum(population), .groups = "drop") %>%
@@ -293,11 +292,11 @@ census_to_council <- function(df, ..., geog, est_sum_to_pop = TRUE) {
   if(missing(geog)) geog <- df_type(df)
 
   if (geog == "tract") {
-    crosswalk <- district_tract
+    crosswalk <- council_tract
 
     df %<>% filter(tract != "21111980100")
   } else {
-    crosswalk <- district_block_group %>%
+    crosswalk <- council_block_group %>%
       select(-tract)
 
     df %<>% filter(block_group != "211119801001")
@@ -344,7 +343,7 @@ census_to_council <- function(df, ..., geog, est_sum_to_pop = TRUE) {
   district_sims <- block_sims %>%
     left_join(crosswalk, by = geog) %>%
     mutate(across(all_of(variables), ~ . * pct_dist)) %>%
-    group_by(across(all_of(c("district", grouping_vars, "simulation")))) %>%
+    group_by(across(all_of(c("council_district", grouping_vars, "simulation")))) %>%
     summarise(across(all_of(variables), ~ sum(.)), .groups = "drop")
 
   # Summarize data into estimates and margins of error
@@ -361,7 +360,7 @@ census_to_council <- function(df, ..., geog, est_sum_to_pop = TRUE) {
   }
 
   district_summaries <- district_sims %>%
-    group_by(across(all_of(c("district", grouping_vars)))) %>%
+    group_by(across(all_of(c("council_district", grouping_vars)))) %>%
     nest() %>%
     mutate(results = map(data, ~council_summary_fxn(., variables))) %>%
     select(-data) %>%
@@ -375,9 +374,9 @@ census_to_council <- function(df, ..., geog, est_sum_to_pop = TRUE) {
 
     district_summaries %<>%
       pivot_vartype_wider(variables) %>%
-      group_by(across(all_of(c("district", grouping_vars)))) %>%
+      group_by(across(all_of(c("council_district", grouping_vars)))) %>%
       mutate(population = sum(estimate)) %>%
-      group_by(across(all_of(c("district", grouping_vars, "variable")))) %>%
+      group_by(across(all_of(c("council_district", grouping_vars, "variable")))) %>%
       sum_by_var_type() %>%
       pivot_vartype_longer()
 
@@ -390,7 +389,7 @@ census_to_council <- function(df, ..., geog, est_sum_to_pop = TRUE) {
       left_join(crosswalk, by = geog) %>%
       group_by(variable) %>%
       mutate(across(population, ~ . * pct_dist)) %>%
-      group_by(district, year, sex, race, variable) %>%
+      group_by(council_district, year, sex, race, variable) %>%
       summarise(
         population = sum(population), .groups = "drop") %>%
       pivot_vartype_longer()

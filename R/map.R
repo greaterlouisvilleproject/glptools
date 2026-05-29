@@ -87,6 +87,18 @@ make_map <- function(maps, var,
       map_PUMA <- sf::st_as_sf(glptools::map_PUMA)
       map_PUMA %<>% left_join(obj, by = "PUMA")
       return(map_PUMA)
+    } else if (geog == "council_district") {
+      map_council <- sf::st_as_sf(glptools::map_council)
+      map_council %<>% left_join(obj, by = "council_district")
+      return(map_council)
+    } else if (geog == "house_district") {
+      map_house <- sf::st_as_sf(glptools::map_house)
+      map_house %<>% left_join(obj, by = "house_district")
+      return(map_house)
+    } else if (geog == "senate_district") {
+      map_senate <- sf::st_as_sf(glptools::map_senate)
+      map_senate %<>% left_join(obj, by = "senate_district")
+      return(map_senate)
     }
   }
 
@@ -114,6 +126,18 @@ make_map <- function(maps, var,
       obj %<>%
         mutate(
           line1 = paste0("PUMA ", PUMA))
+    } else if (geog == "council_district") {
+      obj %<>%
+        mutate(
+          line1 = paste0("Council District ", council_district))
+    } else if (geog == "house_district") {
+      obj %<>%
+        mutate(
+          line1 = paste0("House District ", house_district))
+    } else if (geog == "senate_district") {
+      obj %<>%
+        mutate(
+          line1 = paste0("Senate District ", senate_district))
     }
 
     obj
@@ -214,8 +238,13 @@ make_map <- function(maps, var,
                        paste0(legend_title, " (", units, " )"))
 
   #create map
-  geographies %<>% recode(tract = "Census Tracts", nh = "GLP Neighborhoods",
-                          muw = "United Way Neighborhoods")
+  geographies %<>% recode(
+    tract            = "Census Tracts",
+    nh               = "GLP Neighborhoods",
+    muw              = "United Way Neighborhoods",
+    council_district = "Metro Council District",
+    house_district   = "State House Districts",
+    senate_district  = "State Senate Districts")
 
   m <- leaflet()
 
