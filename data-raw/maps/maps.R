@@ -187,11 +187,11 @@ map_zip %<>%
 map_county %<>%
   transmute(
     FIPS = STATEFP %p% COUNTYFP,
-    county = NAME)
+    county = NAME) %>%
+  st_transform(4326)
 
 map_county_peers <- map_county %>%
-  filter(FIPS %in% FIPS_df$FIPS) %>%
-  st_transform(4326)
+  filter(FIPS %in% FIPS_df$FIPS)
 
 map_msa_lou <- map_county %>%
   filter(FIPS %in% MSA_FIPS$FIPS[MSA_FIPS$MSA == "31140"]) %>%
@@ -225,17 +225,38 @@ map_senate10 %<>%
     senate_district = as.numeric(SLDUST)) %>%
   st_transform(4326)
 
-map_council %<>%
-  st_transform(4326) %>%
-  transmute(council_district = COUNDIST)
+# Identify districts in Louisville
+map_jeffco <- map_county %>% filter(FIPS == "21111")
 
-map_council10 %<>%
-  st_transform(4326) %>%
-  transmute(council_district = coundist)
+districts_in_jeffco <- function(map, type = "") {
+  intersection = suppressWarnings(st_intersection(map, map_jeffco))
 
+  cutoff <- 1000
+  units(cutoff) <- "m^2"
 
+  intersection %<>%
+    mutate(overlap_area = st_area(intersection)) %>%
+    filter(overlap_area > cutoff)
 
-# Previous data
+  if(type == "house") {
+    map %<>%
+      mutate(
+        in_louisville = if_else(house_district %in% intersection$house_district, 1, 0))
+  }
+
+  if(type == "senate") {
+    map %<>%
+      mutate(
+        in_louisville = if_else(senate_district %in% intersection$senate_district, 1, 0))
+  }
+
+  map
+}
+
+map_house    %<>% districts_in_jeffco("house")
+map_house10  %<>% districts_in_jeffco("house")
+map_senate   %<>% districts_in_jeffco("senate")
+map_senate10 %<>% districts_in_jeffco("senate")
 
 update_sysdata(
   "nh_tract10", "ma_tract", "watterson_tract", "west_lou_tract10", "muw_tract10",
